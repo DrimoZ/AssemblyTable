@@ -1,4 +1,4 @@
-package com.drimoz.assembly.table;
+package com.drimoz.assembly.core.table;
 
 import com.drimoz.assembly.Assembly;
 import net.minecraft.core.BlockPos;

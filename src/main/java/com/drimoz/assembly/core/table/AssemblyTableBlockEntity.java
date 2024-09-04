@@ -1,7 +1,8 @@
-package com.drimoz.assembly.table;
+package com.drimoz.assembly.core.table;
 
 import com.drimoz.assembly.Assembly;
 import com.drimoz.assembly.Config;
+import com.drimoz.assembly.core.utils.EnergyContainer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -19,6 +20,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.common.util.LazyOptional;
+import net.minecraftforge.energy.IEnergyStorage;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.ItemStackHandler;
 import net.minecraftforge.items.wrapper.CombinedInvWrapper;
@@ -33,7 +35,15 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
     public static final int[] INPUT_SLOTS = createSlots(12, UPGRADE_SLOTS);
     public static final int[] OUTPUT_SLOTS = createSlots(12, INPUT_SLOTS);
 
+    // Config Properties
+
+    public static final boolean ALLOW_NO_LASER = Config.ASSEMBLY_TABLE_NO_LASER.get();
+    public static final double NO_LASER_SPEED_MODIFIER = Config.ASSEMBLY_TABLE_NO_LASER_SPEED_MULTIPLIER.get();
+
     // Protected Properties
+
+    protected EnergyContainer energyContainer;
+    protected LazyOptional<IEnergyStorage> lazyEnergyContainer;
 
     protected ItemStackHandler upgradeContainer;
     protected LazyOptional<IItemHandler> lazyUpgradeContainer;
@@ -42,8 +52,11 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
     protected ItemStackHandler outputContainer;
     protected LazyOptional<IItemHandler> lazyOutputContainer;
 
-    protected LazyOptional<CombinedInvWrapper> lazyIOContainer = LazyOptional.of(() -> new CombinedInvWrapper(inputContainer, outputContainer));
+    protected LazyOptional<CombinedInvWrapper> lazyIOContainer;
 
+    // Private Properties
+
+    private int currentEnergy;
 
     // LifeCycle
 
@@ -51,6 +64,7 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
         super(Assembly.ASSEMBLY_TABLE_ENTITY.get(), pos, state);
 
         initItemHandlers();
+        initEnergyHandler();
     }
 
     @Override
@@ -66,6 +80,7 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
         this.upgradeContainer.deserializeNBT(nbt.getCompound("upgradeContainer"));
         this.inputContainer.deserializeNBT(nbt.getCompound("inputContainer"));
         this.outputContainer.deserializeNBT(nbt.getCompound("outputContainer"));
+        if (ALLOW_NO_LASER) this.energyContainer.deserializeNBT(nbt.getCompound("energyContainer"));
     }
 
     @Override
@@ -74,6 +89,7 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
         nbt.put("upgradeContainer", this.upgradeContainer.serializeNBT());
         nbt.put("inputContainer", this.inputContainer.serializeNBT());
         nbt.put("outputContainer", this.outputContainer.serializeNBT());
+        if (ALLOW_NO_LASER && this.energyContainer != null) nbt.put("energyContainer", this.energyContainer.serializeNBT());
     }
 
     @Override
@@ -81,20 +97,27 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
         if (cap == ForgeCapabilities.ITEM_HANDLER) {
             if (side == null) {
                 return lazyIOContainer.cast();
-            } else if (side == Direction.UP) {
+            } else if (side == Direction.NORTH) {
                 return LazyOptional.of(() -> inputContainer).cast();
-            } else if (side == Direction.DOWN) {
+            } else if (side == Direction.SOUTH) {
                 return LazyOptional.of(() -> outputContainer).cast();
             } else {
                 return lazyIOContainer.cast();
             }
         }
+
+        if (cap == ForgeCapabilities.ENERGY && ALLOW_NO_LASER) {
+            return lazyEnergyContainer.cast();
+        }
+
         return super.getCapability(cap, side);
     }
 
     @Override
     public void onLoad() {
         super.onLoad();
+
+        if (ALLOW_NO_LASER && energyContainer != null) this.lazyEnergyContainer = LazyOptional.of(() -> energyContainer);
 
         this.lazyUpgradeContainer = LazyOptional.of(() -> upgradeContainer);
         this.lazyInputContainer = LazyOptional.of(() -> inputContainer);
@@ -106,6 +129,8 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
     @Override
     public void invalidateCaps()  {
         super.invalidateCaps();
+
+        if (this.lazyEnergyContainer != null) this.lazyEnergyContainer.invalidate();
 
         this.lazyUpgradeContainer.invalidate();
         this.lazyInputContainer.invalidate();
@@ -150,6 +175,8 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
         initUpgradeHandler();
         initInputHandler();
         initOutputHandler();
+
+        lazyIOContainer = LazyOptional.of(() -> new CombinedInvWrapper(inputContainer, outputContainer));
     }
 
     private void initUpgradeHandler() {
@@ -214,6 +241,20 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
 
         };
         this.lazyOutputContainer = LazyOptional.of(() -> this.outputContainer);
+    }
+
+    // Inner Work - Energy
+
+    private void initEnergyHandler() {
+        if (!ALLOW_NO_LASER) return;
+
+        this.energyContainer = new EnergyContainer(
+                Config.ASSEMBLY_TABLE_NO_LASER_ENERGY_CAPACITY.get(),
+                Config.ASSEMBLY_TABLE_NO_LASER_ENERGY_INPUT_RATE.get(),
+                0,
+                0
+        );
+        this.lazyEnergyContainer = LazyOptional.of(() -> this.energyContainer);
     }
 
     // Inner Work - Utils
