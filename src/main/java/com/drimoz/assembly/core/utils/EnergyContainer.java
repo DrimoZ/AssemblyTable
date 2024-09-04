@@ -1,24 +1,27 @@
-package com.drimoz.assembly.utils;
+package com.drimoz.assembly.core.utils;
 
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.IntTag;
+import net.minecraft.nbt.Tag;
 import net.minecraftforge.energy.EnergyStorage;
 
-public class EnegryContainer extends EnergyStorage {
+public class EnergyContainer extends EnergyStorage {
 
     //Life cycle
 
-    public EnegryContainer(int capacity) {
+    public EnergyContainer(int capacity) {
         super(capacity);
     }
 
-    public EnegryContainer(int capacity, int maxTransfer) {
+    public EnergyContainer(int capacity, int maxTransfer) {
         super(capacity, maxTransfer);
     }
 
-    public EnegryContainer(int capacity, int maxReceive, int maxExtract) {
+    public EnergyContainer(int capacity, int maxReceive, int maxExtract) {
         super(capacity, maxReceive, maxExtract);
     }
 
-    public EnegryContainer(int capacity, int maxReceive, int maxExtract, int energy) {
+    public EnergyContainer(int capacity, int maxReceive, int maxExtract, int energy) {
         super(capacity, maxReceive, maxExtract, energy);
     }
 
@@ -82,5 +85,25 @@ public class EnegryContainer extends EnergyStorage {
     public EnergyStorage overrideMaxExtract(int maxExtract) {
         this.maxExtract = maxExtract;
         return this;
+    }
+
+    // Serialization
+
+    @Override
+    public CompoundTag serializeNBT() {
+        CompoundTag nbt = new CompoundTag();
+        nbt.putInt("energy", this.energy);
+        nbt.putInt("capacity", this.capacity);
+        nbt.putInt("maxReceive", this.maxReceive);
+        nbt.putInt("maxExtract", this.maxExtract);
+
+        return nbt;
+    }
+
+    public void deserializeNBT(CompoundTag nbt) {
+        this.energy = nbt.getInt("energy");
+        this.capacity = nbt.getInt("capacity");
+        this.maxReceive = nbt.getInt("maxReceive");
+        this.maxExtract = nbt.getInt("maxExtract");
     }
 }
