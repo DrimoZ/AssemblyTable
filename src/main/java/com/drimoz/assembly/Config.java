@@ -13,9 +13,12 @@ public class Config
     public static final ForgeConfigSpec.IntValue ASSEMBLY_TABLE_UPGRADE_COUNT;
 
     public static final ForgeConfigSpec.BooleanValue ASSEMBLY_TABLE_NO_LASER;
+
     public static final ForgeConfigSpec.DoubleValue ASSEMBLY_TABLE_NO_LASER_SPEED_MULTIPLIER;
-    public static final ForgeConfigSpec.IntValue ASSEMBLY_TABLE_NO_LASER_ENERGY_CAPACITY;
-    public static final ForgeConfigSpec.IntValue ASSEMBLY_TABLE_NO_LASER_ENERGY_INPUT_RATE;
+
+    public static final ForgeConfigSpec.IntValue ASSEMBLY_TABLE_ENERGY_CONSUMPTION;
+    public static final ForgeConfigSpec.IntValue ASSEMBLY_TABLE_ENERGY_CAPACITY;
+    public static final ForgeConfigSpec.IntValue ASSEMBLY_TABLE_ENERGY_INPUT_RATE;
 
     static {
         BUILDER.comment("Assembly Common Configs");
@@ -29,7 +32,22 @@ public class Config
                     .comment("Choose whether the Assembly Table have slots")
                     .comment("0 means no upgrades - CARE : Reducing the upgrade count when Upgrade Cards are inside an Assembly Table may cause Item suppressions !")
                     .comment("Default : 3")
-                    .defineInRange("assembly_table_upgrades_count", 3, 1, 5);
+                    .defineInRange("assembly_table_upgrades_count", 3, 0, 5);
+
+            ASSEMBLY_TABLE_ENERGY_CONSUMPTION = BUILDER
+                    .comment("Defines the base energy consumption rate (per tick) of the Assembly Table while using the No Laser Assembly Table.")
+                    .comment("Default : 250 fe/t")
+                    .defineInRange("assembly_table_no_laser_speed_modifier", 250, 1, 100000000);
+
+            ASSEMBLY_TABLE_ENERGY_CAPACITY = BUILDER
+                    .comment("Defines the maximum amount of energy the Assembly Table has when it can operate without Laser.")
+                    .comment("Default : 10000")
+                    .defineInRange("assembly_table_no_laser_energy_capacity", 10000, 1, 100000000);
+
+            ASSEMBLY_TABLE_ENERGY_INPUT_RATE = BUILDER
+                    .comment("Defines the amount of energy per tick that the Assembly Table can accept as input when it can operate without Laser.")
+                    .comment("Default : 500")
+                    .defineInRange("assembly_table_no_laser_max_energy_input", 500, 1, 100000000);
 
                 // Basic Assembly Table
 
@@ -49,19 +67,10 @@ public class Config
                         .define("allow_no_laser", true);
 
                 ASSEMBLY_TABLE_NO_LASER_SPEED_MULTIPLIER = BUILDER
-                        .comment("Defines the multiplier applied on a recipe base speed while using the No Laser Assembly Table.")
-                        .comment("Default : 0.85")
-                        .defineInRange("assembly_table_no_laser_speed_modifier", .85, .001, 10.0);
-
-                ASSEMBLY_TABLE_NO_LASER_ENERGY_CAPACITY = BUILDER
-                        .comment("Defines the maximum amount of energy the Assembly Table has when it can operate without Laser.")
-                        .comment("Default : 10000")
-                        .defineInRange("assembly_table_no_laser_energy_capacity", 10000, 1, 100000000);
-
-                ASSEMBLY_TABLE_NO_LASER_ENERGY_INPUT_RATE = BUILDER
-                        .comment("Defines the amount of energy per tick that the Assembly Table can accept as input when it can operate without Laser.")
-                        .comment("Default : 500")
-                        .defineInRange("assembly_table_no_laser_max_energy_input", 500, 1, 100000000);
+                        .comment("Defines the speed multiplier of the Assembly Table when it operate without Laser.")
+                        .comment("The value is a percentage of the regular speed when used with Lasers.")
+                        .comment("Default : 0.5")
+                        .defineInRange("assembly_table_no_laser_speed_multiplier", 0.5, 0, 100);
 
                 BUILDER.pop();
 

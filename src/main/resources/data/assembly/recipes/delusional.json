@@ -1,0 +1,12 @@
+{
+  "type": "assembly:assembling",
+  "ingredients": [
+    {
+      "item": "minecraft:bedrock"
+    }
+  ],
+  "result": {
+    "item": "minecraft:stone"
+  },
+  "energy": 100000
+}

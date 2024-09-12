@@ -3,5 +3,8 @@
 
 
   "block.assembly.assembly_table": "Assembly Table",
-  "item.assembly.assembly_table": "Assembly Table"
+  "item.assembly.assembly_table": "Assembly Table",
+
+
+  "tooltip.assembly.energy_name": "FE"
 }

@@ -1,0 +1,16 @@
+{
+  "type": "assembly:assembling",
+  "ingredients": [
+    {
+      "item": "minecraft:diamond"
+    },
+    {
+      "tag": "forge:ores/coal",
+      "count": 1
+    }
+  ],
+  "result": {
+    "item": "minecraft:beacon"
+  },
+  "energy": 10000
+}

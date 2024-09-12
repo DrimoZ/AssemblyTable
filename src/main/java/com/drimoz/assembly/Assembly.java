@@ -1,14 +1,22 @@
 package com.drimoz.assembly;
 
-import com.drimoz.assembly.core.table.AssemblyTableBlock;
-import com.drimoz.assembly.core.table.AssemblyTableBlockEntity;
+import com.drimoz.assembly.recipe.AssemblyTableRecipe;
+import com.drimoz.assembly.core.block.AssemblyTableBlock;
+import com.drimoz.assembly.core.tileentity.AssemblyTableBlockEntity;
+import com.drimoz.assembly.client.menu.AssemblyTableMenu;
+import com.drimoz.assembly.client.screen.AssemblyTableScreen;
+import com.drimoz.assembly.network.AssemblyNetwork;
 import com.mojang.logging.LogUtils;
+import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.*;
+import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.common.extensions.IForgeMenuType;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
@@ -35,6 +43,8 @@ public class Assembly {
     public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITY_TYPES = DeferredRegister.create(ForgeRegistries.BLOCK_ENTITY_TYPES, MOD_ID);
     public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, MOD_ID);
     public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MOD_ID);
+    public static final DeferredRegister<MenuType<?>> MENUS = DeferredRegister.create(ForgeRegistries.MENU_TYPES, MOD_ID);
+    public static final DeferredRegister<RecipeSerializer<?>> SERIALIZERS = DeferredRegister.create(ForgeRegistries.RECIPE_SERIALIZERS, MOD_ID);
 
     // Blocks
 
@@ -59,6 +69,19 @@ public class Assembly {
                 output.accept(ASSEMBLY_TABLE_ITEM.get());
             }).build());
 
+    // Menus
+
+    public static final RegistryObject<MenuType<AssemblyTableMenu>> ASSEMBLY_TABLE_MENU =
+            MENUS.register(
+                    "assembly_table_menu",
+                    () -> IForgeMenuType.create((windowId, inv, data) -> new AssemblyTableMenu(windowId, inv, (AssemblyTableBlockEntity) inv.player.level().getBlockEntity(data.readBlockPos()))));
+
+    // Recipe Serializer
+
+    public static final RegistryObject<RecipeSerializer<AssemblyTableRecipe>> ASSEMBLING_SERIALIZER = SERIALIZERS.register("assembling", () -> AssemblyTableRecipe.Serializer.INSTANCE);
+
+    // Capability
+
     public Assembly() {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
 
@@ -68,6 +91,11 @@ public class Assembly {
         BLOCK_ENTITY_TYPES.register(modEventBus);
         ITEMS.register(modEventBus);
         CREATIVE_MODE_TABS.register(modEventBus);
+        SERIALIZERS.register(modEventBus);
+
+        MENUS.register(FMLJavaModLoadingContext.get().getModEventBus());
+
+        AssemblyNetwork.init();
 
         MinecraftForge.EVENT_BUS.register(this);
 
@@ -75,5 +103,6 @@ public class Assembly {
     }
 
     private void commonSetup(final FMLCommonSetupEvent event) {
+        MenuScreens.register(ASSEMBLY_TABLE_MENU.get(), AssemblyTableScreen::new);
     }
 }

@@ -1,6 +1,7 @@
-package com.drimoz.assembly.core.table;
+package com.drimoz.assembly.core.block;
 
 import com.drimoz.assembly.Assembly;
+import com.drimoz.assembly.core.tileentity.AssemblyTableBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerPlayer;

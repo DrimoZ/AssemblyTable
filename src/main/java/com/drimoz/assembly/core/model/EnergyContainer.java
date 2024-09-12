@@ -1,8 +1,7 @@
-package com.drimoz.assembly.core.utils;
+package com.drimoz.assembly.core.model;
 
+import com.drimoz.assembly.Assembly;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.IntTag;
-import net.minecraft.nbt.Tag;
 import net.minecraftforge.energy.EnergyStorage;
 
 public class EnergyContainer extends EnergyStorage {
@@ -11,23 +10,51 @@ public class EnergyContainer extends EnergyStorage {
 
     public EnergyContainer(int capacity) {
         super(capacity);
+        this.onEnergyChanged();
     }
 
     public EnergyContainer(int capacity, int maxTransfer) {
         super(capacity, maxTransfer);
+        this.onEnergyChanged();
     }
 
     public EnergyContainer(int capacity, int maxReceive, int maxExtract) {
         super(capacity, maxReceive, maxExtract);
+        this.onEnergyChanged();
     }
 
     public EnergyContainer(int capacity, int maxReceive, int maxExtract, int energy) {
         super(capacity, maxReceive, maxExtract, energy);
+        this.onEnergyChanged();
     }
 
     // Event Emitters
 
-    protected void onEnergyChanged() {}
+    public void onEnergyChanged() {}
+
+    @Override
+    public int receiveEnergy(int maxReceive, boolean simulate) {
+        int x = super.receiveEnergy(maxReceive, simulate);
+        if (!simulate) onEnergyChanged();
+        return x;
+    }
+
+    @Override
+    public int extractEnergy(int maxExtract, boolean simulate) {
+        int x = super.extractEnergy(maxExtract, simulate);
+        if (!simulate) onEnergyChanged();
+        return x;
+    }
+
+    public int useEnergy(int amount, boolean simulate) {
+        int energyExtracted = Math.min(energy, amount);
+        if (!simulate) {
+            energy -= energyExtracted;
+            onEnergyChanged();
+        }
+        return energyExtracted;
+    }
+
 
     // Getters
 
@@ -105,5 +132,7 @@ public class EnergyContainer extends EnergyStorage {
         this.capacity = nbt.getInt("capacity");
         this.maxReceive = nbt.getInt("maxReceive");
         this.maxExtract = nbt.getInt("maxExtract");
+
+        this.onEnergyChanged();
     }
 }
