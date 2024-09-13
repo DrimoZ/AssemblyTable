@@ -77,23 +77,36 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
 
     @Override
     protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
-        guiGraphics.drawString(this.font, this.title, this.titleLabelX, this.titleLabelY, 4210752, false);
-        guiGraphics.drawString(this.font, this.playerInventoryTitle, this.inventoryLabelX, (this.imageHeight - 96 + 2), 4210752, false);
+        guiGraphics.drawString(this.font, this.title, this.titleLabelX + 29, this.titleLabelY, 4210752, false);
+        guiGraphics.drawString(this.font, this.playerInventoryTitle, this.inventoryLabelX + 29, (this.imageHeight - 96 + 2), 4210752, false);
     }
 
     // Inner Work
 
     private void renderSelectedSlots(GuiGraphics guiGraphics, int mouseX, int mouseY) {
-        for (int slotIndex : TE.getSelectedRecipeSlots()) {
-            guiGraphics.blit(
-                    GUI_TEXTURE,
-                     this.leftPos + Constants.Menu.SHADOW_FIRST_SLOT_X + (slotIndex % Constants.Menu.SHADOW_COLUMN_COUNT) * SLOT_WIDTH - 1,
-                     this.topPos + Constants.Menu.SHADOW_FIRST_SLOT_Y + (slotIndex / Constants.Menu.SHADOW_COLUMN_COUNT) * SLOT_HEIGHT - 1,
-                    SLOT_X, SLOT_Y,
-                    SLOT_WIDTH, SLOT_HEIGHT,
-                    TEXTURE_WIDTH, TEXTURE_HEIGHT
-            );
+        for (int i = 0; i < TE.getSelectedRecipeSlots().size(); i++) {
+            int slotIndex = TE.getSelectedRecipeSlots().get(i);
 
+            if (i == 0) {
+                guiGraphics.blit(
+                        GUI_TEXTURE,
+                        this.leftPos + Constants.Menu.SHADOW_FIRST_SLOT_X + (slotIndex % Constants.Menu.SHADOW_COLUMN_COUNT) * SLOT_WIDTH - 1,
+                        this.topPos + Constants.Menu.SHADOW_FIRST_SLOT_Y + (slotIndex / Constants.Menu.SHADOW_COLUMN_COUNT) * SLOT_HEIGHT - 1,
+                        SLOT_CRAFTING_X, SLOT_CRAFTING_Y,
+                        SLOT_WIDTH, SLOT_HEIGHT,
+                        TEXTURE_WIDTH, TEXTURE_HEIGHT
+                );
+            }
+            else {
+                guiGraphics.blit(
+                        GUI_TEXTURE,
+                        this.leftPos + Constants.Menu.SHADOW_FIRST_SLOT_X + (slotIndex % Constants.Menu.SHADOW_COLUMN_COUNT) * SLOT_WIDTH - 1,
+                        this.topPos + Constants.Menu.SHADOW_FIRST_SLOT_Y + (slotIndex / Constants.Menu.SHADOW_COLUMN_COUNT) * SLOT_HEIGHT - 1,
+                        SLOT_WAITING_X, SLOT_WAITING_Y,
+                        SLOT_WIDTH, SLOT_HEIGHT,
+                        TEXTURE_WIDTH, TEXTURE_HEIGHT
+                );
+            }
         }
     }
 

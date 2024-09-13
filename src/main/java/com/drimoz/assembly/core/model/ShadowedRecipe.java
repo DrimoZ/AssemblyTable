@@ -22,6 +22,13 @@ public class ShadowedRecipe {
         this.selected = selected;
     }
 
+    protected ShadowedRecipe(AssemblyTableRecipe recipe, int slot, boolean selected) {
+        this.recipe = recipe;
+        this.recipeId = recipe.getId();
+        this.slot = slot;
+        this.selected = selected;
+    }
+
     public ShadowedRecipe(AssemblyTableRecipe recipe) {
         this.recipe = recipe;
         this.recipeId = recipe.getId();
@@ -83,5 +90,9 @@ public class ShadowedRecipe {
                 nbt.getInt("slot"),
                 nbt.getBoolean("selected")
         );
+    }
+
+    public ShadowedRecipe clone() {
+        return new ShadowedRecipe(this.recipe, this.slot, this.selected);
     }
 }

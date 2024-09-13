@@ -81,8 +81,8 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
 
     // Private Properties
 
-    private final LinkedList<ShadowedRecipe> recipes = new LinkedList<>();
-
+    private final LinkedList<ShadowedRecipe> shadowedRecipes = new LinkedList<>();
+    private final LinkedList<ShadowedRecipe> selectedShadowedRecipes = new LinkedList<>();
     private List<Integer> selectedRecipeSlots = new ArrayList<>();
     private int recipeAccumulatedEnergy = 0;
     private int recipeTotalProgress = 0;
@@ -118,9 +118,14 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
 
         this.recipeAccumulatedEnergy = nbt.getInt("recipeAccumulatedEnergy");
 
-        ListTag recipesTag = (ListTag) nbt.get("recipes");
-        for (int i = 0; i < recipesTag.size(); i++) {
-            this.recipes.add(ShadowedRecipe.deserializeNBT(recipesTag.getCompound(i)));
+        ListTag shadowedRecipesTag = (ListTag) nbt.get("shadowedRecipes");
+        for (int i = 0; i < shadowedRecipesTag.size(); i++) {
+            this.shadowedRecipes.add(ShadowedRecipe.deserializeNBT(shadowedRecipesTag.getCompound(i)));
+        }
+
+        ListTag selectedShadowedRecipesTag = (ListTag) nbt.get("selectedShadowedRecipes");
+        for (int i = 0; i < selectedShadowedRecipesTag.size(); i++) {
+            this.selectedShadowedRecipes.add(ShadowedRecipe.deserializeNBT(selectedShadowedRecipesTag.getCompound(i)));
         }
 
         this.upgradeContainer.deserializeNBT(nbt.getCompound("upgradeContainer"));
@@ -141,11 +146,17 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
 
         nbt.putInt("recipeAccumulatedEnergy", this.recipeAccumulatedEnergy);
 
-        ListTag recipesTag = new ListTag();
-        for (ShadowedRecipe recipe : this.recipes) {
-            recipesTag.add(recipe.serializeNBT());
+        ListTag shadowedRecipesTag = new ListTag();
+        for (ShadowedRecipe recipe : this.shadowedRecipes) {
+            shadowedRecipesTag.add(recipe.serializeNBT());
         }
-        nbt.put("recipes", recipesTag);
+        nbt.put("shadowedRecipes", shadowedRecipesTag);
+
+        ListTag selectedShadowedRecipesTag = new ListTag();
+        for (ShadowedRecipe recipe : this.selectedShadowedRecipes) {
+            selectedShadowedRecipesTag.add(recipe.serializeNBT());
+        }
+        nbt.put("selectedShadowedRecipes", selectedShadowedRecipesTag);
 
         nbt.put("upgradeContainer", this.upgradeContainer.serializeNBT());
 
@@ -196,8 +207,6 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
         this.lazyOutputContainer = LazyOptional.of(() -> outputContainer);
 
         this.lazyIOContainer = LazyOptional.of(() -> new CombinedInvWrapper(inputContainer, outputContainer));
-
-        this.syncEntityCurrentEnergy();
     }
 
     @Override
@@ -258,11 +267,21 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
     public void toggleRecipe(int slotId) {
         slotId -= Constants.Menu.TE_INVENTORY_FIRST_SLOT_INDEX + INPUT_SLOT_COUNT;
 
-        for (ShadowedRecipe recipe : this.recipes) {
+        for (ShadowedRecipe recipe : this.shadowedRecipes) {
             if (slotId == recipe.getSlot()) {
                 recipe.toggleSelection();
+
+                if (recipe.isSelected()) {
+                    this.selectedShadowedRecipes.add(recipe);
+                } else {
+                    this.selectedShadowedRecipes.remove(recipe);
+                }
+
+                syncSelectedRecipeSlots();
+                return;
             }
         }
+
     }
 
     public static void tick(Level level, BlockPos pos, BlockState state, AssemblyTableBlockEntity blockEntity) {
@@ -300,7 +319,7 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
     }
 
     private AssemblyTableRecipe getSelectedRecipe () {
-        AssemblyTableRecipe recipe = this.recipes.stream().filter(ShadowedRecipe::isSelected).findFirst().map(ShadowedRecipe::getRecipe).orElse(null);
+        AssemblyTableRecipe recipe = this.selectedShadowedRecipes.stream().filter(ShadowedRecipe::isSelected).findFirst().map(ShadowedRecipe::getRecipe).orElse(null);
         if (recipe != null && this.recipeTotalProgress != recipe.getTotalEnergy()) {
             this.recipeTotalProgress = recipe.getTotalEnergy();
         }
@@ -389,7 +408,7 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
         if (level == null || level.isClientSide()) return;
 
         List<ShadowedRecipe> toRemove = new ArrayList<>();
-        for (ShadowedRecipe recipe : this.recipes) {
+        for (ShadowedRecipe recipe : this.shadowedRecipes) {
             if (recipe.getRecipe() == null) {
                 recipe.setRecipe(
                         level.getRecipeManager()
@@ -406,7 +425,28 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
             }
         }
 
-        this.recipes.removeAll(toRemove);
+        this.shadowedRecipes.removeAll(toRemove);
+        this.selectedShadowedRecipes.removeAll(toRemove);
+        toRemove.clear();
+
+        for (ShadowedRecipe recipe : this.selectedShadowedRecipes) {
+            if (recipe.getRecipe() == null) {
+                recipe.setRecipe(
+                        level.getRecipeManager()
+                                .getAllRecipesFor(AssemblyTableRecipe.Type.INSTANCE)
+                                .stream()
+                                .filter(r -> r.getId().equals(recipe.getRecipeId()))
+                                .findFirst()
+                                .orElse(null)
+                );
+            }
+
+            if (recipe.getRecipe() == null) {
+                toRemove.add(recipe);
+            }
+        }
+
+        this.selectedShadowedRecipes.removeAll(toRemove);
     }
 
     private void getMatchingRecipes () {
@@ -415,7 +455,7 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
         for (AssemblyTableRecipe recipe : level.getRecipeManager().getAllRecipesFor(AssemblyTableRecipe.Type.INSTANCE)) {
             if (isRecipeValid(recipe)) {
                 ShadowedRecipe sr = new ShadowedRecipe(recipe);
-                if (!this.recipes.contains(sr)) this.recipes.add(new ShadowedRecipe(recipe));
+                if (!this.shadowedRecipes.contains(sr)) this.shadowedRecipes.add(new ShadowedRecipe(recipe));
             }
         }
     }
@@ -423,18 +463,19 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
     private void clearInvalidShadows () {
         // clear this.recipes from invalid recipes
         List<ShadowedRecipe> toRemove = new ArrayList<>();
-        for (ShadowedRecipe sr : this.recipes) {
+        for (ShadowedRecipe sr : this.shadowedRecipes) {
             if (!isRecipeValid(sr.getRecipe())) {
                 toRemove.add(sr);
             }
         }
-        this.recipes.removeAll(toRemove);
+        this.shadowedRecipes.removeAll(toRemove);
+        this.selectedShadowedRecipes.removeAll(toRemove);
     }
 
     private void populateShadowSlots () {
         int shadowSlotIndex = 0;
 
-        for (ShadowedRecipe recipe : this.recipes) {
+        for (ShadowedRecipe recipe : this.shadowedRecipes) {
             ItemStack shadowItem = recipe.getRecipe().getResultItem(level.registryAccess()).copy();
             this.shadowContainer.setStackInSlot(shadowSlotIndex, shadowItem);
             recipe.setSlot(shadowSlotIndex);
@@ -676,15 +717,16 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
     private void syncSelectedRecipeSlots() {
         if (level.isClientSide) return;
 
-        List<Integer> selectedRecipeSlots = new ArrayList<>();
-
-        for (ShadowedRecipe recipe : this.recipes) {
-            if (recipe.isSelected()) {
-                selectedRecipeSlots.add(recipe.getSlot());
+        this.selectedRecipeSlots.clear();
+        for (ShadowedRecipe shadowedRecipe : this.selectedShadowedRecipes) {
+            if (shadowedRecipe.isSelected()) {
+                if (!this.selectedRecipeSlots.contains(shadowedRecipe.getSlot())) {
+                    this.selectedRecipeSlots.add(shadowedRecipe.getSlot());
+                }
             }
         }
 
-        AssemblyNetwork.sendToClients(new SelectedRecipesSyncS2C(selectedRecipeSlots, worldPosition));
+        AssemblyNetwork.sendToClients(new SelectedRecipesSyncS2C(this.selectedRecipeSlots, worldPosition));
     }
 
     // Sync Setters
