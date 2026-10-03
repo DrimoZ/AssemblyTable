@@ -36,7 +36,7 @@ public final class ClientEvents {
     @SubscribeEvent
     static void registerItemColors(RegisterColorHandlersEvent.Item event) {
         event.register((stack, tint) -> tint == 0 ? 0xFF000000 | BeamColors.rgb(LensItem.beam(stack)) : -1, ModItems.LENS.get());
-        event.register((stack, tint) -> tint != 0 || Minecraft.getInstance().level == null ? -1
+        event.register((stack, tint) -> tint != 1 || Minecraft.getInstance().level == null ? -1
                 : AugmentItem.type(stack, Minecraft.getInstance().level.registryAccess())
                         .map(type -> 0xFF000000 | type.color().getValue()).orElse(-1), ModItems.AUGMENT.get());
     }

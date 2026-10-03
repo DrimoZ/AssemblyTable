@@ -1,0 +1,14 @@
+{
+  "type": "laserassembly:assembling",
+  "ingredients": [
+    { "ingredient": { "item": "minecraft:diamond" }, "count": 5 },
+    { "ingredient": { "item": "minecraft:iron_ingot" }, "count": 2 },
+    { "ingredient": { "item": "minecraft:leather" }, "count": 1 }
+  ],
+  "result": { "id": "minecraft:diamond_horse_armor" },
+  "steps": [
+    { "beam": "laserassembly:cut", "energy": 4000 },
+    { "beam": "laserassembly:weld", "energy": 6000 },
+    { "beam": "laserassembly:engrave", "energy": 3000 }
+  ]
+}

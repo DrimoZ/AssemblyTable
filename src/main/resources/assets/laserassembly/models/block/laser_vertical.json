@@ -1,7 +1,7 @@
 {
   "parent": "minecraft:block/orientable_vertical",
   "textures": {
-    "front": "minecraft:block/observer_back_on",
-    "side": "minecraft:block/smooth_stone"
+    "front": "laserassembly:block/laser_front",
+    "side": "laserassembly:block/laser_side"
   }
 }

@@ -1,8 +1,8 @@
 {
   "parent": "minecraft:block/orientable",
   "textures": {
-    "front": "minecraft:block/observer_back_on",
-    "side": "minecraft:block/smooth_stone",
-    "top": "minecraft:block/smooth_stone"
+    "front": "laserassembly:block/laser_front",
+    "side": "laserassembly:block/laser_side",
+    "top": "laserassembly:block/laser_side"
   }
 }

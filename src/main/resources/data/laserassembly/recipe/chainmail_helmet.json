@@ -1,0 +1,8 @@
+{
+  "type": "laserassembly:assembling",
+  "ingredients": [
+    { "ingredient": { "item": "minecraft:chain" }, "count": 5 }
+  ],
+  "result": { "id": "minecraft:chainmail_helmet" },
+  "energy": 3000
+}
