@@ -48,8 +48,8 @@ public abstract class SideTab {
 
     protected abstract Component title();
 
-    /** The header icon, 12x12, centred in the header square. */
-    protected abstract GuiSprites.Icon icon();
+    /** The header icon, 12x12 at {@code (x, y)}, centred in the header square: a sprite or an item. */
+    protected abstract void renderIcon(GuiGraphics graphics, int x, int y);
 
     protected abstract int contentWidth();
 
@@ -182,7 +182,7 @@ public abstract class SideTab {
     void renderForeground(GuiGraphics graphics, Font font, int mouseX, int mouseY) {
         int iconX = left() + (GuiMetrics.TAB_HEADER - GuiSprites.ICON_SIZE) / 2;
         int iconY = y + (GuiMetrics.TAB_HEADER - GuiSprites.ICON_SIZE) / 2;
-        GuiSprites.icon(graphics, icon(), iconX, iconY);
+        renderIcon(graphics, iconX, iconY);
         if (!isFullyOpen()) {
             return;
         }

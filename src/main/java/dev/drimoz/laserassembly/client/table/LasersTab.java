@@ -9,10 +9,12 @@ import dev.drimoz.laserassembly.content.beam.BeamType;
 import dev.drimoz.laserassembly.content.laser.LaserBlockEntity;
 import dev.drimoz.laserassembly.content.table.AssemblyTableMenu;
 import dev.drimoz.laserassembly.registry.ModBlocks;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
@@ -22,11 +24,14 @@ import java.util.List;
 import java.util.function.IntConsumer;
 
 /**
- * The red tab on the right: every laser aiming at the table, its lens, its intensity and how far it
- * stands - and the intensity set from here, one laser or all at once, without walking to each. Lenses
- * and augments are items: they still go in the laser itself.
+ * The red tab on the right: every laser aiming at the table, its lenses and its intensity - and the
+ * intensity set from here without walking to each, the top row for every laser at once, as its label
+ * says. Where a laser stands is in its tooltip: a bare distance beside the intensity read as a second
+ * setting. Lenses and augments are items: they still go in the laser itself.
  */
 final class LasersTab extends SideTab {
+
+    private static final ItemStack ICON = new ItemStack(ModBlocks.LASER_ITEM.get());
 
     private static final int WIDTH = 132;
     private static final int ROW = 18;
@@ -50,8 +55,8 @@ final class LasersTab extends SideTab {
     }
 
     @Override
-    protected GuiSprites.Icon icon() {
-        return GuiSprites.Icon.LASERS;
+    protected void renderIcon(GuiGraphics graphics, int x, int y) {
+        GuiSprites.icon(graphics, ICON, x, y);
     }
 
     @Override
@@ -90,11 +95,9 @@ final class LasersTab extends SideTab {
             if (laser.regulated()) {
                 graphics.drawString(font, text("tab.lasers.auto", laser.intensity()), x + 44, rowY + 5, GuiTheme.TAB_MUTED, true);
             } else {
-                graphics.drawString(font, Integer.toString(laser.intensity()), x + 44, rowY + 5, GuiTheme.TAB_VALUE, true);
+                graphics.drawString(font, text("tab.lasers.intensity", laser.intensity()), x + 44, rowY + 5, GuiTheme.TAB_VALUE, true);
                 buttons(graphics, font, x, rowY, mouseX, mouseY);
             }
-            int distance = (int) Math.round(Math.sqrt(laser.getBlockPos().distSqr(menu.table().getBlockPos())));
-            graphics.drawString(font, text("tab.lasers.distance", distance), x + 84, rowY + 5, GuiTheme.TAB_MUTED, true);
         }
         if (lasers.size() > MAX_ROWS) {
             graphics.drawString(font, "+" + (lasers.size() - MAX_ROWS), x + WIDTH - 12, y + ROW * MAX_ROWS + 5, GuiTheme.TAB_MUTED, true);
@@ -133,14 +136,16 @@ final class LasersTab extends SideTab {
     protected List<Component> contentTooltip(int x, int y, int mouseX, int mouseY) {
         List<BlockPos> lasers = lasers();
         int row = (mouseY - y) / ROW - 1;
-        if (mouseX >= x && mouseX < x + 44 && row >= 0 && row < Math.min(lasers.size(), MAX_ROWS)) {
+        if (mouseX >= x && mouseX < x + MINUS_X && row >= 0 && row < Math.min(lasers.size(), MAX_ROWS)) {
             LaserBlockEntity laser = laser(lasers.get(row));
             if (laser != null) {
                 BlockPos pos = laser.getBlockPos();
                 List<Component> lines = new ArrayList<>(List.of(text("laser." + stateKey(laser.state()))));
-                for (ResourceLocation lens : laser.lenses()) lines.add(Component.literal("25A0 ").withColor(0xFF000000 | BeamColors.rgb(lens)).append(BeamType.name(lens)));
+                for (ResourceLocation lens : laser.lenses()) lines.add(Component.literal("■ ").withColor(0xFF000000 | BeamColors.rgb(lens)).append(BeamType.name(lens)));
                 if (laser.lenses().isEmpty()) lines.add(text("beam.raw"));
-                lines.add(text("tab.lasers.position", pos.getX(), pos.getY(), pos.getZ()));
+                int distance = (int) Math.round(Math.sqrt(pos.distSqr(menu.table().getBlockPos())));
+                lines.add(text("tab.lasers.distance", distance).append(" · ")
+                        .append(text("tab.lasers.position", pos.getX(), pos.getY(), pos.getZ())).withStyle(ChatFormatting.GRAY));
                 return lines;
             }
         }
@@ -180,7 +185,7 @@ final class LasersTab extends SideTab {
         return mouseX >= x && mouseX < x + BUTTON && mouseY >= y && mouseY < y + BUTTON;
     }
 
-    private static Component text(String key, Object... args) {
+    private static MutableComponent text(String key, Object... args) {
         return Component.translatable(LaserAssembly.MOD_ID + "." + key, args);
     }
 }

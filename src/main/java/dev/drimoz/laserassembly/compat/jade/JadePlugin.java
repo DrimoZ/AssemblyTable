@@ -8,6 +8,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
 import snownee.jade.api.BlockAccessor;
 import snownee.jade.api.IBlockComponentProvider;
 import snownee.jade.api.IServerDataProvider;
@@ -17,6 +18,7 @@ import snownee.jade.api.IWailaCommonRegistration;
 import snownee.jade.api.IWailaPlugin;
 import snownee.jade.api.WailaPlugin;
 import snownee.jade.api.config.IPluginConfig;
+import snownee.jade.api.ui.IElementHelper;
 
 /**
  * The table at a glance: what it makes, which step, how far, how hot. Only Jade loads this class, so
@@ -60,7 +62,10 @@ public final class JadePlugin implements IWailaPlugin {
             if (recipe == null) {
                 tooltip.add(text("jade.idle").withStyle(ChatFormatting.GRAY));
             } else {
-                tooltip.add(recipe.getResultItem(accessor.getLevel().registryAccess()).getHoverName());
+                // The item itself, then "Making ...": a bare item name did not say it was what the table makes.
+                ItemStack result = recipe.getResultItem(accessor.getLevel().registryAccess());
+                tooltip.add(IElementHelper.get().smallItem(result));
+                tooltip.append(text("jade.making", result.getHoverName()));
                 tooltip.add(text("jade.step", data.getInt("step") + 1, data.getInt("steps"),
                         Math.round(100 * data.getFloat("progress"))).withStyle(ChatFormatting.GRAY));
             }

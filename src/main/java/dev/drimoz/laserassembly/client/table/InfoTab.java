@@ -23,7 +23,7 @@ final class InfoTab extends SideTab {
     private static final int WIDTH = 120;
     /** A label and its value, then FactoryIO's 3-pixel gap before the next. */
     private static final int ROW = 2 * GuiTheme.LINE + 3;
-    private static final int ROWS = 4;
+    private static final int ROWS = 5;
 
     private final AssemblyTableMenu menu;
     private final Supplier<Status> light;
@@ -42,8 +42,8 @@ final class InfoTab extends SideTab {
     }
 
     @Override
-    protected GuiSprites.Icon icon() {
-        return GuiSprites.Icon.INFO;
+    protected void renderIcon(GuiGraphics graphics, int x, int y) {
+        GuiSprites.icon(graphics, GuiSprites.Icon.INFO, x, y);
     }
 
     @Override
@@ -63,6 +63,9 @@ final class InfoTab extends SideTab {
         line(graphics, font, x, y + 2 * ROW, text("tab.info.cooling"),
                 text("tab.info.cooling_value", String.format("%.1f", menu.data(DATA_COOLING) / 10.0)), GuiTheme.TAB_VALUE);
         line(graphics, font, x, y + 3 * ROW, text("tab.info.beams"), Component.literal(Integer.toString(menu.data(DATA_BEAMS))), GuiTheme.TAB_VALUE);
+        int speed = menu.data(DATA_SPEED);
+        line(graphics, font, x, y + 4 * ROW, text("tab.info.speed"), speed == 0 ? text("tab.info.speed_none")
+                : text("tab.info.speed_value", String.format("%.2f", speed / 100.0)), GuiTheme.TAB_VALUE);
     }
 
     /** A label, and its value beneath it, as FactoryIO's tabs: tabs are narrow, and a value never wraps. */

@@ -10,6 +10,8 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 import java.util.List;
 import java.util.function.IntConsumer;
@@ -23,6 +25,8 @@ import static dev.drimoz.laserassembly.content.table.AssemblyTableBlockEntity.DA
  * it is the face of the assembly on display, always open and never automatic.
  */
 final class FacesTab extends SideTab {
+
+    private static final ItemStack ICON = new ItemStack(Items.HOPPER);
 
     private static final Direction[] FACES = {Direction.NORTH, Direction.SOUTH, Direction.EAST, Direction.WEST, Direction.DOWN};
     private static final int WIDTH = 116;
@@ -47,8 +51,8 @@ final class FacesTab extends SideTab {
     }
 
     @Override
-    protected GuiSprites.Icon icon() {
-        return GuiSprites.Icon.FACES;
+    protected void renderIcon(GuiGraphics graphics, int x, int y) {
+        GuiSprites.icon(graphics, ICON, x, y);
     }
 
     @Override

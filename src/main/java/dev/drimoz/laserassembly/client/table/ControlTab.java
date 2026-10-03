@@ -9,6 +9,8 @@ import dev.drimoz.laserassembly.content.table.AssemblyTableMenu;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 import java.util.function.IntConsumer;
 
@@ -19,6 +21,8 @@ import static dev.drimoz.laserassembly.content.table.AssemblyTableBlockEntity.DA
  * threshold (at 1, the native pause on any signal), or work at it and above.
  */
 final class ControlTab extends SideTab {
+
+    private static final ItemStack ICON = new ItemStack(Items.REDSTONE);
 
     private static final int WIDTH = 112;
     private static final int ROW = 14;
@@ -40,8 +44,8 @@ final class ControlTab extends SideTab {
     }
 
     @Override
-    protected GuiSprites.Icon icon() {
-        return GuiSprites.Icon.CONTROL;
+    protected void renderIcon(GuiGraphics graphics, int x, int y) {
+        GuiSprites.icon(graphics, ICON, x, y);
     }
 
     @Override

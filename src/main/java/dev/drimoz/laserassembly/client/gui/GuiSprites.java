@@ -4,6 +4,7 @@ import dev.drimoz.laserassembly.LaserAssembly;
 import dev.drimoz.laserassembly.gui.GuiMetrics;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
 
 /**
  * How each piece of the screen is drawn - FactoryIO's pieces, as GUI sprites written by
@@ -96,7 +97,7 @@ public final class GuiSprites {
     public static final int ICON_SIZE = 12;
 
     public enum Icon {
-        INFO("icon_info"), LASERS("icon_lasers"), FACES("icon_faces"), CONTROL("icon_control");
+        INFO("icon_info");
 
         final ResourceLocation sprite;
 
@@ -107,6 +108,18 @@ public final class GuiSprites {
 
     public static void icon(GuiGraphics graphics, Icon icon, int x, int y) {
         graphics.blitSprite(icon.sprite, x, y, ICON_SIZE, ICON_SIZE);
+    }
+
+    /**
+     * An item as a 12x12 icon - a hopper for faces, redstone for control: a block players know reads
+     * faster than a pictogram of ours. Only the info tab, which no item stands for, keeps a sprite.
+     */
+    public static void icon(GuiGraphics graphics, ItemStack item, int x, int y) {
+        graphics.pose().pushPose();
+        graphics.pose().translate(x, y, 0);
+        graphics.pose().scale(ICON_SIZE / 16F, ICON_SIZE / 16F, 1);
+        graphics.renderItem(item, 0, 0);
+        graphics.pose().popPose();
     }
 
     /** A one-pixel recess: gauges, a scrollbar's track, the step bar. */

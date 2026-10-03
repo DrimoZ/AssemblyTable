@@ -78,7 +78,9 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
     public static final int DATA_AUTO = 8;
     /** Bit 0 switched on, bits 1-2 the redstone mode, bits 3-6 the threshold, bit 7 paused right now. */
     public static final int DATA_CONTROL = 9;
-    public static final int DATA_COUNT = 10;
+    /** The pace, in hundredths: how much faster than one laser, heat included. */
+    public static final int DATA_SPEED = 10;
+    public static final int DATA_COUNT = 11;
 
     private final ContainerData data = new ContainerData() {
         @Override
@@ -94,6 +96,7 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
                 case DATA_FACES -> packedFaces();
                 case DATA_AUTO -> (autoImport ? 1 : 0) | (autoExport ? 2 : 0);
                 case DATA_CONTROL -> (switchedOn ? 1 : 0) | redstoneMode.ordinal() << 1 | threshold << 3 | (paused() ? 1 << 7 : 0);
+                case DATA_SPEED -> (int) Math.round(100 * assembly.rate());
                 default -> 0;
             };
         }
@@ -208,10 +211,9 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
             status = Assembly.Status.IDLE;
             setWorking(false);
             updateComparator();
-            if (assembly.heat() > 0) {
-                assembly.cool(cooling, tuning);
-                setChanged();
-            }
+            // Cooled even at no heat: it also zeroes the pace the info tab shows.
+            if (assembly.heat() > 0) setChanged();
+            assembly.cool(cooling, tuning);
             return;
         }
 

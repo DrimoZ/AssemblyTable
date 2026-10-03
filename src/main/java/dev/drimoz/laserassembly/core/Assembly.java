@@ -37,12 +37,15 @@ public final class Assembly {
     private double progress;
     private double heat;
     private boolean overheated;
+    /** Last tick's pace against the strongest beam alone: the other lasers' bonus, times the heat slowdown; 0 when nothing worked. */
+    private double rate;
 
     /**
      * One tick of work. {@code cooling} is the heat the blocks around the table remove per tick.
      * The caller only ticks a recipe whose ingredients and output room are there.
      */
     public Status tick(List<Step> steps, Beams beams, double cooling, Tuning tuning) {
+        rate = 0;
         if (overheated) {
             // Lasers hold fire on a stopped table, so it only cools.
             cool(cooling, tuning);
@@ -80,7 +83,10 @@ public final class Assembly {
 
         double speed = speed(tuning.maxHeat());
         Status working = speed < 1 ? Status.SLOWED : Status.WORKING;
-        progress += stackedPower(tuning.stackingFactor()) * tuning.fePerIntensity() * speed;
+        double stacked = stackedPower(tuning.stackingFactor());
+        // Sorted by stackedPower: the strongest beam is last.
+        rate = stacked / powers.getDouble(powers.size() - 1) * speed;
+        progress += stacked * tuning.fePerIntensity() * speed;
         if (progress < current.energy()) return working;
 
         // Surplus is dropped rather than carried: it was spent on this step's beam, and the next step
@@ -122,6 +128,7 @@ public final class Assembly {
      * from flickering on and off every tick.
      */
     public void cool(double cooling, Tuning tuning) {
+        rate = 0;
         heat = Math.max(0, heat - tuning.dissipation() - cooling);
         if (heat <= tuning.maxHeat() / 2) overheated = false;
     }
@@ -150,6 +157,10 @@ public final class Assembly {
 
     public double heat() {
         return heat;
+    }
+
+    public double rate() {
+        return rate;
     }
 
     public boolean overheated() {
