@@ -1,0 +1,6 @@
+{
+  "variants": {
+    "powered=false": { "model": "laserassembly:block/assembly_table" },
+    "powered=true": { "model": "laserassembly:block/assembly_table" }
+  }
+}

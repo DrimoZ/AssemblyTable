@@ -90,6 +90,14 @@ public final class Assembly {
         progress = 0;
     }
 
+    /** From a save. */
+    public void restore(int step, double progress, double heat, boolean overheated) {
+        this.step = step;
+        this.progress = progress;
+        this.heat = heat;
+        this.overheated = overheated;
+    }
+
     public int step() {
         return step;
     }

@@ -1,0 +1,10 @@
+{
+  "type": "laserassembly:assembling",
+  "ingredients": [
+    { "ingredient": { "item": "minecraft:leather" }, "count": 3 },
+    { "ingredient": { "item": "minecraft:iron_ingot" }, "count": 1 },
+    { "ingredient": { "item": "minecraft:string" }, "count": 2 }
+  ],
+  "result": { "id": "minecraft:saddle" },
+  "energy": 4000
+}
