@@ -192,7 +192,7 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
      * only on {@link Step.Fit#OK}: a beam that would do nothing costs nothing and heats nothing.
      */
     public @Nullable Step.Fit fit(@Nullable ResourceLocation beam, double intensity) {
-        return wantsBeams() ? steps.get(assembly.step()).fit(beam, intensity) : null;
+        return wantsBeams() ? steps.get(assembly.step()).fit(beam, intensity, ServerConfig.tuning().rawFactor()) : null;
     }
 
     /** Also how the caches catch up with a reload or a config change: the same id keeps its progress. */

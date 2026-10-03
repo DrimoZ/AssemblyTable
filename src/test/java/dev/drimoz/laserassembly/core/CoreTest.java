@@ -50,14 +50,17 @@ class CoreTest {
     @Test
     void eachBeamIsJudgedAloneAgainstTheStep() {
         Step cut = step(CUT, 100);
-        assertEquals(Fit.OK, cut.fit(CUT, 2));
-        assertEquals(Fit.TOO_WEAK, cut.fit(CUT, 1));
-        assertEquals(Fit.TOO_STRONG, cut.fit(CUT, 9));
-        assertEquals(Fit.WRONG_BEAM, cut.fit(WELD, 5));
-        // A raw beam fits a typed step, for a share of its power - unless the step is strict.
-        assertEquals(Fit.OK, cut.fit(null, 3));
+        assertEquals(Fit.OK, cut.fit(CUT, 2, 0.25));
+        assertEquals(Fit.TOO_WEAK, cut.fit(CUT, 1, 0.25));
+        assertEquals(Fit.TOO_STRONG, cut.fit(CUT, 9, 0.25));
+        assertEquals(Fit.WRONG_BEAM, cut.fit(WELD, 5, 0.25));
+        // A raw beam fits a typed step, for a share of its power - unless the step is strict, or the
+        // server makes lenses required with a raw factor of 0.
+        assertEquals(Fit.OK, cut.fit(null, 3, 0.25));
         assertEquals(1, cut.power(null, 4, 0.25));
-        assertEquals(Fit.WRONG_BEAM, new Step(Optional.of(CUT), 100, cut.thresholds(), true).fit(null, 3));
+        assertEquals(Fit.WRONG_BEAM, new Step(Optional.of(CUT), 100, cut.thresholds(), true).fit(null, 3, 0.25));
+        assertEquals(Fit.WRONG_BEAM, cut.fit(null, 3, 0));
+        assertEquals(Fit.OK, step(null, 100).fit(null, 3, 0), "a raw step never needs a lens");
     }
 
     @Test

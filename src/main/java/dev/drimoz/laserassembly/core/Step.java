@@ -17,8 +17,13 @@ public record Step(Optional<ResourceLocation> beam, int energy, Thresholds thres
     /** How one beam fits this step. Only {@link #OK} does any work; a laser holds fire otherwise. */
     public enum Fit { OK, WRONG_BEAM, TOO_WEAK, TOO_STRONG }
 
-    public Fit fit(@Nullable ResourceLocation beamType, double intensity) {
-        if (beam.isPresent() && (beamType == null ? strict : !beamType.equals(beam.get()))) return Fit.WRONG_BEAM;
+    /**
+     * A raw beam fits a step that wants a lens only when it counts for something: {@code rawFactor}
+     * of 0 - a server that wants lenses required - or a strict step turns it away, so its laser
+     * holds fire instead of heating the table for nothing.
+     */
+    public Fit fit(@Nullable ResourceLocation beamType, double intensity, double rawFactor) {
+        if (beam.isPresent() && (beamType == null ? strict || rawFactor <= 0 : !beamType.equals(beam.get()))) return Fit.WRONG_BEAM;
         if (intensity < thresholds.min()) return Fit.TOO_WEAK;
         if (intensity > thresholds.max()) return Fit.TOO_STRONG;
         return Fit.OK;

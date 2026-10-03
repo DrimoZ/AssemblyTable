@@ -94,9 +94,11 @@ posé dessus cacherait l'assemblage.
 
 - **Sans `steps`** : une seule étape brute (`energy`, `intensity`). C'est le format BuildCraft et
   la majorité des recettes.
-- **Au plus 3 étapes**, faites **dans l'ordre**. Une étape typée avance aussi au **faisceau brut, à
-  ×0,25** (config) : les lentilles sont une optimisation, pas une barrière. `"strict": true` sur
-  une étape refuse le faisceau brut — pour la fin de jeu.
+- **Au plus 3 étapes**, faites **dans l'ordre**. Par défaut, une étape typée avance aussi au
+  **faisceau brut, à 10 % de sa puissance** (`raw_beam_factor`, config) : possible, mais si lent
+  qu'une lentille s'impose vite — à 25 %, empiler des lasers bruts rendait les lentilles inutiles.
+  **`raw_beam_factor = 0` rend les lentilles obligatoires** sur tout le serveur : un laser sans
+  lentille ne tire pas sur une étape typée. `"strict": true` le fait pour une seule étape.
 - **Seuils d'intensité, aucun obligatoire.** Une étape ne déclare qu'une intensité minimale ;
   ce qu'elle ne précise pas vient de la recette, puis de la config serveur. La chauffe et le
   maximum en découlent par deux multiples (config : chauffe au-delà de ×3, surcharge au-delà

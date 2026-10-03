@@ -39,7 +39,8 @@ public final class ServerConfig {
         MAX_MULTIPLIER = b.comment("A beam is too strong for a step above minimum x this, unless the recipe sets max_intensity.",
                         "Must not be below heat_multiplier.")
                 .defineInRange("max_multiplier", d.maxMultiplier(), 1, 100);
-        RAW_FACTOR = b.comment("Share of a raw beam (no lens) that counts on a step wanting a lens. 0 makes lenses mandatory.")
+        RAW_FACTOR = b.comment("Share of a raw beam's power (a laser without a lens) that counts on a step wanting a lens.",
+                        "0 makes lenses required: a laser without one holds fire on such a step.")
                 .defineInRange("raw_beam_factor", d.rawFactor(), 0, 1);
         FE_PER_INTENSITY = b.comment("FE of recipe progress one point of a beam's intensity is worth per tick.")
                 .defineInRange("fe_per_intensity", d.fePerIntensity(), 1, 100_000);

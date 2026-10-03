@@ -58,7 +58,7 @@ public final class Assembly {
         boolean tooStrong = false, tooWeak = false;
         for (int i = 0; i < beams.size(); i++) {
             double intensity = beams.intensity(i);
-            switch (current.fit(beams.type(i), intensity)) {
+            switch (current.fit(beams.type(i), intensity, tuning.rawFactor())) {
                 case OK -> {
                     powers.add(current.power(beams.type(i), intensity, tuning.rawFactor()));
                     excess += Math.max(0, intensity - heatAbove);
