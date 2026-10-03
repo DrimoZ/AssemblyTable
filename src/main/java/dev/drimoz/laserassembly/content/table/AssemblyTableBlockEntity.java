@@ -424,9 +424,9 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
     }
 
     /**
-     * How many more of {@code stack} automation may put in: enough for {@code input_crafts} crafts of
-     * the ticked recipe that uses the most of it, minus what is already there. A pipe or the auto
-     * import cannot clog the table with one ingredient; a player, who sees what they put in, can.
+     * How many more of {@code stack} automation may put in: up to one full stack of it across the
+     * inputs, so a pipe or the auto import cannot fill every slot with one ingredient. A player, who
+     * sees what they put in, is not held to it.
      */
     private int room(ItemStack stack) {
         int held = 0;
@@ -434,7 +434,7 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
             ItemStack slot = inputs.getStackInSlot(i);
             if (ItemStack.isSameItemSameComponents(slot, stack)) held += slot.getCount();
         }
-        return uses(stack) * ServerConfig.inputCrafts() - held;
+        return uses(stack) > 0 ? stack.getMaxStackSize() - held : 0;
     }
 
     /** How many of {@code stack} one craft takes, in the ticked recipe that takes the most. */

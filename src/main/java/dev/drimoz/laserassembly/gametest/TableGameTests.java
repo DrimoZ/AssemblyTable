@@ -43,10 +43,11 @@ public final class TableGameTests {
         table.toggle(SADDLE);
         IItemHandler items = table.automation();
 
-        // One craft's worth of leather for automation (input_crafts = 1), and nothing the ticked recipe does not use.
-        helper.assertTrue(insert(items, Items.LEATHER, 64) == 61, "automation should put in exactly 3 leather");
+        // Automation fills one stack of leather and no more, and nothing the ticked recipe does not use.
+        helper.assertTrue(insert(items, Items.LEATHER, 64) == 0, "automation should take a full stack");
+        helper.assertTrue(insert(items, Items.LEATHER, 1) == 1, "automation went past one stack");
         helper.assertTrue(insert(items, Items.DIRT, 1) == 1, "inputs took dirt");
-        // A player is not capped: three more by hand, the second craft's worth.
+        // A player is not held to it.
         helper.assertTrue(ItemHandlerHelper.insertItemStacked(table.inputs(), new ItemStack(Items.LEATHER, 3), false).isEmpty(),
                 "a player should fill past the automation cap");
         insert(items, Items.IRON_INGOT, 1);
@@ -55,12 +56,12 @@ public final class TableGameTests {
         laser.energy().receiveEnergy(10_000, false);
         laser.stepIntensity(4);
 
-        // One craft and only one: the single iron ingot pays for it, the second set of leather stays.
+        // One craft and only one: the single iron ingot pays for it, the rest of the leather stays.
         helper.succeedWhen(() -> {
             helper.assertTrue(count(items, Items.SADDLE) == 1, "no saddle yet");
             helper.assertTrue(helper.getTick() >= 40 && helper.getTick() < 100, "crafted at tick " + helper.getTick());
             helper.assertTrue(table.lasers().contains(laser.getBlockPos()), "the table does not list its laser");
-            helper.assertTrue(count(items, Items.LEATHER) == 3, "leather consumed: " + (6 - count(items, Items.LEATHER)));
+            helper.assertTrue(count(items, Items.LEATHER) == 64, "leather consumed: " + (67 - count(items, Items.LEATHER)));
             helper.assertTrue(count(items, Items.IRON_INGOT) == 0 && count(items, Items.STRING) == 0, "ingredients left over");
         });
     }

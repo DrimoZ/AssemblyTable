@@ -21,7 +21,6 @@ public final class ServerConfig {
     private static final ModConfigSpec.DoubleValue HEAT_PER_INTENSITY;
     private static final ModConfigSpec.DoubleValue DISSIPATION;
     private static final ModConfigSpec.DoubleValue MAX_HEAT;
-    private static final ModConfigSpec.IntValue INPUT_CRAFTS;
     private static final ModConfigSpec.IntValue LASER_RANGE;
 
     /** Rebuilt on every load and reload, so the table reads one field per tick instead of eleven specs. */
@@ -58,12 +57,6 @@ public final class ServerConfig {
                 .defineInRange("max_heat", d.maxHeat(), 1, 1_000_000);
         b.pop();
 
-        b.push("table");
-        INPUT_CRAFTS = b.comment("How many crafts' worth of each ingredient automation (pipes, hoppers, auto import) may put in.",
-                        "Keeps a pipe from filling a table with one ingredient. Players can always fill whole stacks.")
-                .defineInRange("input_crafts", 1, 1, 64);
-        b.pop();
-
         b.push("laser");
         LASER_RANGE = b.comment("How far in front of it a laser looks for a table, in blocks.")
                 .defineInRange("range", 8, 1, 32);
@@ -83,10 +76,6 @@ public final class ServerConfig {
     }
 
     // Before the spec loads - a menu built at login, a table placed in a fresh world - the defaults stand.
-
-    public static int inputCrafts() {
-        return SPEC.isLoaded() ? INPUT_CRAFTS.get() : 2;
-    }
 
     public static int laserRange() {
         return SPEC.isLoaded() ? LASER_RANGE.get() : 8;

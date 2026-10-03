@@ -45,9 +45,9 @@ namespace des recettes et ignorait le `count` des ingrédients.
 
 - **Entrées et sorties séparées**, toujours : 12 entrées (3×4), 4 sorties. Les entrées
   n'acceptent **que** les ingrédients des recettes cochées. Un joueur y met des piles entières :
-  il voit ce qu'il pose. L'automatisation (tuyaux, entonnoirs, import auto) n'y met qu'**un craft
-  d'avance** par ingrédient (`input_crafts`, config) : un tuyau ne peut pas la boucher. Le plafond
-  de deux crafts pour tout le monde gênait en jeu.
+  il voit ce qu'il pose. L'automatisation (tuyaux, entonnoirs, import auto) n'y met **qu'une pile**
+  par ingrédient : un tuyau ne peut pas remplir toutes les cases d'un seul. Le plafond de deux
+  crafts pour tout le monde gênait en jeu.
 - **Recettes réalisables** recalculées au changement d'inventaire, pas à chaque tick. Clic =
   cocher / décocher. Une recette cochée sans ses ingrédients reste cochée, voilée.
 - **Production** : les recettes cochées tournent à tour de rôle (BuildCraft), en sautant celles
