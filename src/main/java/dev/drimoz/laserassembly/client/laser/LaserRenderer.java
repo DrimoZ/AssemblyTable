@@ -2,6 +2,7 @@ package dev.drimoz.laserassembly.client.laser;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import dev.drimoz.laserassembly.client.BeamColors;
 import dev.drimoz.laserassembly.content.laser.LaserBlockEntity;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
@@ -31,8 +32,11 @@ public class LaserRenderer implements BlockEntityRenderer<LaserBlockEntity> {
         // Additive and untextured, the lightning bolt's render type: a bright core inside a faint glow.
         VertexConsumer consumer = buffers.getBuffer(RenderType.lightning());
         PoseStack.Pose pose = poseStack.last();
-        beam(consumer, pose, from, to, 0.035F * pulse, 255, 80, 60, 230);
-        beam(consumer, pose, from, to, 0.09F * pulse, 255, 30, 20, 80);
+        // The core whitened towards its centre, the glow in the lens's own colour.
+        int rgb = BeamColors.rgb(laser.beam());
+        int r = rgb >> 16 & 0xFF, g = rgb >> 8 & 0xFF, b = rgb & 0xFF;
+        beam(consumer, pose, from, to, 0.035F * pulse, (r + 255) / 2, (g + 255) / 2, (b + 255) / 2, 230);
+        beam(consumer, pose, from, to, 0.09F * pulse, r, g, b, 90);
     }
 
     /** Two crossed quads along the beam, each drawn both ways: the render type culls back faces. */

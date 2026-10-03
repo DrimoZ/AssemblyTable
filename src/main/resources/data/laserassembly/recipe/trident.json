@@ -1,0 +1,13 @@
+{
+  "type": "laserassembly:assembling",
+  "ingredients": [
+    { "ingredient": { "item": "minecraft:iron_ingot" }, "count": 3 },
+    { "ingredient": { "item": "minecraft:prismarine_shard" }, "count": 4 },
+    { "ingredient": { "item": "minecraft:prismarine_crystals" }, "count": 2 }
+  ],
+  "result": { "id": "minecraft:trident" },
+  "steps": [
+    { "beam": "laserassembly:cut", "energy": 4000 },
+    { "beam": "laserassembly:weld", "energy": 6000 }
+  ]
+}

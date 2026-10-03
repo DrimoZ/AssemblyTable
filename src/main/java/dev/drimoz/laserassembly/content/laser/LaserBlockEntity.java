@@ -2,7 +2,11 @@ package dev.drimoz.laserassembly.content.laser;
 
 import dev.drimoz.laserassembly.ServerConfig;
 import dev.drimoz.laserassembly.content.table.AssemblyTableBlockEntity;
+import dev.drimoz.laserassembly.content.beam.LensItem;
 import dev.drimoz.laserassembly.core.Step;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.items.ItemStackHandler;
 import dev.drimoz.laserassembly.registry.ModBlocks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -61,6 +65,34 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
 
     private final Power energy = new Power();
 
+    /** One lens, which gives the beam its type. Read once when it changes, not on every shot. */
+    private final ItemStackHandler lens = new ItemStackHandler(1) {
+        @Override
+        protected void onContentsChanged(int slot) {
+            onLoad();
+            setChanged();
+            if (level != null && !level.isClientSide) sync();
+        }
+
+        @Override
+        protected void onLoad() {
+            beam = LensItem.beam(getStackInSlot(0));
+        }
+
+        @Override
+        public boolean isItemValid(int slot, ItemStack stack) {
+            return LensItem.beam(stack) != null;
+        }
+
+        @Override
+        public int getSlotLimit(int slot) {
+            return 1;
+        }
+    };
+
+    /** The lens's beam type, null for raw. Synced: the client draws the beam in its colour. */
+    private @Nullable ResourceLocation beam;
+
     private final ContainerData data = new ContainerData() {
         @Override
         public int get(int index) {
@@ -108,11 +140,11 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
         }
 
         boolean fired = false;
-        Step.Fit fit = table == null || table.isRemoved() ? null : table.fit(null, intensity);
+        Step.Fit fit = table == null || table.isRemoved() ? null : table.fit(beam, intensity);
         if (fit == Step.Fit.OK) {
             // Spent in whole FE: a fraction would round to free power at low intensities.
             if (energy.spend(Mth.ceil(intensity * ServerConfig.tuning().fePerIntensity()))) {
-                table.receiveBeam(null, intensity);
+                table.receiveBeam(beam, intensity);
                 fired = true;
                 state = STATE_FIRING;
             } else {
@@ -212,7 +244,15 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
 
     @Override
     public AbstractContainerMenu createMenu(int id, Inventory inventory, Player player) {
-        return new LaserMenu(id, this, data);
+        return new LaserMenu(id, inventory, this, data);
+    }
+
+    public ItemStackHandler lens() {
+        return lens;
+    }
+
+    public @Nullable ResourceLocation beam() {
+        return beam;
     }
 
     public EnergyStorage energy() {
@@ -259,11 +299,13 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
     private void writeBeam(CompoundTag tag) {
         if (target != null) tag.put("target", NbtUtils.writeBlockPos(target));
         tag.putBoolean("firing", firing);
+        if (beam != null) tag.putString("beam", beam.toString());
     }
 
     private void readBeam(CompoundTag tag) {
         target = NbtUtils.readBlockPos(tag, "target").orElse(null);
         firing = tag.getBoolean("firing");
+        beam = tag.contains("beam") ? ResourceLocation.tryParse(tag.getString("beam")) : null;
     }
 
     @Override
@@ -271,6 +313,7 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
         super.saveAdditional(tag, registries);
         tag.put("energy", energy.serializeNBT(registries));
         tag.putInt("intensity", intensity);
+        tag.put("lens", lens.serializeNBT(registries));
     }
 
     @Override
@@ -278,5 +321,6 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
         super.loadAdditional(tag, registries);
         if (tag.contains("energy")) energy.deserializeNBT(registries, tag.get("energy"));
         intensity = Mth.clamp(tag.getInt("intensity"), 1, MAX_INTENSITY);
+        lens.deserializeNBT(registries, tag.getCompound("lens"));
     }
 }

@@ -4,7 +4,10 @@ import dev.drimoz.laserassembly.LaserAssembly;
 import dev.drimoz.laserassembly.client.laser.LaserRenderer;
 import dev.drimoz.laserassembly.client.laser.LaserScreen;
 import dev.drimoz.laserassembly.client.table.AssemblyTableScreen;
+import dev.drimoz.laserassembly.content.beam.LensItem;
 import dev.drimoz.laserassembly.registry.ModBlocks;
+import dev.drimoz.laserassembly.registry.ModItems;
+import net.neoforged.neoforge.client.event.RegisterColorHandlersEvent;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -23,6 +26,12 @@ public final class ClientEvents {
     @SubscribeEvent
     static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerBlockEntityRenderer(ModBlocks.LASER_ENTITY.get(), LaserRenderer::new);
+    }
+
+    /** A lens wears its beam's colour: one texture for every beam type a pack declares. */
+    @SubscribeEvent
+    static void registerItemColors(RegisterColorHandlersEvent.Item event) {
+        event.register((stack, tint) -> tint == 0 ? 0xFF000000 | BeamColors.rgb(LensItem.beam(stack)) : -1, ModItems.LENS.get());
     }
 
     private ClientEvents() {}

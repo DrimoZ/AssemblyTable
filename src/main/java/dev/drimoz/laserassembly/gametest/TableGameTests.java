@@ -3,7 +3,10 @@ package dev.drimoz.laserassembly.gametest;
 import dev.drimoz.laserassembly.LaserAssembly;
 import dev.drimoz.laserassembly.content.table.AssemblyTableBlockEntity;
 import dev.drimoz.laserassembly.registry.ModBlocks;
+import dev.drimoz.laserassembly.content.beam.BeamType;
+import dev.drimoz.laserassembly.content.beam.LensItem;
 import dev.drimoz.laserassembly.content.laser.LaserBlock;
+import net.minecraft.resources.ResourceKey;
 import dev.drimoz.laserassembly.content.laser.LaserBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -55,6 +58,35 @@ public final class TableGameTests {
             helper.assertTrue(count(items, Items.LEATHER) == 3, "leather consumed: " + (6 - count(items, Items.LEATHER)));
             helper.assertTrue(count(items, Items.IRON_INGOT) == 0 && count(items, Items.STRING) == 0, "ingredients left over");
         });
+    }
+
+    /** A recipe in steps: each laser fires only on the step its lens fits, one after the other. */
+    @GameTest(template = "platform", timeoutTicks = 300)
+    public static void lensesTakeTurnsOnARecipeInSteps(GameTestHelper helper) {
+        BlockPos tablePos = new BlockPos(2, 2, 3);
+        helper.setBlock(tablePos, ModBlocks.ASSEMBLY_TABLE.get());
+        AssemblyTableBlockEntity table = helper.getBlockEntity(tablePos);
+        LaserBlockEntity cutter = laser(helper, new BlockPos(2, 2, 1), Direction.SOUTH, "cut");
+        LaserBlockEntity welder = laser(helper, new BlockPos(0, 2, 3), Direction.EAST, "weld");
+        table.toggle(ResourceLocation.fromNamespaceAndPath(LaserAssembly.MOD_ID, "trident"));
+        IItemHandler items = table.automation();
+        insert(items, Items.IRON_INGOT, 3);
+        insert(items, Items.PRISMARINE_SHARD, 4);
+        insert(items, Items.PRISMARINE_CRYSTALS, 2);
+
+        helper.runAfterDelay(10, () -> helper.assertTrue(cutter.firing() && !welder.firing(), "the cut step should take the cutter alone"));
+        helper.succeedWhen(() -> helper.assertTrue(count(items, Items.TRIDENT) == 1, "no trident yet"));
+    }
+
+    /** A laser at full intensity, with a full buffer and a lens of {@code beam}. */
+    private static LaserBlockEntity laser(GameTestHelper helper, BlockPos pos, Direction facing, String beam) {
+        helper.setBlock(pos, ModBlocks.LASER.get().defaultBlockState().setValue(LaserBlock.FACING, facing));
+        LaserBlockEntity laser = helper.getBlockEntity(pos);
+        laser.energy().receiveEnergy(LaserBlockEntity.ENERGY_CAPACITY, false);
+        laser.stepIntensity(LaserBlockEntity.MAX_INTENSITY);
+        laser.lens().insertItem(0, LensItem.of(ResourceKey.create(BeamType.REGISTRY,
+                ResourceLocation.fromNamespaceAndPath(LaserAssembly.MOD_ID, beam))), false);
+        return laser;
     }
 
     @GameTest(template = "platform", timeoutTicks = 60)

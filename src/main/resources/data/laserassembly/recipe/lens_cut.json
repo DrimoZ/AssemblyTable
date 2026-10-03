@@ -1,0 +1,9 @@
+{
+  "type": "laserassembly:assembling",
+  "ingredients": [
+    { "ingredient": { "item": "minecraft:glass_pane" }, "count": 2 },
+    { "ingredient": { "item": "minecraft:flint" }, "count": 2 }
+  ],
+  "result": { "id": "laserassembly:lens", "components": { "laserassembly:beam": "laserassembly:cut" } },
+  "energy": 2000
+}
