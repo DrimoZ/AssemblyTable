@@ -26,8 +26,8 @@ public class AssemblyTableMenu extends AbstractContainerMenu {
      * Under the recipe band (socket, name, step bar), the work area: heat in column 0, inputs 4x3 in
      * columns 1-4, an arrow, and the outputs 2x2 in columns 7-8, centred on the inputs' height.
      */
-    // 4 pixels clear of the step bar: touching, it and the heat gauge read as one bent bar.
-    public static final int WORK_TOP = GuiMetrics.CONTENT_TOP + 44;
+    // Clear of the step strip: touching, it and the heat gauge read as one bent bar.
+    public static final int WORK_TOP = GuiMetrics.CONTENT_TOP + 40;
     public static final int INPUT_COLUMNS = 4;
     public static final int OUTPUT_COLUMN = 7;
     public static final int OUTPUT_TOP = WORK_TOP + GuiMetrics.SLOT / 2;

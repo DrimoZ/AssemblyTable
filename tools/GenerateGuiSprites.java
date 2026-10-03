@@ -69,12 +69,9 @@ public final class GenerateGuiSprites {
         tile("gauge_energy", gauge(0xd83a2e, 0x8e1f18), 12, 4);
         tile("gauge_heat", gauge(0xf29b1d, 0xa0600a), 12, 4);
         tile("gauge_progress", gauge(0x3fbf3f, 0x1e7a1e), 12, 4);
-        // The step bar's segments, grey so that each step tints them in its own beam's colour.
-        tile("bar", sideways(0xffffff, 0x8a8a8a), 4, 8);
         tile("gauge_empty", gauge(0x4e4e4e, 0x3a3a3a), 12, 4);
 
-        // The arrow from inputs to outputs, FactoryIO's 20x13. Grey and still: the step bar is the
-        // one drawing of progress.
+        // The arrow from inputs to outputs, FactoryIO's 20x13, empty.
         write("arrow", ascii(new String[]{
                 "...........k........",
                 "...........kk.......",
@@ -87,6 +84,22 @@ public final class GenerateGuiSprites {
                 "kkkkkkkkkkkkmmmk....",
                 "...........kmmk.....",
                 "...........kmk......",
+                "...........kk.......",
+                "...........k........"}, PALETTE));
+        // The same arrow lit in the charter's green, clipped by the screen to the recipe's progress -
+        // FactoryIO's arrow, and the one drawing of progress on the screen.
+        write("arrow_lit", ascii(new String[]{
+                "...........k........",
+                "...........kk.......",
+                "...........kGk......",
+                "...........kGGk.....",
+                "kkkkkkkkkkkkGGGk....",
+                "kGGGGGGGGGGGGGGGk...",
+                "kGGGGGGGGGGGGGGGGk..",
+                "kGGGGGGGGGGGGGGGk...",
+                "kkkkkkkkkkkkGGGk....",
+                "...........kGGk.....",
+                "...........kGk......",
                 "...........kk.......",
                 "...........k........"}, PALETTE));
 
@@ -277,19 +290,6 @@ public final class GenerateGuiSprites {
                 if (y == 3) {
                     colour = mix(0x000000, colour, 0.72);
                 }
-                set(image, x, y, colour);
-            }
-        }
-        return image;
-    }
-
-    /** The gauge segment turned on its side, for a horizontal bar: lit across its height, a seam on its last column. */
-    private static BufferedImage sideways(int bright, int dim) {
-        BufferedImage image = blank(4, 8);
-        for (int y = 0; y < 8; y++) {
-            for (int x = 0; x < 4; x++) {
-                int colour = mix(dim, bright, 1 - Math.abs(y - 3.5) / 4);
-                if (x == 3) colour = mix(0x000000, colour, 0.72);
                 set(image, x, y, colour);
             }
         }

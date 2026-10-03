@@ -19,7 +19,7 @@ public final class GuiSprites {
     private static final ResourceLocation GAUGE_EMPTY = id("gauge_empty");
     private static final ResourceLocation SOCKET = id("socket");
     private static final ResourceLocation ARROW = id("arrow");
-    private static final ResourceLocation BAR = id("bar");
+    private static final ResourceLocation ARROW_LIT = id("arrow_lit");
     private static final ResourceLocation FIELD = id("field");
     private static final ResourceLocation PLUS = id("icon_plus");
     private static final ResourceLocation BUTTON = id("button");
@@ -59,20 +59,14 @@ public final class GuiSprites {
         graphics.blitSprite(SOCKET, x, y, GuiMetrics.SOCKET, GuiMetrics.SOCKET);
     }
 
-    /** FactoryIO's 20x13 arrow, from inputs to outputs. */
-    public static void arrow(GuiGraphics graphics, int x, int y) {
+    /** FactoryIO's 20x13 arrow, from inputs to outputs, filled green from the left over {@code fill} of its length. */
+    public static void arrow(GuiGraphics graphics, int x, int y, float fill) {
         graphics.blitSprite(ARROW, x, y, 20, 13);
-    }
-
-    /**
-     * A run of the step bar's segments in one colour. 1.21.1 sprites take no tint of their own: the
-     * shader colour carries it, and is put back.
-     */
-    public static void barSegments(GuiGraphics graphics, int x, int y, int width, int height, int rgb) {
-        if (width <= 0) return;
-        graphics.setColor((rgb >> 16 & 0xFF) / 255f, (rgb >> 8 & 0xFF) / 255f, (rgb & 0xFF) / 255f, 1f);
-        graphics.blitSprite(BAR, x, y, width, height);
-        graphics.setColor(1f, 1f, 1f, 1f);
+        int lit = Math.round(20 * Math.clamp(fill, 0f, 1f));
+        if (lit <= 0) return;
+        graphics.enableScissor(x, y, x + lit, y + 13);
+        graphics.blitSprite(ARROW_LIT, x, y, 20, 13);
+        graphics.disableScissor();
     }
 
     /** A one-pixel recess: gauges, a scrollbar's track, the step bar. */

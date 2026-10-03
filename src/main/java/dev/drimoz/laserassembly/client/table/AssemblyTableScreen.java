@@ -44,13 +44,14 @@ import static dev.drimoz.laserassembly.content.table.AssemblyTableMenu.*;
  *  │ Assembly Table                       ● │
  *  │ ┏━━┓ Trident                            │  the socket: the running recipe, a click opens the picker
  *  │ ┗━━┛ Step 2 of 2: Welding               │
- *  │ [▓▓▓▓▓▓▓▓▓▓|▒▒▒▒▒▒▒▒░░░░░░░░░░░░░░]    │  one bar for the whole recipe, a segment per step in its beam's colour
+ *  │ [▬▬▬▬▬▬▬▬|▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬]     │  the steps: a thin strip, a segment per step in its beam's colour
  *  │ ▌ [ ][ ][ ][ ]           [o][o]        │  heat, inputs 4x3, an arrow, outputs 2x2
- *  │ ▌ [ ][ ][ ][ ]   ━━▶     [o][o]        │
+ *  │ ▌ [ ][ ][ ][ ]   ━━▶     [o][o]        │  the arrow fills with the recipe's progress
  *  │ ▌ [ ][ ][ ][ ]                         │
  *  └────────────────────────────────────────┘
  * </pre>
- * One bar, not a gauge beside a row of steps: two drawings of the same progress read as two things.
+ * One drawing of progress, the arrow, filling green; the strip only says which
+ * steps there are and which are done. Two things filling at once read as two progresses.
  * The other ticked recipes are a count on the socket and a line in its tooltip, not a row of cells:
  * as cells they read as more outputs.
  */
@@ -64,7 +65,7 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
     private static final int BAR_X = GuiMetrics.column(0);
     private static final int BAR_Y = SOCKET_Y + GuiMetrics.SOCKET + 3;
     private static final int BAR_WIDTH = GuiMetrics.column(9) - BAR_X;
-    private static final int BAR_HEIGHT = 10;
+    private static final int BAR_HEIGHT = 5;
 
     /** Heat is one number to keep an eye on: a thin gauge, centred in column 0. */
     private static final int HEAT_WIDTH = 6;
@@ -126,7 +127,7 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
 
         renderSocket(graphics, mouseX, mouseY);
         renderStepBar(graphics);
-        GuiSprites.arrow(graphics, x + ARROW_X, y + ARROW_Y);
+        renderArrow(graphics, x + ARROW_X, y + ARROW_Y);
         GuiSprites.statusLight(graphics, status().light, x + GuiMetrics.LED_X, y + GuiMetrics.LED_Y);
     }
 
@@ -155,26 +156,39 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
     }
 
     /**
-     * The whole recipe as one bar: a segment per step, as long as its share of the energy, dim in
-     * its beam's colour, filling bright as the work goes - which step it is and what beam it wants,
-     * read in one glance.
+     * The recipe's steps as a thin strip: a segment per step, as long as its share of the energy, in
+     * its beam's colour - bright once reached, dim while still ahead. It says which beams the recipe
+     * wants and in what order; how far along it is, the arrow says.
      */
     private void renderStepBar(GuiGraphics graphics) {
         int x = leftPos + BAR_X, y = topPos + BAR_Y;
         GuiSprites.inset(graphics, x, y, BAR_WIDTH, BAR_HEIGHT);
         List<Step> steps = runningSteps();
         int current = menu.data(DATA_STEP);
-        float progress = menu.data(DATA_PROGRESS) / 1000f;
         int[] edges = segmentEdges(steps);
         for (int i = 0; i < steps.size(); i++) {
             int rgb = BeamColors.rgb(steps.get(i).beam().orElse(null));
-            int left = x + 1 + edges[i], right = x + 1 + edges[i + 1], height = BAR_HEIGHT - 2;
-            // Segments as on the charter's gauges, tinted: dim for what is left, bright for what is done.
-            GuiSprites.barSegments(graphics, left, y + 1, right - left, height, dim(rgb));
-            float fill = i < current ? 1 : i == current ? progress : 0;
-            GuiSprites.barSegments(graphics, left, y + 1, Math.round((right - left) * fill), height, rgb);
+            int left = x + 1 + edges[i], right = x + 1 + edges[i + 1];
+            graphics.fill(left, y + 1, right, y + BAR_HEIGHT - 1, 0xFF000000 | (i <= current ? rgb : dim(rgb)));
             if (i > 0) graphics.fill(left, y + 1, left + 1, y + BAR_HEIGHT - 1, 0xFF373737);
         }
+    }
+
+    /** The recipe's progress across all its steps, in one green: what the step is, the strip and the text say. */
+    private void renderArrow(GuiGraphics graphics, int x, int y) {
+        List<Step> steps = runningSteps();
+        if (steps.isEmpty()) {
+            GuiSprites.arrow(graphics, x, y, 0);
+            return;
+        }
+        int current = Math.min(menu.data(DATA_STEP), steps.size() - 1);
+        long total = 0, done = 0;
+        for (int i = 0; i < steps.size(); i++) {
+            total += steps.get(i).energy();
+            if (i < current) done += steps.get(i).energy();
+        }
+        float fill = (done + steps.get(current).energy() * menu.data(DATA_PROGRESS) / 1000f) / total;
+        GuiSprites.arrow(graphics, x, y, fill);
     }
 
     @Override
