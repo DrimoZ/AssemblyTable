@@ -1,3 +1,32 @@
 {
-  "parent": "laserassembly:block/laser"
+  "parent": "minecraft:block/block",
+  "textures": {
+    "particle": "laserassembly:block/laser_top",
+    "top": "laserassembly:block/laser_top",
+    "side": "laserassembly:block/laser_side",
+    "bottom": "laserassembly:block/laser_bottom",
+    "head": "laserassembly:block/laser_head"
+  },
+  "elements": [
+    { "from": [0, 0, 0], "to": [16, 7, 16], "faces": {
+      "down":  { "uv": [0, 0, 16, 16], "texture": "#bottom", "cullface": "down" },
+      "up":    { "uv": [0, 0, 16, 16], "texture": "#top" },
+      "north": { "uv": [0, 9, 16, 16], "texture": "#side", "cullface": "north" },
+      "south": { "uv": [0, 9, 16, 16], "texture": "#side", "cullface": "south" },
+      "west":  { "uv": [0, 9, 16, 16], "texture": "#side", "cullface": "west" },
+      "east":  { "uv": [0, 9, 16, 16], "texture": "#side", "cullface": "east" } } },
+    { "from": [5, 7, 5], "to": [11, 13, 11], "faces": {
+      "down":  { "uv": [6, 0, 12, 6], "texture": "#head" },
+      "up":    { "uv": [6, 0, 12, 6], "texture": "#head" },
+      "north": { "uv": [0, 0, 6, 6], "texture": "#head" },
+      "south": { "uv": [0, 0, 6, 6], "texture": "#head" },
+      "west":  { "uv": [0, 0, 6, 6], "texture": "#head" },
+      "east":  { "uv": [0, 0, 6, 6], "texture": "#head" } } },
+    { "from": [6, 13, 6], "to": [10, 15, 10], "faces": {
+      "up":    { "uv": [4, 6, 8, 10], "texture": "#head" },
+      "north": { "uv": [0, 6, 4, 8], "texture": "#head" },
+      "south": { "uv": [0, 6, 4, 8], "texture": "#head" },
+      "west":  { "uv": [0, 6, 4, 8], "texture": "#head" },
+      "east":  { "uv": [0, 6, 4, 8], "texture": "#head" } } }
+  ]
 }

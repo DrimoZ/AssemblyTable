@@ -1,0 +1,11 @@
+{
+  "ambientocclusion": false,
+  "textures": {
+    "particle": "laserassembly:block/laser_glow",
+    "glow": "laserassembly:block/laser_glow"
+  },
+  "elements": [
+    { "from": [7, 15.01, 7], "to": [9, 15.01, 9], "shade": false, "faces": {
+      "up": { "uv": [0, 0, 16, 16], "texture": "#glow" } } }
+  ]
+}

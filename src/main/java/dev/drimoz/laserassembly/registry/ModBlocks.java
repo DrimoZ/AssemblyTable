@@ -46,7 +46,7 @@ public final class ModBlocks {
 
     public static final DeferredBlock<LaserBlock> LASER = BLOCKS.register("laser",
             () -> new LaserBlock(BlockBehaviour.Properties.of()
-                    .mapColor(MapColor.METAL).strength(3.5f).sound(SoundType.METAL).requiresCorrectToolForDrops()));
+                    .mapColor(MapColor.METAL).strength(3.5f).sound(SoundType.METAL).requiresCorrectToolForDrops().noOcclusion()));
 
     public static final DeferredItem<BlockItem> LASER_ITEM = ModItems.ITEMS.registerSimpleBlockItem(LASER);
 

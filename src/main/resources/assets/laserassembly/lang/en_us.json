@@ -1,4 +1,5 @@
 {
+  "config.jade.plugin_laserassembly.assembly_table": "Assembly Table",
   "itemGroup.laserassembly": "Laser Assembly",
   "block.laserassembly.assembly_table": "Assembly Table",
   "block.laserassembly.laser": "Laser",

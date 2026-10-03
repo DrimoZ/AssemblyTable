@@ -16,6 +16,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
+import net.neoforged.neoforge.client.event.ModelEvent;
 
 @EventBusSubscriber(modid = LaserAssembly.MOD_ID, value = Dist.CLIENT)
 public final class ClientEvents {
@@ -30,6 +31,14 @@ public final class ClientEvents {
     static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerBlockEntityRenderer(ModBlocks.LASER_ENTITY.get(), LaserRenderer::new);
         event.registerBlockEntityRenderer(ModBlocks.ASSEMBLY_TABLE_ENTITY.get(), AssemblyTableRenderer::new);
+    }
+
+    /** The parts the renderers draw themselves: no block state points at them, so nothing else would load them. */
+    @SubscribeEvent
+    static void registerModels(ModelEvent.RegisterAdditional event) {
+        event.register(LaserRenderer.HEAD);
+        event.register(LaserRenderer.GLOW);
+        event.register(AssemblyTableRenderer.GLOW);
     }
 
     /** Lenses and augments wear their type's colour: one texture each, for every type a pack declares. */

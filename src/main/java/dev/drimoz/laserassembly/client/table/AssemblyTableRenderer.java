@@ -5,7 +5,14 @@ import com.mojang.math.Axis;
 import dev.drimoz.laserassembly.content.table.AssemblyTableBlockEntity;
 import dev.drimoz.laserassembly.recipe.AssemblyRecipe;
 import net.minecraft.client.Minecraft;
+import dev.drimoz.laserassembly.LaserAssembly;
 import net.minecraft.client.renderer.LevelRenderer;
+import net.minecraft.client.renderer.LightTexture;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.Sheets;
+import net.minecraft.client.renderer.block.ModelBlockRenderer;
+import net.minecraft.client.resources.model.ModelResourceLocation;
+import net.neoforged.neoforge.client.model.data.ModelData;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
@@ -31,14 +38,24 @@ public class AssemblyTableRenderer implements BlockEntityRenderer<AssemblyTableB
     private static final float RADIUS = 0.32F;
     private static final float HEIGHT = 1.35F;
 
+    public static final ModelResourceLocation GLOW = ModelResourceLocation.standalone(LaserAssembly.id("block/assembly_table_glow"));
+
     private final ItemRenderer items;
+    private final ModelBlockRenderer models;
 
     public AssemblyTableRenderer(BlockEntityRendererProvider.Context context) {
         this.items = context.getItemRenderer();
+        this.models = context.getBlockRenderDispatcher().getModelRenderer();
     }
 
     @Override
     public void render(AssemblyTableBlockEntity table, float partialTick, PoseStack poseStack, MultiBufferSource buffers, int light, int overlay) {
+        if (table.working()) {
+            // The focus lit at full brightness, so a working table reads from across a dark room.
+            models.renderModel(poseStack.last(), buffers.getBuffer(Sheets.cutoutBlockSheet()), null,
+                    Minecraft.getInstance().getModelManager().getModel(GLOW), 1, 1, 1, LightTexture.FULL_BRIGHT, overlay,
+                    ModelData.EMPTY, RenderType.cutout());
+        }
         ResourceLocation current = table.current();
         Level level = table.getLevel();
         if (current == null || level == null) return;

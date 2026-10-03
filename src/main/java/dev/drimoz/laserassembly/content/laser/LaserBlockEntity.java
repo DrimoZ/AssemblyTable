@@ -38,6 +38,7 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.neoforged.neoforge.energy.EnergyStorage;
+import org.joml.Vector3f;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -145,6 +146,10 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
     /** The client has no augments outside the laser's own menu: whether one is a Regulator comes synced. */
     private boolean regulatedOnClient;
     private final List<ResourceLocation> lensesOnClient = new ArrayList<>();
+
+    /** Client render state: where the head points, eased towards the table by the renderer. Never saved nor synced. */
+    public final Vector3f headAim = new Vector3f(0, 1, 0);
+    public float headAimTime;
 
     /** What the augments add up to. */
     public record Effects(int range, double efficiency, boolean regulator, int barrel) {

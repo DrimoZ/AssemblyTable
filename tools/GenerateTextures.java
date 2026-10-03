@@ -9,7 +9,8 @@ import java.io.IOException;
  *
  * <p>Both blocks share one steel panel - dark rim, light bevel top-left, shadow bottom-right - so
  * the table and its lasers read as one machine. What sets each face apart is drawn on the panel:
- * the table's focus, where the beams meet; the laser's emitter; vents on the sides.
+ * the table's focus, where the beams meet; the laser's socket; vents on the sides. What moves or
+ * lights up - the laser's head, the focus at work - is drawn by the renderers over these.
  *
  * <p>The lens and the augment are tinted from their registry entry, so each keeps its coloured part
  * on a greyscale layer of its own, and its metal on another, untinted: a tinted frame turned the
@@ -36,8 +37,12 @@ public final class GenerateTextures {
         write("block/assembly_table_top", tableTop());
         write("block/assembly_table_side", tableSide());
         write("block/assembly_table_bottom", bolted(panel()));
-        write("block/laser_front", laserFront());
-        write("block/laser_side", vents(panel(), true));
+        write("block/assembly_table_glow", tableGlow());
+        write("block/laser_top", laserTop());
+        write("block/laser_side", laserSide());
+        write("block/laser_bottom", bolted(panel()));
+        write("block/laser_head", laserHead());
+        write("block/laser_glow", laserGlow());
 
         write("item/lens_glass", lensGlass());
         write("item/lens_rim", lensRim());
@@ -69,21 +74,34 @@ public final class GenerateTextures {
         return image;
     }
 
-    /** The focus at the centre, where every beam meets, framed by a recessed ring. */
+    /** The focus at the centre, where every beam meets, framed by a recessed ring. Dim: it lights up through the glow. */
     private static BufferedImage tableTop() {
         BufferedImage image = bolted(panel());
         disc(image, 6.0, SHADOW);
         disc(image, 5.0, DARK);
         disc(image, 4.0, 0x3A2A1C);
-        disc(image, 2.6, 0x8A5420);
-        disc(image, 1.5, 0xE89A40);
-        disc(image, 0.8, 0xFFE0A0);
+        disc(image, 2.6, 0x4A3420);
+        disc(image, 1.5, 0x5A3E22);
+        return image;
+    }
+
+    /** The focus lit, drawn over the top at full brightness while the table works; clear elsewhere. */
+    private static BufferedImage tableGlow() {
+        BufferedImage image = blank();
+        disc(image, 4.0, 0xB06A20);
+        disc(image, 2.6, 0xE89A40);
+        disc(image, 1.5, 0xFFC870);
+        disc(image, 0.8, 0xFFF0C0);
         return image;
     }
 
     /** A workbench's apron: a plate over a vented band, on a darker foot. */
     private static BufferedImage tableSide() {
-        BufferedImage image = vents(panel(), false);
+        BufferedImage image = panel();
+        for (int y = 5; y <= 9; y += 2) {
+            fill(image, 3, y, 10, 1, DARK);
+            fill(image, 3, y + 1, 10, 1, BEVEL);
+        }
         fill(image, 1, 12, 14, 2, SHADOW);
         fill(image, 1, 12, 14, 1, PLATE);
         set(image, 3, 3, BOLT);
@@ -91,32 +109,56 @@ public final class GenerateTextures {
         return image;
     }
 
-    /** Slits to let heat out: vertical on the laser, which runs hot, horizontal on the table. */
-    private static BufferedImage vents(BufferedImage image, boolean vertical) {
-        if (vertical) {
-            for (int x = 4; x <= 11; x += 2) {
-                fill(image, x, 3, 1, 10, DARK);
-                fill(image, x + 1, 3, 1, 10, BEVEL);
-            }
-        } else {
-            for (int y = 5; y <= 9; y += 2) {
-                fill(image, 3, y, 10, 1, DARK);
-                fill(image, 3, y + 1, 10, 1, BEVEL);
-            }
-        }
+    /** The base's top: the socket the head turns in. */
+    private static BufferedImage laserTop() {
+        BufferedImage image = bolted(panel());
+        disc(image, 5.5, SHADOW);
+        disc(image, 4.5, DARK);
         return image;
     }
 
-    /** The emitter: a barrel collar round a red-hot aperture. */
-    private static BufferedImage laserFront() {
-        BufferedImage image = bolted(panel());
-        disc(image, 6.0, BEVEL);
-        disc(image, 5.0, DARK);
-        disc(image, 3.6, 0x4A1810);
-        disc(image, 2.4, 0xB03A22);
-        disc(image, 1.3, 0xFF7A4A);
-        disc(image, 0.7, 0xFFD0B0);
-        set(image, 4, 4, 0xE0E6EC);
+    /** The base is 7 high: its sides read rows 9 to 15 - a bevel, vents for the heat, the rim. */
+    private static BufferedImage laserSide() {
+        BufferedImage image = blank();
+        fill(image, 0, 0, 16, 16, RIM);
+        fill(image, 1, 9, 14, 1, BEVEL);
+        fill(image, 1, 10, 14, 4, PLATE);
+        fill(image, 1, 14, 14, 1, SHADOW);
+        for (int x = 3; x <= 12; x += 2) fill(image, x, 11, 1, 2, DARK);
+        return image;
+    }
+
+    /**
+     * The head, read by UV region: body side (0,0) 6x6 with a copper band, body cap (6,0) 6x6,
+     * nozzle side (0,6) 4x2, nozzle tip (4,6) 4x4 - dark, the glow is drawn over it when firing.
+     */
+    private static BufferedImage laserHead() {
+        BufferedImage image = blank();
+        fill(image, 0, 0, 6, 6, PLATE);
+        fill(image, 0, 0, 6, 1, BEVEL);
+        fill(image, 0, 0, 1, 6, BEVEL);
+        fill(image, 0, 5, 6, 1, SHADOW);
+        fill(image, 5, 0, 1, 6, SHADOW);
+        fill(image, 1, 3, 4, 1, 0xB87333);
+        fill(image, 6, 0, 6, 6, SHADOW);
+        fill(image, 7, 1, 4, 4, PLATE);
+        fill(image, 8, 2, 2, 2, DARK);
+        fill(image, 0, 6, 4, 2, DARK);
+        fill(image, 0, 6, 4, 1, SHADOW);
+        fill(image, 4, 6, 4, 4, SHADOW);
+        fill(image, 5, 7, 2, 2, DARK);
+        return image;
+    }
+
+    /** Greyscale, white at the heart: tinted with the beam's colour, so the heart stays hot. */
+    private static BufferedImage laserGlow() {
+        BufferedImage image = blank();
+        for (int y = 0; y < 16; y++) {
+            for (int x = 0; x < 16; x++) {
+                int grey = (int) Math.round(255 - 12 * Math.max(0, distance(x, y) - 2));
+                set(image, x, y, grey << 16 | grey << 8 | grey);
+            }
+        }
         return image;
     }
 
