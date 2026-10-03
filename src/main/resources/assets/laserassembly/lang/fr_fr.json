@@ -1,6 +1,8 @@
 {
   "config.jade.plugin_laserassembly.assembly_table": "Table d'assemblage",
   "itemGroup.laserassembly": "Laser Assembly",
+  "laserassembly.pack.vanilla_recipes": "Laser Assembly : recettes vanilla",
+  "laserassembly.pack.vanilla_recipes.description": "Selle, trident, cotte de mailles, armures de cheval… à la table d'assemblage",
   "item.laserassembly.cut_lens": "Lentille de découpe",
   "item.laserassembly.weld_lens": "Lentille de soudure",
   "item.laserassembly.engrave_lens": "Lentille de gravure",

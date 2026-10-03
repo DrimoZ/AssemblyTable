@@ -1,6 +1,8 @@
 {
   "config.jade.plugin_laserassembly.assembly_table": "Assembly Table",
   "itemGroup.laserassembly": "Laser Assembly",
+  "laserassembly.pack.vanilla_recipes": "Laser Assembly: vanilla recipes",
+  "laserassembly.pack.vanilla_recipes.description": "Saddle, trident, chainmail, horse armour… on the assembly table",
   "item.laserassembly.cut_lens": "Cutting Lens",
   "item.laserassembly.weld_lens": "Welding Lens",
   "item.laserassembly.engrave_lens": "Engraving Lens",
