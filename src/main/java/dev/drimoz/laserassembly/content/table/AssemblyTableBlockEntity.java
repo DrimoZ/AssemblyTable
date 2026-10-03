@@ -35,8 +35,6 @@ import net.minecraft.world.entity.player.StackedContents;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.energy.EnergyStorage;
-import net.neoforged.neoforge.energy.IEnergyStorage;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import net.neoforged.neoforge.items.ItemHandlerHelper;
@@ -55,23 +53,20 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
 
     public static final int INPUTS = 12;
     public static final int OUTPUTS = 4;
-    public static final int ENERGY_CAPACITY = 20_000;
 
     // What the screen reads, through ContainerData: synced while the menu is open, and only then.
     // Values travel as shorts, hence permille rather than raw heat and progress.
-    public static final int DATA_ENERGY = 0;
-    public static final int DATA_HEAT = 1;
-    public static final int DATA_PROGRESS = 2;
-    public static final int DATA_STEP = 3;
-    public static final int DATA_STEPS = 4;
-    public static final int DATA_STATUS = 5;
-    public static final int DATA_COUNT = 6;
+    public static final int DATA_HEAT = 0;
+    public static final int DATA_PROGRESS = 1;
+    public static final int DATA_STEP = 2;
+    public static final int DATA_STEPS = 3;
+    public static final int DATA_STATUS = 4;
+    public static final int DATA_COUNT = 5;
 
     private final ContainerData data = new ContainerData() {
         @Override
         public int get(int index) {
             return switch (index) {
-                case DATA_ENERGY -> energy.getEnergyStored();
                 case DATA_HEAT -> (int) (1000 * assembly.heat() / ServerConfig.tuning().maxHeat());
                 case DATA_PROGRESS -> steps.isEmpty() ? 0 : (int) (1000 * assembly.progress() / steps.get(assembly.step()).energy());
                 case DATA_STEP -> assembly.step();
@@ -123,8 +118,6 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
     /** What pipes and hoppers see: inputs take, outputs give, nothing else. */
     private final IItemHandler automation = new CombinedInvWrapper(new OneWay(inputs, true), new OneWay(outputs, false));
 
-    private final DirectPower energy = new DirectPower();
-
     private final List<ResourceLocation> selected = new ArrayList<>();
     private @Nullable ResourceLocation current;
     private final Assembly assembly = new Assembly();
@@ -166,12 +159,11 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
         if (recipe == null || getBlockState().getValue(AssemblyTableBlock.POWERED)) {
             pending.clear();
             status = Assembly.Status.IDLE;
+            if (assembly.heat() > 0) {
+                assembly.cool(cooling, tuning);
+                setChanged();
+            }
             return;
-        }
-
-        if (ServerConfig.directPower() && !assembly.overheated()) {
-            double intensity = ServerConfig.directIntensity();
-            if (energy.spend((int) Math.ceil(intensity * tuning.fePerIntensity()))) pending.add(null, intensity);
         }
 
         status = assembly.tick(steps, pending, cooling, tuning);
@@ -314,7 +306,7 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
      * How many more of {@code stack} the inputs take: enough for {@code input_crafts} crafts of the
      * ticked recipe that uses the most of it, minus what is already there.
      */
-    private int room(ItemStack stack) {
+    public int room(ItemStack stack) {
         int perCraft = 0;
         for (ResourceLocation id : selected) {
             AssemblyRecipe recipe = lookup(id);
@@ -420,14 +412,6 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
         return automation;
     }
 
-    public @Nullable IEnergyStorage energy() {
-        return ServerConfig.directPower() ? energy : null;
-    }
-
-    public Assembly assembly() {
-        return assembly;
-    }
-
     public Assembly.Status status() {
         return status;
     }
@@ -439,7 +423,6 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
         super.saveAdditional(tag, registries);
         tag.put("inputs", inputs.serializeNBT(registries));
         tag.put("outputs", outputs.serializeNBT(registries));
-        tag.put("energy", energy.serializeNBT(registries));
         writeSelection(tag);
         tag.putInt("step", assembly.step());
         tag.putDouble("progress", assembly.progress());
@@ -452,32 +435,11 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
         super.loadAdditional(tag, registries);
         inputs.deserializeNBT(registries, tag.getCompound("inputs"));
         outputs.deserializeNBT(registries, tag.getCompound("outputs"));
-        if (tag.contains("energy")) energy.deserializeNBT(registries, tag.get("energy"));
         readSelection(tag);
         assembly.restore(tag.getInt("step"), tag.getDouble("progress"), tag.getDouble("heat"), tag.getBoolean("overheated"));
     }
 
     // Handlers
-
-    /** FE fed straight into the table. Nothing may pull it back out. */
-    private final class DirectPower extends EnergyStorage {
-        DirectPower() {
-            super(ENERGY_CAPACITY, ENERGY_CAPACITY, 0);
-        }
-
-        @Override
-        public int receiveEnergy(int toReceive, boolean simulate) {
-            int received = super.receiveEnergy(toReceive, simulate);
-            if (received > 0 && !simulate) setChanged();
-            return received;
-        }
-
-        boolean spend(int amount) {
-            if (energy < amount) return false;
-            energy -= amount;
-            return true;
-        }
-    }
 
     /** A handler seen from outside: insert-only or extract-only. */
     private record OneWay(IItemHandlerModifiable inner, boolean insert) implements IItemHandlerModifiable {

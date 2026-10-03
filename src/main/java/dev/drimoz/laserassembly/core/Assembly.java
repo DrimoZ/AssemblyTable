@@ -38,10 +38,8 @@ public final class Assembly {
      */
     public Status tick(List<Step> steps, Beams beams, double cooling, Tuning tuning) {
         if (overheated) {
-            // Lasers hold fire on a stopped table, so it only cools. Resuming at half rather than
-            // just under the limit keeps it from flickering on and off every tick at max heat.
-            heat = Math.max(0, heat - tuning.dissipation() - cooling);
-            if (heat <= tuning.maxHeat() / 2) overheated = false;
+            // Lasers hold fire on a stopped table, so it only cools.
+            cool(cooling, tuning);
             return Status.OVERHEATED;
         }
 
@@ -82,6 +80,16 @@ public final class Assembly {
     private double speed(double maxHeat) {
         double half = maxHeat / 2;
         return heat <= half ? 1 : 1 - 0.75 * (heat - half) / half;
+    }
+
+    /**
+     * A tick with no work - overheated, idle, nothing to craft. Heat leaves on its own whatever the
+     * table is doing; resuming at half rather than just under the limit keeps an overheated table
+     * from flickering on and off every tick.
+     */
+    public void cool(double cooling, Tuning tuning) {
+        heat = Math.max(0, heat - tuning.dissipation() - cooling);
+        if (heat <= tuning.maxHeat() / 2) overheated = false;
     }
 
     /** Back to the first step, for a recipe change. The heat stays: it is the table's. */

@@ -28,11 +28,14 @@ public final class TableGameTests {
 
     private static final ResourceLocation SADDLE = ResourceLocation.fromNamespaceAndPath(LaserAssembly.MOD_ID, "saddle");
 
-    @GameTest(template = "platform", timeoutTicks = 400)
-    public static void craftsOnDirectPowerFromFilteredInputs(GameTestHelper helper) {
-        BlockPos pos = new BlockPos(2, 2, 2);
-        helper.setBlock(pos, ModBlocks.ASSEMBLY_TABLE.get());
-        AssemblyTableBlockEntity table = helper.getBlockEntity(pos);
+    /** The whole loop: a pipe's insert, a laser's beam, the result in the outputs. */
+    @GameTest(template = "platform", timeoutTicks = 200)
+    public static void aLaserCraftsFromFilteredInputs(GameTestHelper helper) {
+        BlockPos tablePos = new BlockPos(2, 2, 3);
+        helper.setBlock(tablePos, ModBlocks.ASSEMBLY_TABLE.get());
+        helper.setBlock(new BlockPos(2, 2, 1), ModBlocks.LASER.get().defaultBlockState().setValue(LaserBlock.FACING, Direction.SOUTH));
+        AssemblyTableBlockEntity table = helper.getBlockEntity(tablePos);
+        LaserBlockEntity laser = helper.getBlockEntity(new BlockPos(2, 2, 1));
         table.toggle(SADDLE);
         IItemHandler items = table.automation();
 
@@ -41,37 +44,16 @@ public final class TableGameTests {
         helper.assertTrue(insert(items, Items.DIRT, 1) == 1, "inputs took dirt");
         insert(items, Items.IRON_INGOT, 1);
         insert(items, Items.STRING, 2);
-        table.energy().receiveEnergy(20_000, false);
+        // At intensity 5, 100 progress a tick: 4000 FE in 40 ticks.
+        laser.energy().receiveEnergy(10_000, false);
+        laser.stepIntensity(4);
 
         // One craft and only one: the single iron ingot pays for it, the second set of leather stays.
         helper.succeedWhen(() -> {
             helper.assertTrue(count(items, Items.SADDLE) == 1, "no saddle yet");
-            // 4000 FE at 1 intensity x 20 FE: no sooner than 200 ticks.
-            helper.assertTrue(helper.getTick() >= 200, "crafted too fast, at tick " + helper.getTick());
+            helper.assertTrue(helper.getTick() >= 40 && helper.getTick() < 100, "crafted at tick " + helper.getTick());
             helper.assertTrue(count(items, Items.LEATHER) == 3, "leather consumed: " + (6 - count(items, Items.LEATHER)));
             helper.assertTrue(count(items, Items.IRON_INGOT) == 0 && count(items, Items.STRING) == 0, "ingredients left over");
-        });
-    }
-
-    @GameTest(template = "platform", timeoutTicks = 200)
-    public static void aLaserFeedsTheTableItSees(GameTestHelper helper) {
-        BlockPos tablePos = new BlockPos(2, 2, 3);
-        helper.setBlock(tablePos, ModBlocks.ASSEMBLY_TABLE.get());
-        helper.setBlock(new BlockPos(2, 2, 1), ModBlocks.LASER.get().defaultBlockState().setValue(LaserBlock.FACING, Direction.SOUTH));
-        AssemblyTableBlockEntity table = helper.getBlockEntity(tablePos);
-        LaserBlockEntity laser = helper.getBlockEntity(new BlockPos(2, 2, 1));
-        table.toggle(SADDLE);
-        IItemHandler items = table.automation();
-        insert(items, Items.LEATHER, 3);
-        insert(items, Items.IRON_INGOT, 1);
-        insert(items, Items.STRING, 2);
-        // The laser's FE only: at intensity 5 it is 100 progress a tick, five times the direct rate.
-        laser.energy().receiveEnergy(10_000, false);
-        laser.stepIntensity(4);
-
-        helper.succeedWhen(() -> {
-            helper.assertTrue(count(items, Items.SADDLE) == 1, "no saddle yet");
-            helper.assertTrue(helper.getTick() < 100, "too slow for a laser: tick " + helper.getTick());
         });
     }
 

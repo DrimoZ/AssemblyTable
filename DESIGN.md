@@ -56,8 +56,9 @@ namespace des recettes et ignorait le `count` des ingrédients.
   résultat apparaît avec des particules. `BlockEntityRenderer`, pas de modèle animé.
 - **Contrôle** : interrupteur + réaction native à la redstone. **Comparateur** : avancement du
   craft. **Jade** : recette en cours, étape, progression.
-- **FE direct** (option serveur, activée par défaut) : la table accepte du FE ; il compte comme
-  un **faisceau brut faible**, d'intensité fixe. On joue sans laser au début, un laser va plus vite.
+- **Pas d'énergie dans la table** : elle ne prend aucun FE, il faut toujours un laser. Sa colonne
+  0, celle de l'énergie sur les autres machines, montre sa chaleur. Au repos, la chaleur retombe
+  d'elle-même.
 
 ### 4.1 Faces et automatisation
 

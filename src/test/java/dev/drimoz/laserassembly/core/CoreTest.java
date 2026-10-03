@@ -85,6 +85,11 @@ class CoreTest {
         assertFalse(assembly.overheated());
         assertEquals(progress, assembly.progress());
         assertEquals(Status.WORKING, assembly.tick(steps, beams(null, 4), 10, TUNING));
+
+        // And with no work at all, it still cools.
+        double before = assembly.heat();
+        assembly.cool(0, TUNING);
+        assertEquals(before - 10, assembly.heat(), 1e-9);
     }
 
     @Test

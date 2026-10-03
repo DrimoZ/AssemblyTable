@@ -82,7 +82,6 @@ public final class ModBlocks {
 
     private static void registerCapabilities(RegisterCapabilitiesEvent event) {
         event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, ASSEMBLY_TABLE_ENTITY.get(), (table, side) -> table.automation());
-        event.registerBlockEntity(Capabilities.EnergyStorage.BLOCK, ASSEMBLY_TABLE_ENTITY.get(), (table, side) -> table.energy());
         event.registerBlockEntity(Capabilities.EnergyStorage.BLOCK, LASER_ENTITY.get(), (laser, side) -> laser.energy());
     }
 

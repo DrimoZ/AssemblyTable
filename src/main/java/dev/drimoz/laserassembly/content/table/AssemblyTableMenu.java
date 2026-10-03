@@ -51,7 +51,16 @@ public class AssemblyTableMenu extends AbstractContainerMenu {
 
         for (int i = 0; i < AssemblyTableBlockEntity.INPUTS; i++) {
             addSlot(new SlotItemHandler(table.inputs(), i,
-                    GuiMetrics.column(1 + i % INPUT_COLUMNS) + 1, GuiMetrics.row(i / INPUT_COLUMNS) + 1));
+                    GuiMetrics.column(1 + i % INPUT_COLUMNS) + 1, GuiMetrics.row(i / INPUT_COLUMNS) + 1) {
+                /**
+                 * Clicks and shift-clicks ask the slot how much fits, not the handler: without this,
+                 * the two-crafts cap held for pipes and not for players.
+                 */
+                @Override
+                public int getMaxStackSize(ItemStack stack) {
+                    return Math.min(super.getMaxStackSize(stack), getItem().getCount() + table.room(stack));
+                }
+            });
         }
         for (int i = 0; i < AssemblyTableBlockEntity.OUTPUTS; i++) {
             addSlot(new SlotItemHandler(table.outputs(), i, GuiMetrics.column(GRID_COLUMN + i) + 1, GuiMetrics.row(3) + 1) {

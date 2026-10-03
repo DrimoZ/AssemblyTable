@@ -21,8 +21,6 @@ public final class ServerConfig {
     private static final ModConfigSpec.DoubleValue DISSIPATION;
     private static final ModConfigSpec.DoubleValue MAX_HEAT;
     private static final ModConfigSpec.IntValue INPUT_CRAFTS;
-    private static final ModConfigSpec.BooleanValue DIRECT_POWER;
-    private static final ModConfigSpec.DoubleValue DIRECT_INTENSITY;
     private static final ModConfigSpec.IntValue LASER_RANGE;
 
     /** Rebuilt on every load and reload, so the table reads one field per tick instead of eleven specs. */
@@ -58,10 +56,6 @@ public final class ServerConfig {
         b.push("table");
         INPUT_CRAFTS = b.comment("How many crafts' worth of each ingredient the inputs accept. Keeps a pipe from filling a table.")
                 .defineInRange("input_crafts", 2, 1, 64);
-        DIRECT_POWER = b.comment("Let the table take FE directly, as a weak raw beam, so it works before any laser is built.")
-                .define("direct_power", true);
-        DIRECT_INTENSITY = b.comment("Intensity of that direct FE, raw.")
-                .defineInRange("direct_intensity", 1.0, 0.01, 1000);
         b.pop();
 
         b.push("laser");
@@ -86,14 +80,6 @@ public final class ServerConfig {
 
     public static int inputCrafts() {
         return SPEC.isLoaded() ? INPUT_CRAFTS.get() : 2;
-    }
-
-    public static boolean directPower() {
-        return !SPEC.isLoaded() || DIRECT_POWER.get();
-    }
-
-    public static double directIntensity() {
-        return SPEC.isLoaded() ? DIRECT_INTENSITY.get() : 1.0;
     }
 
     public static int laserRange() {

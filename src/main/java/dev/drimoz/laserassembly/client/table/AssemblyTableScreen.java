@@ -33,10 +33,12 @@ import static dev.drimoz.laserassembly.content.table.AssemblyTableMenu.*;
 public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMenu> {
 
     private static final int CONTENT_HEIGHT = CONTENT_BOTTOM - GuiMetrics.CONTENT_TOP;
-    /** Column 4 holds two thin gauges: progress, then heat. */
-    private static final int THIN_GAUGE = 7;
-    private static final int PROGRESS_X = GuiMetrics.column(4) + 1;
-    private static final int HEAT_X = PROGRESS_X + THIN_GAUGE + 1;
+    /**
+     * The table holds no energy - lasers bring it - so column 0, the energy column on every other
+     * machine, shows what it does hold: heat. Column 4 is the progress of the current step.
+     */
+    private static final int PROGRESS_WIDTH = 8;
+    private static final int PROGRESS_X = GuiMetrics.column(4) + (GuiMetrics.SLOT - PROGRESS_WIDTH) / 2;
 
     /** First visible row of the recipe grid. */
     private int scroll;
@@ -60,10 +62,9 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
         for (Slot slot : menu.slots) GuiSprites.slot(graphics, x + slot.x - 1, y + slot.y - 1, false);
 
         int top = y + GuiMetrics.CONTENT_TOP;
-        GuiSprites.gauge(graphics, GuiSprites.GAUGE_ENERGY, x + GuiMetrics.GAUGE_X, top, GuiMetrics.GAUGE_WIDTH, CONTENT_HEIGHT,
-                (float) menu.data(DATA_ENERGY) / ENERGY_CAPACITY);
-        GuiSprites.gauge(graphics, GuiSprites.GAUGE_PROGRESS, x + PROGRESS_X, top, THIN_GAUGE, CONTENT_HEIGHT, menu.data(DATA_PROGRESS) / 1000f);
-        GuiSprites.gauge(graphics, GuiSprites.GAUGE_HEAT, x + HEAT_X, top, THIN_GAUGE, CONTENT_HEIGHT, menu.data(DATA_HEAT) / 1000f);
+        GuiSprites.gauge(graphics, GuiSprites.GAUGE_HEAT, x + GuiMetrics.GAUGE_X, top, GuiMetrics.GAUGE_WIDTH, CONTENT_HEIGHT,
+                menu.data(DATA_HEAT) / 1000f);
+        GuiSprites.gauge(graphics, GuiSprites.GAUGE_PROGRESS, x + PROGRESS_X, top, PROGRESS_WIDTH, CONTENT_HEIGHT, menu.data(DATA_PROGRESS) / 1000f);
 
         List<RecipeHolder<AssemblyRecipe>> recipes = menu.recipes();
         List<ResourceLocation> selected = menu.table().selected();
@@ -110,12 +111,10 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
         if (cell >= 0) {
             graphics.renderComponentTooltip(font, recipeTooltip(menu.recipes().get(cell)), mouseX, mouseY);
         } else if (inColumn(x, y, GuiMetrics.GAUGE_X, GuiMetrics.GAUGE_WIDTH)) {
-            graphics.renderTooltip(font, text("gui.energy", menu.data(DATA_ENERGY), ENERGY_CAPACITY), mouseX, mouseY);
-        } else if (inColumn(x, y, PROGRESS_X, THIN_GAUGE) && menu.data(DATA_STEPS) > 0) {
+            graphics.renderTooltip(font, text("gui.heat", menu.data(DATA_HEAT) / 10), mouseX, mouseY);
+        } else if (inColumn(x, y, PROGRESS_X, PROGRESS_WIDTH) && menu.data(DATA_STEPS) > 0) {
             graphics.renderTooltip(font, text("gui.progress", menu.data(DATA_STEP) + 1, menu.data(DATA_STEPS),
                     menu.data(DATA_PROGRESS) / 10), mouseX, mouseY);
-        } else if (inColumn(x, y, HEAT_X, THIN_GAUGE)) {
-            graphics.renderTooltip(font, text("gui.heat", menu.data(DATA_HEAT) / 10), mouseX, mouseY);
         } else if (x >= GuiMetrics.LED_X && x < GuiMetrics.LED_X + GuiMetrics.LED_SIZE
                 && y >= GuiMetrics.LED_Y && y < GuiMetrics.LED_Y + GuiMetrics.LED_SIZE) {
             graphics.renderTooltip(font, status().text, mouseX, mouseY);
