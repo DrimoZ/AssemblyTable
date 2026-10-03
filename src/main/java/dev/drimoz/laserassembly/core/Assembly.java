@@ -15,6 +15,8 @@ public final class Assembly {
         /** Nothing that counts toward this step is arriving. */
         IDLE,
         WORKING,
+        /** Working, but past half heat and slowing down as it climbs. */
+        SLOWED,
         /** Below the step's minimum intensity: no progress. */
         TOO_WEAK,
         /** Above the step's maximum: no progress until the beams come down. */
@@ -59,15 +61,27 @@ public final class Assembly {
         if (intensity < limits.min()) return Status.TOO_WEAK;
         if (intensity > limits.max()) return Status.OVERLOAD;
 
-        progress += intensity * tuning.fePerIntensity();
-        if (progress < current.energy()) return Status.WORKING;
+        double speed = speed(tuning.maxHeat());
+        Status working = speed < 1 ? Status.SLOWED : Status.WORKING;
+        progress += intensity * tuning.fePerIntensity() * speed;
+        if (progress < current.energy()) return working;
 
         // Surplus is dropped rather than carried: it was spent on this step's beam, and the next step
         // may want another one.
         progress = 0;
-        if (++step < steps.size()) return Status.WORKING;
+        if (++step < steps.size()) return working;
         step = 0;
         return Status.DONE;
+    }
+
+    /**
+     * Heat as a warning before it is a stop: full speed up to half heat, then down to 25 % just
+     * short of the maximum. Half is also where an overheated table resumes, so it comes back at
+     * full speed rather than straight into the slow zone.
+     */
+    private double speed(double maxHeat) {
+        double half = maxHeat / 2;
+        return heat <= half ? 1 : 1 - 0.75 * (heat - half) / half;
     }
 
     /** Back to the first step, for a recipe change. The heat stays: it is the table's. */

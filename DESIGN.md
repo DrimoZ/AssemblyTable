@@ -115,8 +115,12 @@ posé dessus cacherait l'assemblage.
   **Refroidissement** : les blocs adjacents listés dans le registre datapack `coolant` (bloc ou
   tag + valeur — eau, glace, glace compacte, glace bleue livrées). Jauge à l'écran, lueur rouge et
   fumée sur la table.
-- **Au-delà du maximum, ou à chaleur maximale** : la table s'arrête et affiche « surcharge »
-  jusqu'à ce que ça redescende. Option serveur (1.1) : elle **explose** à la place — table et
+- **La chaleur ralentit avant d'arrêter** : pleine vitesse jusqu'à la moitié de la chaleur
+  maximale, puis de moins en moins vite jusqu'à 25 % juste avant le maximum.
+- **Au-delà du maximum d'intensité** : rien n'avance (« surcharge »). **À chaleur maximale** : la
+  table s'arrête jusqu'à être refroidie de moitié, et repart à pleine vitesse.
+- Un point d'intensité vaut un nombre de FE de progression par tick : réglage de la config par
+  défaut, que chaque type de faisceau du registre `beam` pourra fixer. Option serveur (1.1) : elle **explose** à la place — table et
   contenu détruits, lasers épargnés.
 
 ## 7. Les lasers

@@ -17,4 +17,10 @@ package dev.drimoz.laserassembly.core;
 public record Tuning(double defaultIntensity, double heatMultiplier, double maxMultiplier,
                      double rawFactor, double fePerIntensity,
                      double heatPerIntensity, double dissipation, double maxHeat) {
+
+    /**
+     * The config's defaults. Also what a recipe's thresholds are checked against when it loads,
+     * since datapacks load before the server config does.
+     */
+    public static final Tuning DEFAULTS = new Tuning(1, 2, 4, 0.25, 20, 1, 1, 1000);
 }

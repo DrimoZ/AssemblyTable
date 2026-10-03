@@ -69,12 +69,14 @@ class CoreTest {
     }
 
     @Test
-    void overheatingStopsUntilHalfCooledAndKeepsProgress() {
+    void heatSlowsThenStopsUntilHalfCooledAndKeepsProgress() {
         Assembly assembly = new Assembly();
         List<Step> steps = List.of(step(null, 100_000));
 
-        // 2 over the threshold at 50 a point, less 10 dissipation: +90, then capped at 100.
-        assertEquals(Status.WORKING, assembly.tick(steps, beams(null, 6), 0, TUNING));
+        // 2 over the threshold at 50 a point, less 10 dissipation: 90 heat, 40 past half of 100, so
+        // speed 1 - 0.75 * 40 / 50 = 0.4 of 60 FE. Then +90 again, capped at 100.
+        assertEquals(Status.SLOWED, assembly.tick(steps, beams(null, 6), 0, TUNING));
+        assertEquals(24, assembly.progress(), 1e-9);
         assertEquals(Status.OVERHEATED, assembly.tick(steps, beams(null, 6), 0, TUNING));
         double progress = assembly.progress();
 
