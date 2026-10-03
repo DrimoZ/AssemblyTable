@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "pattern": [
+    " A ",
+    "IRI",
+    "ICI"
+  ],
+  "key": {
+    "A": { "item": "minecraft:amethyst_shard" },
+    "I": { "item": "minecraft:iron_ingot" },
+    "R": { "item": "minecraft:redstone" },
+    "C": { "item": "minecraft:copper_ingot" }
+  },
+  "result": { "id": "laserassembly:laser", "count": 1 }
+}
