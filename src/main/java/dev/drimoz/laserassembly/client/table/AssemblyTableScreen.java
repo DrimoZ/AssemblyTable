@@ -97,7 +97,9 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         if (picker.isOpen()) {
-            renderBackground(graphics, mouseX, mouseY, partialTick);
+            // Not renderBackground: on a container screen it also runs renderBg, and the table's
+            // ticked cells, lifted above their items, showed through the picker.
+            renderTransparentBackground(graphics);
             picker.render(graphics, leftPos, topPos, imageHeight, mouseX, mouseY, partialTick);
             return;
         }
