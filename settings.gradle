@@ -1,15 +1,14 @@
 pluginManagement {
     repositories {
+        mavenCentral()
         gradlePluginPortal()
-        maven {
-            name = 'MinecraftForge'
-            url = 'https://maven.minecraftforge.net/'
-        }
+        maven { url = 'https://maven.neoforged.net/releases' }
     }
 }
 
 plugins {
-    id 'org.gradle.toolchains.foojay-resolver-convention' version '0.7.0'
+    // Lets Gradle auto-provision the Java 21 toolchain even when the system JDK differs.
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
 }
 
-rootProject.name = 'AssemblyTable'
+rootProject.name = 'LaserAssembly'
