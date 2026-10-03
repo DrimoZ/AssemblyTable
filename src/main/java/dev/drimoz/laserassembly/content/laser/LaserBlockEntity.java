@@ -213,13 +213,16 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
     }
 
     /**
-     * Settles which lens and what intensity to fire on {@code step}: the lens, then each Barrel lens,
-     * the first that fits; with a Regulator, at the intensity it picks. Reports how the lens itself
-     * fits when nothing does - that is the message a player can act on.
+     * Settles which lens and what intensity to fire on {@code step}: a lens of the step's own type
+     * wherever it sits, lens slot or Barrel; only failing that, a raw beam - an empty lens slot fits a
+     * typed step at a tenth of its power, and taking it first left a Barrel full of the right lenses
+     * unused. With a Regulator, at the intensity it picks. Reports how the lens itself fits when
+     * nothing does - that is the message a player can act on.
      */
     private Step.Fit aim(Step step, Effects fx) {
         double rawFactor = ServerConfig.tuning().rawFactor();
         Step.Fit reported = null;
+        int rawPower = -1;
         for (int i = 0; i <= fx.barrel(); i++) {
             ItemStack stack = i == 0 ? lens.getStackInSlot(0) : barrel.getStackInSlot(i - 1);
             if (i > 0 && stack.isEmpty()) continue;
@@ -228,14 +231,23 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
             Step.Fit fit = step.fit(candidate, power, rawFactor);
             if (reported == null) reported = fit;
             if (fit != Step.Fit.OK) continue;
-            beam = candidate;
-            if (power != intensity) {
-                intensity = power;
-                setChanged();
+            // A raw beam on a step that wants a lens is the fallback, not the pick.
+            if (candidate == null && step.beam().isPresent()) {
+                rawPower = power;
+                continue;
             }
-            return fit;
+            return aimWith(candidate, power);
         }
-        return reported;
+        return rawPower > 0 ? aimWith(null, rawPower) : reported;
+    }
+
+    private Step.Fit aimWith(@Nullable ResourceLocation candidate, int power) {
+        beam = candidate;
+        if (power != intensity) {
+            intensity = power;
+            setChanged();
+        }
+        return Step.Fit.OK;
     }
 
     /**

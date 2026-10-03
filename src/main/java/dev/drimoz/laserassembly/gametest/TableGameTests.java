@@ -94,8 +94,11 @@ public final class TableGameTests {
         helper.assertTrue(laser.augments().insertItem(1, augment("range_1"), false).isEmpty(), "range refused");
         helper.assertTrue(!laser.augments().isItemValid(0, augment("range_2")), "a second range should be refused");
         laser.augments().setStackInSlot(1, augment("barrel"));
-        laser.barrel().insertItem(0, LensItem.of(ResourceKey.create(BeamType.REGISTRY,
-                ResourceLocation.fromNamespaceAndPath(LaserAssembly.MOD_ID, "weld"))), false);
+        // Both lenses in the Barrel and the lens slot empty: an empty slot is a raw beam, which fits a
+        // typed step at a tenth of its power, and once took the turn of the right lenses.
+        laser.lens().setStackInSlot(0, ItemStack.EMPTY);
+        laser.barrel().insertItem(0, lens("cut"), false);
+        laser.barrel().insertItem(1, lens("weld"), false);
 
         table.toggle(ResourceLocation.fromNamespaceAndPath(LaserAssembly.MOD_ID, "trident"));
         IItemHandler items = table.automation();
@@ -110,6 +113,10 @@ public final class TableGameTests {
             // Default thresholds for an intensity-1 step: heating above 3, so the Regulator settles on 3.
             helper.assertTrue(laser.effects().regulator(), "regulator not counted");
         });
+    }
+
+    private static ItemStack lens(String beam) {
+        return LensItem.of(ResourceKey.create(BeamType.REGISTRY, ResourceLocation.fromNamespaceAndPath(LaserAssembly.MOD_ID, beam)));
     }
 
     private static ItemStack augment(String id) {
