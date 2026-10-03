@@ -95,7 +95,7 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
         super.init();
         picker = new RecipePicker(font, imageHeight, menu.recipes(), () -> menu.table().selected(), this::toggle);
         addWidget(picker.search());
-        tabs = new SideTabs(List.of(new InfoTab(menu, () -> status().text), new FacesTab(menu, this::click)), imageWidth);
+        tabs = new SideTabs(List.of(new InfoTab(menu, () -> status().text), new LasersTab(menu, this::click), new FacesTab(menu, this::click)), imageWidth);
     }
 
     private void toggle(RecipeHolder<AssemblyRecipe> recipe) {

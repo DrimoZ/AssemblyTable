@@ -99,6 +99,8 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
         protected void onContentsChanged(int slot) {
             effects = null;
             setChanged();
+            // The table's lasers tab shows "auto" for a laser with a Regulator.
+            if (level != null && !level.isClientSide) sync();
         }
 
         @Override
@@ -132,6 +134,9 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
 
     /** The beam type it fires, null for raw: its lens's, or the Barrel's pick. Synced, for the beam's colour. */
     private @Nullable ResourceLocation beam;
+
+    /** The client has no augments outside the laser's own menu: whether one is a Regulator comes synced. */
+    private boolean regulatedOnClient;
 
     /** What the augments add up to. */
     public record Effects(int range, double efficiency, boolean regulator, int barrel) {
@@ -176,12 +181,13 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
 
     void serverTick() {
         BlockPos before = target;
+        int intensityBefore = intensity;
         if (--retargetIn <= 0) {
             retargetIn = RETARGET_TICKS;
             if (table == null || !reachable(table) || !table.wantsBeams()) {
                 AssemblyTableBlockEntity found = search();
                 // Nothing better: stay on a table still in sight, so the beam does not drop between crafts.
-                if (found != null || (table != null && !reachable(table))) table = found;
+                if (found != null || (table != null && !reachable(table))) retarget(found);
             }
             target = table == null ? null : table.getBlockPos();
         }
@@ -206,7 +212,7 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
                 state = fit == Step.Fit.TOO_WEAK ? STATE_TOO_WEAK : fit == Step.Fit.TOO_STRONG ? STATE_TOO_STRONG : STATE_WRONG_BEAM;
             }
         }
-        if (fired != firing || !Objects.equals(before, target) || !Objects.equals(beamBefore, beam)) {
+        if (fired != firing || !Objects.equals(before, target) || !Objects.equals(beamBefore, beam) || intensity != intensityBefore) {
             firing = fired;
             sync();
         }
@@ -262,6 +268,28 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
             lowestFitting = power;
         }
         return lowestFitting > 0 ? lowestFitting : intensity;
+    }
+
+    /** Changes the table this laser feeds, telling both: the table lists the lasers aiming at it. */
+    private void retarget(@Nullable AssemblyTableBlockEntity next) {
+        if (table != null && !table.isRemoved()) table.unlink(worldPosition);
+        table = next;
+        if (table != null) table.link(worldPosition);
+    }
+
+    /** Broken or unloaded: off the table's list. */
+    @Override
+    public void setRemoved() {
+        if (table != null && !table.isRemoved() && level != null && !level.isClientSide) table.unlink(worldPosition);
+        super.setRemoved();
+    }
+
+    public int intensity() {
+        return intensity;
+    }
+
+    public boolean regulated() {
+        return level != null && level.isClientSide ? regulatedOnClient : effects().regulator();
     }
 
     public Effects effects() {
@@ -391,6 +419,7 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
     public void stepIntensity(int delta) {
         intensity = Mth.clamp(intensity + delta, 1, MAX_INTENSITY);
         setChanged();
+        if (level != null && !level.isClientSide) sync();
     }
 
     @Override
@@ -472,12 +501,16 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
     private void writeBeam(CompoundTag tag) {
         if (target != null) tag.put("target", NbtUtils.writeBlockPos(target));
         tag.putBoolean("firing", firing);
+        tag.putInt("intensity", intensity);
+        tag.putBoolean("regulated", effects().regulator());
         if (beam != null) tag.putString("beam", beam.toString());
     }
 
     private void readBeam(CompoundTag tag) {
         target = NbtUtils.readBlockPos(tag, "target").orElse(null);
         firing = tag.getBoolean("firing");
+        intensity = Mth.clamp(tag.getInt("intensity"), 1, MAX_INTENSITY);
+        regulatedOnClient = tag.getBoolean("regulated");
         beam = tag.contains("beam") ? ResourceLocation.tryParse(tag.getString("beam")) : null;
     }
 

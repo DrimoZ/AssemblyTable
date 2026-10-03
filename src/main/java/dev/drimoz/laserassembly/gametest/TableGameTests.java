@@ -58,6 +58,7 @@ public final class TableGameTests {
         helper.succeedWhen(() -> {
             helper.assertTrue(count(items, Items.SADDLE) == 1, "no saddle yet");
             helper.assertTrue(helper.getTick() >= 40 && helper.getTick() < 100, "crafted at tick " + helper.getTick());
+            helper.assertTrue(table.lasers().contains(laser.getBlockPos()), "the table does not list its laser");
             helper.assertTrue(count(items, Items.LEATHER) == 3, "leather consumed: " + (6 - count(items, Items.LEATHER)));
             helper.assertTrue(count(items, Items.IRON_INGOT) == 0 && count(items, Items.STRING) == 0, "ingredients left over");
         });

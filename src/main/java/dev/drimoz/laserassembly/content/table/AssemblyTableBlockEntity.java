@@ -2,6 +2,7 @@ package dev.drimoz.laserassembly.content.table;
 
 import dev.drimoz.laserassembly.LaserAssembly;
 import dev.drimoz.laserassembly.ServerConfig;
+import dev.drimoz.laserassembly.content.laser.LaserBlockEntity;
 import dev.drimoz.laserassembly.core.Assembly;
 import dev.drimoz.laserassembly.core.Beams;
 import dev.drimoz.laserassembly.core.Rotation;
@@ -150,6 +151,8 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
     private @Nullable ResourceLocation current;
     /** Synced, for the assembly on display. */
     private boolean working;
+    /** Lasers aiming here, which register and leave themselves. Synced, for the lasers tab; not saved: they come back within a second. */
+    private final List<BlockPos> lasers = new ArrayList<>();
     private final Assembly assembly = new Assembly();
     private Assembly.Status status = Assembly.Status.IDLE;
 
@@ -356,6 +359,7 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
         tag.put("selected", ids);
         if (current != null) tag.putString("current", current.toString());
         tag.putBoolean("working", working);
+        tag.putLongArray("lasers", lasers.stream().mapToLong(BlockPos::asLong).toArray());
     }
 
     private void readSelection(CompoundTag tag) {
@@ -367,6 +371,8 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
         // Kept even if the recipe is gone after a datapack change: the table waits for it to come back.
         current = tag.contains("current") ? ResourceLocation.tryParse(tag.getString("current")) : null;
         working = tag.getBoolean("working");
+        lasers.clear();
+        for (long pos : tag.getLongArray("lasers")) lasers.add(BlockPos.of(pos));
     }
 
     /**
@@ -474,6 +480,35 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
     }
 
     // Capabilities
+
+    // Lasers
+
+    public void link(BlockPos laser) {
+        if (lasers.contains(laser)) return;
+        lasers.add(laser);
+        sync();
+    }
+
+    public void unlink(BlockPos laser) {
+        if (lasers.remove(laser)) sync();
+    }
+
+    public List<BlockPos> lasers() {
+        return lasers;
+    }
+
+    /**
+     * From the lasers tab: step one linked laser's intensity, or every one's with {@code index} -1.
+     * Only lasers still aiming here: the list a client saw may be a tick old.
+     */
+    public void stepLaser(int index, int delta) {
+        for (int i = 0; i < lasers.size(); i++) {
+            if ((index < 0 || i == index) && level.isLoaded(lasers.get(i))
+                    && level.getBlockEntity(lasers.get(i)) instanceof LaserBlockEntity laser && worldPosition.equals(laser.target())) {
+                laser.stepIntensity(delta);
+            }
+        }
+    }
 
     // Faces and automatic transfer
 
