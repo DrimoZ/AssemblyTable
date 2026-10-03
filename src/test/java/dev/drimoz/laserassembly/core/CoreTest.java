@@ -1,6 +1,7 @@
 package dev.drimoz.laserassembly.core;
 
 import dev.drimoz.laserassembly.core.Assembly.Status;
+import dev.drimoz.laserassembly.core.Step.Fit;
 import dev.drimoz.laserassembly.core.Thresholds.Overrides;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
@@ -16,17 +17,23 @@ class CoreTest {
     static final ResourceLocation CUT = ResourceLocation.fromNamespaceAndPath("laserassembly", "cut");
     static final ResourceLocation WELD = ResourceLocation.fromNamespaceAndPath("laserassembly", "weld");
 
-    // min 2 -> heats above 4, overloads above 8. 10 FE of progress per point of intensity.
-    static final Tuning TUNING = new Tuning(2, 2, 4, 0.25, 10, 50, 10, 100);
+    // min 2 -> a beam heats above 4 and is too strong above 8. 10 FE of progress per point of power,
+    // and each extra beam counts half the one before, so sums stay exact.
+    static final Tuning TUNING = new Tuning(2, 2, 4, 0.25, 10, 50, 10, 100, 0.5);
 
     static Step step(ResourceLocation beam, int energy) {
         return new Step(Optional.ofNullable(beam), energy, Thresholds.resolve(Overrides.NONE, Overrides.NONE, TUNING), false);
     }
 
-    static Beams beams(ResourceLocation beam, double intensity) {
+    /** {@code count} beams of one type and intensity. */
+    static Beams beams(ResourceLocation beam, double intensity, int count) {
         Beams beams = new Beams();
-        beams.add(beam, intensity);
+        for (int i = 0; i < count; i++) beams.add(beam, intensity);
         return beams;
+    }
+
+    static Beams beams(ResourceLocation beam, double intensity) {
+        return beams(beam, intensity, 1);
     }
 
     @Test
@@ -41,24 +48,46 @@ class CoreTest {
     }
 
     @Test
-    void typedStepTakesItsTypeAndAShareOfRawNeverAnotherLens() {
-        Beams beams = beams(CUT, 2);
-        beams.add(WELD, 5);
-        beams.add(null, 4);
-
-        assertEquals(3, beams.effective(step(CUT, 100), 0.25));
-        assertEquals(11, beams.effective(step(null, 100), 0.25));
+    void eachBeamIsJudgedAloneAgainstTheStep() {
+        Step cut = step(CUT, 100);
+        assertEquals(Fit.OK, cut.fit(CUT, 2));
+        assertEquals(Fit.TOO_WEAK, cut.fit(CUT, 1));
+        assertEquals(Fit.TOO_STRONG, cut.fit(CUT, 9));
+        assertEquals(Fit.WRONG_BEAM, cut.fit(WELD, 5));
+        // A raw beam fits a typed step, for a share of its power - unless the step is strict.
+        assertEquals(Fit.OK, cut.fit(null, 3));
+        assertEquals(1, cut.power(null, 4, 0.25));
+        assertEquals(Fit.WRONG_BEAM, new Step(Optional.of(CUT), 100, cut.thresholds(), true).fit(null, 3));
     }
 
     @Test
-    void stepsRunInOrderOnlyInsideTheirWindow() {
+    void moreLasersGoFasterButEachAddsLess() {
+        List<Step> steps = List.of(step(null, 1_000_000));
+
+        Assembly one = new Assembly();
+        one.tick(steps, beams(null, 2), 0, TUNING);
+        assertEquals(20, one.progress(), 1e-9);
+
+        // 2 + 1 + 0.5: the third beam adds a quarter of the first.
+        Assembly three = new Assembly();
+        three.tick(steps, beams(null, 2, 3), 0, TUNING);
+        assertEquals(35, three.progress(), 1e-9);
+
+        // Nine weak beams on a weak step: all fit, none overloads, none heats.
+        Assembly nine = new Assembly();
+        assertEquals(Status.WORKING, nine.tick(steps, beams(null, 2, 9), 0, TUNING));
+        assertEquals(0, nine.heat());
+    }
+
+    @Test
+    void stepsRunInOrderAndOnlyFittingBeamsWork() {
         Assembly assembly = new Assembly();
         List<Step> steps = List.of(step(CUT, 30), step(WELD, 30));
 
         assertEquals(Status.TOO_WEAK, assembly.tick(steps, beams(CUT, 1), 0, TUNING));
-        // Over the max is over the heat threshold too: cooled hard so only the overload shows.
-        assertEquals(Status.OVERLOAD, assembly.tick(steps, beams(CUT, 9), 1000, TUNING));
+        assertEquals(Status.OVERLOAD, assembly.tick(steps, beams(CUT, 9), 0, TUNING));
         assertEquals(0, assembly.progress());
+        assertEquals(0, assembly.heat(), "a beam too strong to work must not heat either");
 
         assertEquals(Status.WORKING, assembly.tick(steps, beams(CUT, 2), 0, TUNING));
         assertEquals(Status.WORKING, assembly.tick(steps, beams(CUT, 2), 0, TUNING));

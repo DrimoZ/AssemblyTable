@@ -8,6 +8,10 @@
   "laserassembly.laser.no_target": "Aucune table en vue",
   "laserassembly.laser.firing": "Tire sur %s, %s, %s",
   "laserassembly.laser.holding": "Vise %s, %s, %s",
+  "laserassembly.laser.no_power": "Pas d'énergie",
+  "laserassembly.laser.too_weak": "Trop faible pour cette étape : montez-le",
+  "laserassembly.laser.too_strong": "Trop fort pour cette étape : baissez-le",
+  "laserassembly.laser.wrong_beam": "Mauvaise lentille pour cette étape",
 
   "beam.laserassembly.cut": "Découpe",
   "beam.laserassembly.weld": "Soudure",
@@ -28,7 +32,7 @@
   "laserassembly.status.no_beam": "En attente d'un faisceau",
   "laserassembly.status.working": "En marche",
   "laserassembly.status.slowed": "Ralentie par la chaleur",
-  "laserassembly.status.too_weak": "Faisceau trop faible pour cette étape",
-  "laserassembly.status.overload": "Surcharge : intensité trop forte",
+  "laserassembly.status.too_weak": "Lasers trop faibles pour cette étape",
+  "laserassembly.status.overload": "Lasers trop forts pour cette étape",
   "laserassembly.status.overheated": "Surchauffe : refroidissement en cours"
 }

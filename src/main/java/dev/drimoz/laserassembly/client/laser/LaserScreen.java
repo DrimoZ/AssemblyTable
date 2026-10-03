@@ -46,6 +46,8 @@ public class LaserScreen extends AbstractContainerScreen<LaserMenu> {
         GuiSprites.statusLight(graphics, switch (menu.data(DATA_STATE)) {
             case STATE_FIRING -> GuiTheme.Status.WORKING;
             case STATE_HOLDING -> GuiTheme.Status.WAITING;
+            // Aimed, but its beam does not fit the step: a setting to change, not a fault.
+            case STATE_TOO_WEAK, STATE_TOO_STRONG, STATE_WRONG_BEAM -> GuiTheme.Status.BLOCKED;
             default -> GuiTheme.Status.PROBLEM;
         }, x + GuiMetrics.LED_X, y + GuiMetrics.LED_Y);
     }
@@ -63,8 +65,14 @@ public class LaserScreen extends AbstractContainerScreen<LaserMenu> {
         graphics.drawString(font, text("laser.cost", Mth.ceil(intensity * ServerConfig.tuning().fePerIntensity())),
                 TEXT_X, GuiMetrics.row(1) + 5, GuiTheme.TEXT_MUTED, false);
         BlockPos target = menu.laser().target();
-        Component aim = target == null ? text("laser.no_target")
-                : text(menu.data(DATA_STATE) == STATE_FIRING ? "laser.firing" : "laser.holding", target.getX(), target.getY(), target.getZ());
+        Component aim = target == null ? text("laser.no_target") : switch (menu.data(DATA_STATE)) {
+            case STATE_FIRING -> text("laser.firing", target.getX(), target.getY(), target.getZ());
+            case STATE_NO_POWER -> text("laser.no_power");
+            case STATE_TOO_WEAK -> text("laser.too_weak");
+            case STATE_TOO_STRONG -> text("laser.too_strong");
+            case STATE_WRONG_BEAM -> text("laser.wrong_beam");
+            default -> text("laser.holding", target.getX(), target.getY(), target.getZ());
+        };
         graphics.drawString(font, aim, TEXT_X, GuiMetrics.row(2) + 5, GuiTheme.TEXT_MUTED, false);
     }
 

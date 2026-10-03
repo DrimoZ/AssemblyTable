@@ -1,39 +1,42 @@
 package dev.drimoz.laserassembly.core;
 
-import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
+import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
- * The intensity a table receives this tick, summed per beam type. One instance per table, cleared
- * and refilled every tick rather than reallocated: this sits on the hot path.
+ * The beams reaching a table this tick, one by one. Never summed: intensity is a property of each
+ * beam, judged on its own against the step - nine weak lasers are nine weak beams, not one strong
+ * one. Cleared and refilled every tick rather than reallocated: this sits on the hot path.
  */
 public final class Beams {
 
-    private final Object2DoubleOpenHashMap<ResourceLocation> typed = new Object2DoubleOpenHashMap<>();
-    private double raw;
-    private double total;
+    /** Null for a raw beam: a laser without a lens. */
+    private final List<@Nullable ResourceLocation> types = new ArrayList<>();
+    private final DoubleArrayList intensities = new DoubleArrayList();
 
     public void clear() {
-        typed.clear();
-        raw = 0;
-        total = 0;
+        types.clear();
+        intensities.clear();
     }
 
-    /** {@code beam} is null for a raw beam: a laser without a lens, or FE fed into the table directly. */
     public void add(@Nullable ResourceLocation beam, double intensity) {
-        if (beam == null) raw += intensity;
-        else typed.addTo(beam, intensity);
-        total += intensity;
+        types.add(beam);
+        intensities.add(intensity);
     }
 
-    /**
-     * What counts toward {@code step}. A raw step takes every beam; a typed step takes its own type
-     * and, unless strict, a share of the raw beam. A lens of the wrong type counts for nothing.
-     */
-    public double effective(Step step, double rawFactor) {
-        if (step.beam().isEmpty()) return total;
-        double own = typed.getDouble(step.beam().get());
-        return step.strict() ? own : own + raw * rawFactor;
+    public int size() {
+        return types.size();
+    }
+
+    public @Nullable ResourceLocation type(int index) {
+        return types.get(index);
+    }
+
+    public double intensity(int index) {
+        return intensities.getDouble(index);
     }
 }

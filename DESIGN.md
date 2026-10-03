@@ -109,26 +109,33 @@ posé dessus cacherait l'assemblage.
 
 ## 6. Intensité, chaleur, surcharge
 
-- Un laser a un **cran d'intensité de 1 à 5** ; plus haut, plus de FE par tick.
-- L'intensité **reçue** par la table est la somme, par type de faisceau, des lasers qui la visent.
-  En dessous du minimum de l'étape, rien n'avance ; au-dessus, plus vite.
-- **Au-delà du seuil de chauffe**, la table chauffe. La chaleur redescend seule sous le seuil.
-  **Refroidissement** : les blocs adjacents listés dans le registre datapack `coolant` (bloc ou
-  tag + valeur — eau, glace, glace compacte, glace bleue livrées). Jauge à l'écran, lueur rouge et
-  fumée sur la table.
+- **L'intensité est celle de chaque laser, jamais une somme** : un cran de 1 à 5, qu'il paie en
+  FE à chaque tir. Chaque faisceau est jugé **seul** face à l'étape en cours : en dessous du
+  minimum il est trop faible, au-delà du maximum trop fort, avec la mauvaise lentille il ne
+  convient pas. **Un laser dont le faisceau ne convient pas ne tire pas** : il ne coûte rien, ne
+  chauffe rien, et son écran dit pourquoi. Neuf lasers au cran 1 font une recette d'intensité 1.
+- **Plusieurs lasers vont plus vite, chacun un peu moins** : la puissance des faisceaux utiles
+  (leur intensité, × la part du brut sur une étape typée) est classée de la plus forte à la plus
+  faible, et chacune compte 70 % de la précédente (`stacking_factor`, config). Deux lasers font
+  ×1,7, quatre ×2,5, neuf ×3,1, et chacun paie tout son FE : au-delà de quatre ou cinq, on paie
+  surtout de l'énergie.
+- **Chaleur** : chaque faisceau utile chauffe la table de ce qui dépasse son seuil de chauffe.
+  Monter le cran va plus vite et chauffe plus : c'est le réglage à trouver. La chaleur redescend
+  seule dès qu'elle n'est plus alimentée, au repos compris. **Refroidissement** : les blocs
+  adjacents listés dans le registre datapack `coolant` (bloc ou tag + valeur — eau, glace, glace
+  compacte, glace bleue livrées). Jauge à l'écran, lueur rouge et fumée sur la table.
 - **La chaleur ralentit avant d'arrêter** : pleine vitesse jusqu'à la moitié de la chaleur
-  maximale, puis de moins en moins vite jusqu'à 25 % juste avant le maximum.
-- **Au-delà du maximum d'intensité** : rien n'avance (« surcharge »). **À chaleur maximale** : la
-  table s'arrête jusqu'à être refroidie de moitié, et repart à pleine vitesse.
+  maximale, puis de moins en moins vite jusqu'à 25 % juste avant le maximum. **À chaleur
+  maximale** : la table s'arrête jusqu'à être refroidie de moitié, et repart à pleine vitesse.
+  Option serveur (1.1) : elle **explose** à la place — table et contenu détruits, lasers épargnés.
 - Un point d'intensité vaut un nombre de FE de progression par tick : réglage de la config par
-  défaut, que chaque type de faisceau du registre `beam` pourra fixer. Option serveur (1.1) : elle **explose** à la place — table et
-  contenu détruits, lasers épargnés.
+  défaut, que chaque type de faisceau du registre `beam` pourra fixer.
 
 ## 7. Les lasers
 
 - **Ciblage** : la table la plus proche dans le **demi-espace devant le laser**, portée 8 blocs
   (config), **ligne de vue obligatoire**. Cible collante : il reste sur sa table tant qu'elle
-  demande de l'énergie. Plusieurs lasers sur une table s'additionnent.
+  demande de l'énergie. Plusieurs lasers sur une table vont plus vite, chacun un peu moins (§6).
 - **Écran du laser** : lentille, 2 emplacements d'augment, jauge d'énergie, cible actuelle, cran.
 - **Piloté depuis la table** : un onglet « Lasers » liste les lasers liés — lentille, cran −/+,
   interrupteur, distance, augments — avec une ligne « tous ». On n'y change pas lentilles ni

@@ -8,6 +8,10 @@
   "laserassembly.laser.no_target": "No table in sight",
   "laserassembly.laser.firing": "Firing at %s, %s, %s",
   "laserassembly.laser.holding": "Aimed at %s, %s, %s",
+  "laserassembly.laser.no_power": "No energy",
+  "laserassembly.laser.too_weak": "Too weak for this step: raise it",
+  "laserassembly.laser.too_strong": "Too strong for this step: lower it",
+  "laserassembly.laser.wrong_beam": "Wrong lens for this step",
 
   "beam.laserassembly.cut": "Cutting",
   "beam.laserassembly.weld": "Welding",
@@ -28,7 +32,7 @@
   "laserassembly.status.no_beam": "Waiting for a beam",
   "laserassembly.status.working": "Working",
   "laserassembly.status.slowed": "Slowed by heat",
-  "laserassembly.status.too_weak": "Beam too weak for this step",
-  "laserassembly.status.overload": "Overload: too much intensity",
+  "laserassembly.status.too_weak": "Lasers too weak for this step",
+  "laserassembly.status.overload": "Lasers too strong for this step",
   "laserassembly.status.overheated": "Overheated: cooling down"
 }

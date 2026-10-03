@@ -2,6 +2,7 @@ package dev.drimoz.laserassembly.content.laser;
 
 import dev.drimoz.laserassembly.ServerConfig;
 import dev.drimoz.laserassembly.content.table.AssemblyTableBlockEntity;
+import dev.drimoz.laserassembly.core.Step;
 import dev.drimoz.laserassembly.registry.ModBlocks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -49,9 +50,14 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
     public static final int DATA_INTENSITY = 1;
     public static final int DATA_STATE = 2;
     public static final int DATA_COUNT = 3;
+    /** What the laser is doing, for its screen: each but firing says why it holds fire. */
     public static final int STATE_NO_TARGET = 0;
     public static final int STATE_HOLDING = 1;
     public static final int STATE_FIRING = 2;
+    public static final int STATE_NO_POWER = 3;
+    public static final int STATE_TOO_WEAK = 4;
+    public static final int STATE_TOO_STRONG = 5;
+    public static final int STATE_WRONG_BEAM = 6;
 
     private final Power energy = new Power();
 
@@ -61,7 +67,7 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
             return switch (index) {
                 case DATA_ENERGY -> energy.getEnergyStored();
                 case DATA_INTENSITY -> intensity;
-                case DATA_STATE -> firing ? STATE_FIRING : target != null ? STATE_HOLDING : STATE_NO_TARGET;
+                case DATA_STATE -> state;
                 default -> 0;
             };
         }
@@ -83,6 +89,7 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
 
     private @Nullable AssemblyTableBlockEntity table;
     private int retargetIn;
+    private int state = STATE_NO_TARGET;
 
     public LaserBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlocks.LASER_ENTITY.get(), pos, state);
@@ -101,12 +108,19 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
         }
 
         boolean fired = false;
-        if (table != null && !table.isRemoved() && table.wantsBeams()) {
+        Step.Fit fit = table == null || table.isRemoved() ? null : table.fit(null, intensity);
+        if (fit == Step.Fit.OK) {
             // Spent in whole FE: a fraction would round to free power at low intensities.
             if (energy.spend(Mth.ceil(intensity * ServerConfig.tuning().fePerIntensity()))) {
                 table.receiveBeam(null, intensity);
                 fired = true;
+                state = STATE_FIRING;
+            } else {
+                state = STATE_NO_POWER;
             }
+        } else {
+            state = target == null ? STATE_NO_TARGET : fit == null ? STATE_HOLDING
+                    : fit == Step.Fit.TOO_WEAK ? STATE_TOO_WEAK : fit == Step.Fit.TOO_STRONG ? STATE_TOO_STRONG : STATE_WRONG_BEAM;
         }
         if (fired != firing || !Objects.equals(before, target)) {
             firing = fired;

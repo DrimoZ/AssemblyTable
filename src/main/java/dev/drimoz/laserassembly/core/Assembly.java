@@ -1,5 +1,8 @@
 package dev.drimoz.laserassembly.core;
 
+import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
+import it.unimi.dsi.fastutil.doubles.DoubleArrays;
+
 import java.util.List;
 
 /**
@@ -12,20 +15,23 @@ import java.util.List;
 public final class Assembly {
 
     public enum Status {
-        /** Nothing that counts toward this step is arriving. */
+        /** No beam arriving, or only beams of the wrong type. */
         IDLE,
         WORKING,
         /** Working, but past half heat and slowing down as it climbs. */
         SLOWED,
-        /** Below the step's minimum intensity: no progress. */
+        /** Beams arriving, all too weak for this step. */
         TOO_WEAK,
-        /** Above the step's maximum: no progress until the beams come down. */
+        /** Beams arriving, none fitting, some too strong for this step. */
         OVERLOAD,
         /** Hit max heat: stopped until it has cooled to half. */
         OVERHEATED,
         /** The last step just completed. The table crafts, the next tick starts over. */
         DONE
     }
+
+    /** Scratch for the fitting beams' power, reused every tick. */
+    private final DoubleArrayList powers = new DoubleArrayList();
 
     private int step;
     private double progress;
@@ -44,24 +50,37 @@ public final class Assembly {
         }
 
         Step current = steps.get(step);
-        Thresholds limits = current.thresholds();
-        double intensity = beams.effective(current, tuning.rawFactor());
+        double heatAbove = current.thresholds().heatAbove();
 
-        double excess = Math.max(0, intensity - limits.heatAbove());
+        // Each beam is judged on its own. Those that fit work, and heat by their own excess.
+        powers.clear();
+        double excess = 0;
+        boolean tooStrong = false, tooWeak = false;
+        for (int i = 0; i < beams.size(); i++) {
+            double intensity = beams.intensity(i);
+            switch (current.fit(beams.type(i), intensity)) {
+                case OK -> {
+                    powers.add(current.power(beams.type(i), intensity, tuning.rawFactor()));
+                    excess += Math.max(0, intensity - heatAbove);
+                }
+                case TOO_STRONG -> tooStrong = true;
+                case TOO_WEAK -> tooWeak = true;
+                case WRONG_BEAM -> {
+                }
+            }
+        }
+
         heat = Math.max(0, heat + excess * tuning.heatPerIntensity() - tuning.dissipation() - cooling);
         if (heat >= tuning.maxHeat()) {
             heat = tuning.maxHeat();
             overheated = true;
             return Status.OVERHEATED;
         }
-
-        if (intensity <= 0) return Status.IDLE;
-        if (intensity < limits.min()) return Status.TOO_WEAK;
-        if (intensity > limits.max()) return Status.OVERLOAD;
+        if (powers.isEmpty()) return tooStrong ? Status.OVERLOAD : tooWeak ? Status.TOO_WEAK : Status.IDLE;
 
         double speed = speed(tuning.maxHeat());
         Status working = speed < 1 ? Status.SLOWED : Status.WORKING;
-        progress += intensity * tuning.fePerIntensity() * speed;
+        progress += stackedPower(tuning.stackingFactor()) * tuning.fePerIntensity() * speed;
         if (progress < current.energy()) return working;
 
         // Surplus is dropped rather than carried: it was spent on this step's beam, and the next step
@@ -70,6 +89,21 @@ public final class Assembly {
         if (++step < steps.size()) return working;
         step = 0;
         return Status.DONE;
+    }
+
+    /**
+     * The fitting beams' power, strongest first, each counting {@code factor} of the one before:
+     * a second laser adds 70 %, a ninth almost nothing, while every one still pays its full FE.
+     * More lasers is faster, never proportionally.
+     */
+    private double stackedPower(double factor) {
+        DoubleArrays.quickSort(powers.elements(), 0, powers.size());
+        double total = 0, weight = 1;
+        for (int i = powers.size() - 1; i >= 0; i--) {
+            total += powers.getDouble(i) * weight;
+            weight *= factor;
+        }
+        return total;
     }
 
     /**

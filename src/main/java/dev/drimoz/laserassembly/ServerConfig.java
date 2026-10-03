@@ -17,6 +17,7 @@ public final class ServerConfig {
     private static final ModConfigSpec.DoubleValue MAX_MULTIPLIER;
     private static final ModConfigSpec.DoubleValue RAW_FACTOR;
     private static final ModConfigSpec.DoubleValue FE_PER_INTENSITY;
+    private static final ModConfigSpec.DoubleValue STACKING_FACTOR;
     private static final ModConfigSpec.DoubleValue HEAT_PER_INTENSITY;
     private static final ModConfigSpec.DoubleValue DISSIPATION;
     private static final ModConfigSpec.DoubleValue MAX_HEAT;
@@ -33,15 +34,18 @@ public final class ServerConfig {
         b.push("intensity");
         DEFAULT_INTENSITY = b.comment("Minimum intensity of a recipe step that sets none itself.")
                 .defineInRange("default_intensity", d.defaultIntensity(), 0.01, 1000);
-        HEAT_MULTIPLIER = b.comment("The table heats above minimum x this, unless the recipe sets heat_above.")
+        HEAT_MULTIPLIER = b.comment("A beam heats the table above minimum x this, unless the recipe sets heat_above.")
                 .defineInRange("heat_multiplier", d.heatMultiplier(), 1, 100);
-        MAX_MULTIPLIER = b.comment("Nothing advances above minimum x this, unless the recipe sets max_intensity.",
+        MAX_MULTIPLIER = b.comment("A beam is too strong for a step above minimum x this, unless the recipe sets max_intensity.",
                         "Must not be below heat_multiplier.")
                 .defineInRange("max_multiplier", d.maxMultiplier(), 1, 100);
         RAW_FACTOR = b.comment("Share of a raw beam (no lens) that counts on a step wanting a lens. 0 makes lenses mandatory.")
                 .defineInRange("raw_beam_factor", d.rawFactor(), 0, 1);
-        FE_PER_INTENSITY = b.comment("FE of recipe progress one point of intensity is worth per tick.")
+        FE_PER_INTENSITY = b.comment("FE of recipe progress one point of a beam's intensity is worth per tick.")
                 .defineInRange("fe_per_intensity", d.fePerIntensity(), 1, 100_000);
+        STACKING_FACTOR = b.comment("Each extra laser on a table counts this much of the one before it: 0.7 makes a second",
+                        "laser add 70 %, a third 49 %, and nine about three times one. 1 adds them up in full.")
+                .defineInRange("stacking_factor", d.stackingFactor(), 0, 1);
         b.pop();
 
         b.push("heat");
@@ -69,7 +73,7 @@ public final class ServerConfig {
     static void onLoad(ModConfigEvent event) {
         if (event.getConfig().getSpec() != SPEC) return;
         tuning = new Tuning(DEFAULT_INTENSITY.get(), HEAT_MULTIPLIER.get(), MAX_MULTIPLIER.get(),
-                RAW_FACTOR.get(), FE_PER_INTENSITY.get(), HEAT_PER_INTENSITY.get(), DISSIPATION.get(), MAX_HEAT.get());
+                RAW_FACTOR.get(), FE_PER_INTENSITY.get(), HEAT_PER_INTENSITY.get(), DISSIPATION.get(), MAX_HEAT.get(), STACKING_FACTOR.get());
     }
 
     public static Tuning tuning() {
