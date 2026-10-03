@@ -84,7 +84,7 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
 
         @Override
         public boolean isItemValid(int slot, ItemStack stack) {
-            return LensItem.beam(stack) != null;
+            return LensItem.beam(stack) != null && !beamTakenElsewhere(this, slot, stack);
         }
 
         @Override
@@ -121,7 +121,7 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
 
         @Override
         public boolean isItemValid(int slot, ItemStack stack) {
-            return LensItem.beam(stack) != null && slot < effects().barrel();
+            return LensItem.beam(stack) != null && slot < effects().barrel() && !beamTakenElsewhere(this, slot, stack);
         }
 
         @Override
@@ -270,6 +270,19 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
             effects = new Effects(range, efficiency, regulator, barrelSlots);
         }
         return effects;
+    }
+
+    /**
+     * One lens of each beam type per laser: a laser fires a single lens, so a second of the same
+     * type would only ever sit there. It also spreads a shift-click across the type it lacks.
+     */
+    private boolean beamTakenElsewhere(ItemStackHandler handler, int slot, ItemStack stack) {
+        ResourceLocation wanted = LensItem.beam(stack);
+        if (handler != lens && wanted.equals(LensItem.beam(lens.getStackInSlot(0)))) return true;
+        for (int i = 0; i < BARREL_SLOTS; i++) {
+            if ((handler != barrel || i != slot) && wanted.equals(LensItem.beam(barrel.getStackInSlot(i)))) return true;
+        }
+        return false;
     }
 
     /** One augment of each group: a second Range on the same laser is refused, not stacked. */
