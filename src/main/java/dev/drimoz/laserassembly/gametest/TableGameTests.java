@@ -13,6 +13,8 @@ import dev.drimoz.laserassembly.content.laser.LaserBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.HopperBlock;
+import net.minecraft.world.level.block.entity.HopperBlockEntity;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.resources.ResourceLocation;
@@ -134,6 +136,25 @@ public final class TableGameTests {
         laser.lens().insertItem(0, LensItem.of(ResourceKey.create(BeamType.REGISTRY,
                 ResourceLocation.fromNamespaceAndPath(LaserAssembly.MOD_ID, beam))), false);
         return laser;
+    }
+
+    /** A hopper on an input face feeds any ticked recipe, not only the one shown on the socket. */
+    @GameTest(template = "platform", timeoutTicks = 100)
+    public static void aHopperFeedsEveryTickedRecipe(GameTestHelper helper) {
+        BlockPos tablePos = new BlockPos(2, 2, 2);
+        helper.setBlock(tablePos, ModBlocks.ASSEMBLY_TABLE.get());
+        AssemblyTableBlockEntity table = helper.getBlockEntity(tablePos);
+        table.toggle(SADDLE);
+        table.toggle(ResourceLocation.fromNamespaceAndPath(LaserAssembly.MOD_ID, "trident"));
+        // Both, the default, then closed, then input.
+        table.cycleFace(Direction.WEST);
+        table.cycleFace(Direction.WEST);
+        helper.setBlock(tablePos.west(), Blocks.HOPPER.defaultBlockState().setValue(HopperBlock.FACING, Direction.EAST));
+        HopperBlockEntity hopper = helper.getBlockEntity(tablePos.west());
+        hopper.setItem(0, new ItemStack(Items.PRISMARINE_SHARD, 4));
+
+        helper.succeedWhen(() -> helper.assertTrue(count(table.automation(), Items.PRISMARINE_SHARD) == 4,
+                "the table took " + count(table.automation(), Items.PRISMARINE_SHARD) + " of 4 shards"));
     }
 
     /** A closed face shows pipes nothing; auto export pushes the outputs into the inventory beside it. */

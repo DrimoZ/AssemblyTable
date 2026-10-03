@@ -104,7 +104,7 @@ public final class AssemblyRecipe implements Recipe<AssemblyRecipe.Input> {
     public ItemStack assemble(Input input, HolderLookup.Provider registries) {
         if (keepComponents) {
             for (ItemStack stack : input.items()) {
-                if (ingredients.getFirst().test(stack)) return stack.transmuteCopy(result.getItem(), result.getCount());
+                if (ingredients.getFirst().ingredient().test(stack)) return stack.transmuteCopy(result.getItem(), result.getCount());
             }
         }
         return result.copy();

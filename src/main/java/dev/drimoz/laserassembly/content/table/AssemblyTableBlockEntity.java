@@ -430,7 +430,9 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
             AssemblyRecipe recipe = lookup(id);
             if (recipe == null) continue;
             int uses = 0;
-            for (var sized : recipe.ingredients()) if (sized.test(stack)) uses += sized.count();
+            // The ingredient, not the SizedIngredient: its test also wants a stack of the full count,
+            // and a hopper hands over one item at a time.
+            for (var sized : recipe.ingredients()) if (sized.ingredient().test(stack)) uses += sized.count();
             perCraft = Math.max(perCraft, uses);
         }
         int held = 0;
