@@ -45,7 +45,8 @@ namespace des recettes et ignorait le `count` des ingrédients.
 
 - **Entrées et sorties séparées**, toujours : 12 entrées (3×4), 4 sorties. Les entrées
   n'acceptent **que** les ingrédients des recettes cochées, au plus N crafts d'avance (règle du
-  crafter de Factor'IO) : un tuyau ne peut plus la boucher.
+  crafter de Factor'IO) : un tuyau ne peut plus la boucher. **[à revoir]** le plafond de deux
+  crafts (`input_crafts`) ne plaît pas en jeu ; à reprendre avec l'import automatique (§4.1).
 - **Recettes réalisables** recalculées au changement d'inventaire, pas à chaque tick. Clic =
   cocher / décocher. Une recette cochée sans ses ingrédients reste cochée, voilée.
 - **Production** : les recettes cochées tournent à tour de rôle (BuildCraft), en sautant celles
