@@ -45,12 +45,14 @@ import static dev.drimoz.laserassembly.content.table.AssemblyTableMenu.*;
  *  │ ┏━━┓ Trident                            │  the socket: the running recipe, a click opens the picker
  *  │ ┗━━┛ Step 2 of 2: Welding               │
  *  │ [▓▓▓▓▓▓▓▓▓▓|▒▒▒▒▒▒▒▒░░░░░░░░░░░░░░]    │  one bar for the whole recipe, a segment per step in its beam's colour
- *  │ ▌ [ ][ ][ ][ ]      [o][o]             │  heat, inputs 4x3, outputs 2x2
- *  │ ▌ [ ][ ][ ][ ]      [o][o]             │
- *  │ ▌ [ ][ ][ ][ ]  [q][q][q][q]           │  the queue: the ticked recipes that come next
+ *  │ ▌ [ ][ ][ ][ ]           [o][o]        │  heat, inputs 4x3, an arrow, outputs 2x2
+ *  │ ▌ [ ][ ][ ][ ]   ━━▶     [o][o]        │
+ *  │ ▌ [ ][ ][ ][ ]                         │
  *  └────────────────────────────────────────┘
  * </pre>
  * One bar, not a gauge beside a row of steps: two drawings of the same progress read as two things.
+ * The other ticked recipes are a count on the socket and a line in its tooltip, not a row of cells:
+ * as cells they read as more outputs.
  */
 public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMenu> {
 
@@ -62,12 +64,14 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
     private static final int BAR_X = GuiMetrics.column(0);
     private static final int BAR_Y = SOCKET_Y + GuiMetrics.SOCKET + 3;
     private static final int BAR_WIDTH = GuiMetrics.column(9) - BAR_X;
-    private static final int BAR_HEIGHT = 8;
+    private static final int BAR_HEIGHT = 10;
 
+    /** Heat is one number to keep an eye on: a thin gauge, centred in column 0. */
+    private static final int HEAT_WIDTH = 6;
+    private static final int HEAT_X = GuiMetrics.column(0) + (GuiMetrics.SLOT - HEAT_WIDTH) / 2;
     private static final int HEAT_HEIGHT = CONTENT_BOTTOM - WORK_TOP;
-    private static final int QUEUE_COLUMN = 5;
-    private static final int QUEUE_CELLS = 4;
-    private static final int QUEUE_Y = WORK_TOP + 2 * GuiMetrics.SLOT;
+    private static final int ARROW_X = GuiMetrics.column(5) + (2 * GuiMetrics.SLOT - 20) / 2;
+    private static final int ARROW_Y = WORK_TOP + (3 * GuiMetrics.SLOT - 13) / 2;
 
     private final Map<ResourceLocation, RecipeHolder<AssemblyRecipe>> byId = new HashMap<>();
     private RecipePicker picker;
@@ -117,12 +121,12 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
         int x = leftPos, y = topPos;
         GuiSprites.panel(graphics, x, y, imageWidth, imageHeight);
         for (Slot slot : menu.slots) GuiSprites.slot(graphics, x + slot.x - 1, y + slot.y - 1, false);
-        GuiSprites.gauge(graphics, GuiSprites.GAUGE_HEAT, x + GuiMetrics.GAUGE_X, y + WORK_TOP, GuiMetrics.GAUGE_WIDTH, HEAT_HEIGHT,
+        GuiSprites.gauge(graphics, GuiSprites.GAUGE_HEAT, x + HEAT_X, y + WORK_TOP, HEAT_WIDTH, HEAT_HEIGHT,
                 menu.data(DATA_HEAT) / 1000f);
 
         renderSocket(graphics, mouseX, mouseY);
         renderStepBar(graphics);
-        renderQueue(graphics, mouseX, mouseY);
+        GuiSprites.arrow(graphics, x + ARROW_X, y + ARROW_Y);
         GuiSprites.statusLight(graphics, status().light, x + GuiMetrics.LED_X, y + GuiMetrics.LED_Y);
     }
 
@@ -138,6 +142,16 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
             if (!shown.id().equals(menu.table().current())) wash(graphics, x + 4, y + 4, GuiTheme.GHOST_WASH);
         }
         if (overSocket(mouseX, mouseY)) wash(graphics, x + 4, y + 4, GuiTheme.HOVER_WASH);
+
+        // How many other recipes wait their turn, in the corner like a stack's count.
+        int waiting = queue().size();
+        if (waiting > 0) {
+            String count = "+" + waiting;
+            graphics.pose().pushPose();
+            graphics.pose().translate(0, 0, 300);
+            graphics.drawString(font, count, x + GuiMetrics.SOCKET - 2 - font.width(count), y + GuiMetrics.SOCKET - 10, 0xFFFFFFFF, true);
+            graphics.pose().popPose();
+        }
     }
 
     /**
@@ -154,32 +168,12 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
         int[] edges = segmentEdges(steps);
         for (int i = 0; i < steps.size(); i++) {
             int rgb = BeamColors.rgb(steps.get(i).beam().orElse(null));
-            int left = x + 1 + edges[i], right = x + 1 + edges[i + 1];
-            graphics.fill(left, y + 1, right, y + BAR_HEIGHT - 1, 0xFF000000 | dim(rgb));
+            int left = x + 1 + edges[i], right = x + 1 + edges[i + 1], height = BAR_HEIGHT - 2;
+            // Segments as on the charter's gauges, tinted: dim for what is left, bright for what is done.
+            GuiSprites.barSegments(graphics, left, y + 1, right - left, height, dim(rgb));
             float fill = i < current ? 1 : i == current ? progress : 0;
-            if (fill > 0) graphics.fill(left, y + 1, left + Math.round((right - left) * fill), y + BAR_HEIGHT - 1, 0xFF000000 | rgb);
+            GuiSprites.barSegments(graphics, left, y + 1, Math.round((right - left) * fill), height, rgb);
             if (i > 0) graphics.fill(left, y + 1, left + 1, y + BAR_HEIGHT - 1, 0xFF373737);
-        }
-    }
-
-    /** The ticked recipes that come after the running one, in the order they will take their turn. */
-    private void renderQueue(GuiGraphics graphics, int mouseX, int mouseY) {
-        List<ResourceLocation> queue = queue();
-        int hovered = queueCellAt(mouseX, mouseY);
-        for (int cell = 0; cell < QUEUE_CELLS; cell++) {
-            int x = leftPos + GuiMetrics.column(QUEUE_COLUMN + cell), y = topPos + QUEUE_Y;
-            GuiSprites.slot(graphics, x, y, false);
-            if (cell >= queue.size()) continue;
-            boolean more = cell == QUEUE_CELLS - 1 && queue.size() > QUEUE_CELLS;
-            if (more) {
-                String count = "+" + (queue.size() - QUEUE_CELLS + 1);
-                graphics.drawString(font, count, x + 1 + (16 - font.width(count)) / 2, y + 5, GuiTheme.TEXT_MUTED, false);
-                continue;
-            }
-            RecipeHolder<AssemblyRecipe> recipe = byId.get(queue.get(cell));
-            if (recipe != null) graphics.renderFakeItem(result(recipe), x + 1, y + 1);
-            wash(graphics, x, y, GuiTheme.GHOST_WASH);
-            if (cell == hovered) wash(graphics, x, y, GuiTheme.HOVER_WASH);
         }
     }
 
@@ -206,15 +200,14 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
         if (overSocket(mouseX, mouseY)) {
             RecipeHolder<AssemblyRecipe> shown = shownRecipe();
             List<Component> lines = new ArrayList<>(shown == null ? List.of() : describe(shown, null));
+            List<ResourceLocation> queue = queue();
+            if (!queue.isEmpty()) {
+                List<String> names = new ArrayList<>();
+                for (ResourceLocation id : queue) names.add(byId.containsKey(id) ? result(byId.get(id)).getHoverName().getString() : id.toString());
+                lines.add(text("gui.next", String.join(", ", names)).withStyle(ChatFormatting.YELLOW));
+            }
             lines.add(text("gui.choose").withStyle(ChatFormatting.DARK_GRAY));
             return lines;
-        }
-        int cell = queueCellAt(mouseX, mouseY);
-        List<ResourceLocation> queue = queue();
-        if (cell >= 0 && cell < queue.size()) {
-            if (cell == QUEUE_CELLS - 1 && queue.size() > QUEUE_CELLS) return List.of(text("gui.more", queue.size() - QUEUE_CELLS + 1));
-            RecipeHolder<AssemblyRecipe> recipe = byId.get(queue.get(cell));
-            return recipe == null ? List.of(Component.literal(queue.get(cell).toString())) : describe(recipe, true);
         }
         List<Step> steps = runningSteps();
         if (y >= BAR_Y && y < BAR_Y + BAR_HEIGHT && x >= BAR_X && x < BAR_X + BAR_WIDTH && !steps.isEmpty()) {
@@ -223,7 +216,7 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
                 if (x - BAR_X - 1 < edges[i + 1] || i == steps.size() - 1) return stepTooltip(steps.get(i), i, steps.size());
             }
         }
-        if (x >= GuiMetrics.GAUGE_X && x < GuiMetrics.GAUGE_X + GuiMetrics.GAUGE_WIDTH && y >= WORK_TOP && y < CONTENT_BOTTOM) {
+        if (x >= HEAT_X && x < HEAT_X + HEAT_WIDTH && y >= WORK_TOP && y < CONTENT_BOTTOM) {
             return List.of(text("gui.heat", menu.data(DATA_HEAT) / 10));
         }
         if (x >= GuiMetrics.LED_X && x < GuiMetrics.LED_X + GuiMetrics.LED_SIZE && y >= GuiMetrics.LED_Y && y < GuiMetrics.LED_Y + GuiMetrics.LED_SIZE) {
@@ -295,17 +288,6 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (picker.isOpen()) return picker.mouseClicked(leftPos, topPos, mouseX, mouseY, button);
         if (overSocket(mouseX, mouseY)) {
-            picker.open();
-            return true;
-        }
-        int cell = queueCellAt(mouseX, mouseY);
-        List<ResourceLocation> queue = queue();
-        boolean more = cell == QUEUE_CELLS - 1 && queue.size() > QUEUE_CELLS;
-        if (cell >= 0 && cell < queue.size() && !more && byId.containsKey(queue.get(cell))) {
-            toggle(byId.get(queue.get(cell)));
-            return true;
-        }
-        if (more) {
             picker.open();
             return true;
         }
@@ -393,13 +375,6 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
     private boolean overSocket(double mouseX, double mouseY) {
         double x = mouseX - leftPos - SOCKET_X, y = mouseY - topPos - SOCKET_Y;
         return x >= 0 && x < GuiMetrics.SOCKET && y >= 0 && y < GuiMetrics.SOCKET;
-    }
-
-    /** The queue cell under the mouse, or -1. */
-    private int queueCellAt(double mouseX, double mouseY) {
-        int x = (int) mouseX - leftPos - GuiMetrics.column(QUEUE_COLUMN), y = (int) mouseY - topPos - QUEUE_Y;
-        if (x < 0 || y < 0 || x >= QUEUE_CELLS * GuiMetrics.SLOT || y >= GuiMetrics.SLOT) return -1;
-        return x / GuiMetrics.SLOT;
     }
 
     /** Lifted above the item it covers, or it lands underneath. */

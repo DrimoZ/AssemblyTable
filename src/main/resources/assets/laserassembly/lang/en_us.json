@@ -32,7 +32,7 @@
   "laserassembly.gui.choose": "Click: choose recipes",
   "laserassembly.gui.step.progress": "In progress: %s%%",
   "laserassembly.gui.step.done": "Done",
-  "laserassembly.gui.more": "%s more ticked",
+  "laserassembly.gui.next": "Next: %s",
   "laserassembly.gui.step": "Step %s of %s: %s",
   "laserassembly.gui.step.window": "Intensity %s to %s, heats above %s",
   "laserassembly.gui.step.strict": "Needs its lens: a raw beam does nothing",
@@ -42,13 +42,13 @@
   "laserassembly.gui.picker.none": "No recipe found",
   "laserassembly.gui.picker.help": "Click: tick or untick · Esc: close",
 
-  "laserassembly.status.paused": "Paused by a redstone signal",
-  "laserassembly.status.nothing_ticked": "Tick a recipe to start",
-  "laserassembly.status.cannot_run": "Waiting for ingredients or output room",
+  "laserassembly.status.paused": "Paused by redstone",
+  "laserassembly.status.nothing_ticked": "Tick a recipe",
+  "laserassembly.status.cannot_run": "Needs items or room",
   "laserassembly.status.no_beam": "Waiting for a beam",
   "laserassembly.status.working": "Working",
   "laserassembly.status.slowed": "Slowed by heat",
-  "laserassembly.status.too_weak": "Lasers too weak for this step",
-  "laserassembly.status.overload": "Lasers too strong for this step",
-  "laserassembly.status.overheated": "Overheated: cooling down"
+  "laserassembly.status.too_weak": "Lasers too weak",
+  "laserassembly.status.overload": "Lasers too strong",
+  "laserassembly.status.overheated": "Overheated, cooling"
 }

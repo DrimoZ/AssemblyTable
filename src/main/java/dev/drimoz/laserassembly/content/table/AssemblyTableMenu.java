@@ -24,11 +24,12 @@ public class AssemblyTableMenu extends AbstractContainerMenu {
 
     /**
      * Under the recipe band (socket, name, step bar), the work area: heat in column 0, inputs 4x3 in
-     * columns 1-4, outputs 2x2 in columns 6-7, and the screen's queue of ticked recipes beneath them.
+     * columns 1-4, an arrow, and the outputs 2x2 in columns 7-8, centred on the inputs' height.
      */
     public static final int WORK_TOP = GuiMetrics.CONTENT_TOP + 40;
     public static final int INPUT_COLUMNS = 4;
-    public static final int OUTPUT_COLUMN = 6;
+    public static final int OUTPUT_COLUMN = 7;
+    public static final int OUTPUT_TOP = WORK_TOP + GuiMetrics.SLOT / 2;
     public static final int CONTENT_BOTTOM = WORK_TOP + 3 * GuiMetrics.SLOT;
 
     private static final int TABLE_SLOTS = AssemblyTableBlockEntity.INPUTS + AssemblyTableBlockEntity.OUTPUTS;
@@ -65,7 +66,7 @@ public class AssemblyTableMenu extends AbstractContainerMenu {
             });
         }
         for (int i = 0; i < AssemblyTableBlockEntity.OUTPUTS; i++) {
-            addSlot(new SlotItemHandler(table.outputs(), i, GuiMetrics.column(OUTPUT_COLUMN + i % 2) + 1, WORK_TOP + (i / 2) * GuiMetrics.SLOT + 1) {
+            addSlot(new SlotItemHandler(table.outputs(), i, GuiMetrics.column(OUTPUT_COLUMN + i % 2) + 1, OUTPUT_TOP + (i / 2) * GuiMetrics.SLOT + 1) {
                 @Override
                 public boolean mayPlace(ItemStack stack) {
                     return false;

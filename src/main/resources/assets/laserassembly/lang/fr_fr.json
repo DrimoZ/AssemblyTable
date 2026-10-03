@@ -32,7 +32,7 @@
   "laserassembly.gui.choose": "Clic : choisir les recettes",
   "laserassembly.gui.step.progress": "En cours : %s %%",
   "laserassembly.gui.step.done": "Terminée",
-  "laserassembly.gui.more": "%s autres cochées",
+  "laserassembly.gui.next": "Ensuite : %s",
   "laserassembly.gui.step": "Étape %s sur %s : %s",
   "laserassembly.gui.step.window": "Intensité %s à %s, chauffe au-delà de %s",
   "laserassembly.gui.step.strict": "Lentille obligatoire : le faisceau brut ne fait rien",
@@ -42,13 +42,13 @@
   "laserassembly.gui.picker.none": "Aucune recette trouvée",
   "laserassembly.gui.picker.help": "Clic : cocher ou décocher · Échap : fermer",
 
-  "laserassembly.status.paused": "En pause : signal redstone",
-  "laserassembly.status.nothing_ticked": "Cochez une recette pour commencer",
-  "laserassembly.status.cannot_run": "En attente d'ingrédients ou de place en sortie",
-  "laserassembly.status.no_beam": "En attente d'un faisceau",
+  "laserassembly.status.paused": "En pause (redstone)",
+  "laserassembly.status.nothing_ticked": "Cochez une recette",
+  "laserassembly.status.cannot_run": "Manque items ou place",
+  "laserassembly.status.no_beam": "Attend un faisceau",
   "laserassembly.status.working": "En marche",
-  "laserassembly.status.slowed": "Ralentie par la chaleur",
-  "laserassembly.status.too_weak": "Lasers trop faibles pour cette étape",
-  "laserassembly.status.overload": "Lasers trop forts pour cette étape",
-  "laserassembly.status.overheated": "Surchauffe : refroidissement en cours"
+  "laserassembly.status.slowed": "Ralentie (chaleur)",
+  "laserassembly.status.too_weak": "Lasers trop faibles",
+  "laserassembly.status.overload": "Lasers trop forts",
+  "laserassembly.status.overheated": "Surchauffe, refroidit"
 }
