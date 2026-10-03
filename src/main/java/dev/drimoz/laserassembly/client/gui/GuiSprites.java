@@ -96,7 +96,7 @@ public final class GuiSprites {
     public static final int ICON_SIZE = 12;
 
     public enum Icon {
-        INFO("icon_info"), LASERS("icon_lasers"), FACES("icon_faces");
+        INFO("icon_info"), LASERS("icon_lasers"), FACES("icon_faces"), CONTROL("icon_control");
 
         final ResourceLocation sprite;
 

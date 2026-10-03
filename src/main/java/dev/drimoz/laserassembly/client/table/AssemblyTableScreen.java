@@ -95,7 +95,8 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
         super.init();
         picker = new RecipePicker(font, imageHeight, menu.recipes(), () -> menu.table().selected(), this::toggle);
         addWidget(picker.search());
-        tabs = new SideTabs(List.of(new InfoTab(menu, () -> status().light, () -> status().text), new LasersTab(menu, this::click), new FacesTab(menu, this::click)), imageWidth);
+        tabs = new SideTabs(List.of(new InfoTab(menu, () -> status().light, () -> status().text), new LasersTab(menu, this::click), new FacesTab(menu, this::click),
+                new ControlTab(menu, this::click)), imageWidth);
     }
 
     private void toggle(RecipeHolder<AssemblyRecipe> recipe) {
@@ -295,7 +296,8 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
     /** The band's light: what the table is doing, or the one thing stopping it. */
     private Shown status() {
         AssemblyTableBlockEntity table = menu.table();
-        if (table.getBlockState().getValue(AssemblyTableBlock.POWERED)) return new Shown(GuiTheme.Status.OFF, text("status.paused"));
+        if ((menu.data(DATA_CONTROL) & 1) == 0) return new Shown(GuiTheme.Status.OFF, text("status.switched_off"));
+        if ((menu.data(DATA_CONTROL) & 1 << 7) != 0) return new Shown(GuiTheme.Status.OFF, text("status.paused"));
         if (table.selected().isEmpty()) return new Shown(GuiTheme.Status.OFF, text("status.nothing_ticked"));
         if (table.current() == null) return new Shown(GuiTheme.Status.WAITING, text("status.cannot_run"));
         return switch (Assembly.Status.values()[menu.data(DATA_STATUS)]) {

@@ -41,6 +41,10 @@ public class AssemblyTableMenu extends AbstractContainerMenu {
     /** Then the lasers tab: laser {@code i} steps down at BUTTON_LASER + 2i, up at + 2i + 1; every laser at BUTTON_LASERS_ALL + 0 or 1. */
     public static final int BUTTON_LASER = 3_000_000;
     public static final int BUTTON_LASERS_ALL = 4_000_000;
+    /** The control tab: the switch, a redstone mode by ordinal, the threshold down or up. */
+    public static final int BUTTON_SWITCH = 5_000_000;
+    public static final int BUTTON_MODE = 5_000_010;
+    public static final int BUTTON_THRESHOLD = 5_000_020;
 
     private static final int TABLE_SLOTS = AssemblyTableBlockEntity.INPUTS + AssemblyTableBlockEntity.OUTPUTS;
 
@@ -113,7 +117,11 @@ public class AssemblyTableMenu extends AbstractContainerMenu {
             table.cycleFace(Direction.values()[id - BUTTON_FACE]);
             return true;
         }
-        if (id == BUTTON_LASERS_ALL || id == BUTTON_LASERS_ALL + 1) table.stepLaser(-1, id == BUTTON_LASERS_ALL ? -1 : 1);
+        if (id == BUTTON_SWITCH) table.toggleSwitch();
+        else if (id >= BUTTON_MODE && id < BUTTON_MODE + AssemblyTableBlockEntity.RedstoneMode.values().length) {
+            table.setRedstoneMode(AssemblyTableBlockEntity.RedstoneMode.values()[id - BUTTON_MODE]);
+        } else if (id == BUTTON_THRESHOLD || id == BUTTON_THRESHOLD + 1) table.stepThreshold(id == BUTTON_THRESHOLD ? -1 : 1);
+        else         if (id == BUTTON_LASERS_ALL || id == BUTTON_LASERS_ALL + 1) table.stepLaser(-1, id == BUTTON_LASERS_ALL ? -1 : 1);
         else if (id >= BUTTON_LASER && id < BUTTON_LASERS_ALL) table.stepLaser((id - BUTTON_LASER) / 2, (id - BUTTON_LASER) % 2 == 0 ? -1 : 1);
         else if (id == BUTTON_AUTO_IMPORT) table.toggleAutoImport();
         else if (id == BUTTON_AUTO_EXPORT) table.toggleAutoExport();

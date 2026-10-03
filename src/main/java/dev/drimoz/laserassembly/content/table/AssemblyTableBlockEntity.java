@@ -76,7 +76,9 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
     public static final int DATA_FACES = 7;
     /** Bit 0 auto import, bit 1 auto export. */
     public static final int DATA_AUTO = 8;
-    public static final int DATA_COUNT = 9;
+    /** Bit 0 switched on, bits 1-2 the redstone mode, bits 3-6 the threshold, bit 7 paused right now. */
+    public static final int DATA_CONTROL = 9;
+    public static final int DATA_COUNT = 10;
 
     private final ContainerData data = new ContainerData() {
         @Override
@@ -91,6 +93,7 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
                 case DATA_COOLING -> (int) Math.round(cooling * 10);
                 case DATA_FACES -> packedFaces();
                 case DATA_AUTO -> (autoImport ? 1 : 0) | (autoExport ? 2 : 0);
+                case DATA_CONTROL -> (switchedOn ? 1 : 0) | redstoneMode.ordinal() << 1 | threshold << 3 | (paused() ? 1 << 7 : 0);
                 default -> 0;
             };
         }
@@ -144,6 +147,10 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
     private final FaceMode[] faces = {FaceMode.BOTH, FaceMode.BOTH, FaceMode.BOTH, FaceMode.BOTH, FaceMode.BOTH, FaceMode.BOTH};
     private boolean autoImport;
     private boolean autoExport;
+    private boolean switchedOn = true;
+    private RedstoneMode redstoneMode = RedstoneMode.BELOW;
+    private int threshold = 1;
+    private int signal;
     /** Neighbours' item handlers, one cache per face, built on first use on the server. */
     private final BlockCapabilityCache<IItemHandler, @Nullable Direction>[] neighbours = newCaches();
 
@@ -182,6 +189,7 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
         if ((autoImport || autoExport) && Math.floorMod(level.getGameTime() + worldPosition.hashCode(), AUTO_TICKS) == 0) autoTransfer();
         if (coolingDirty) {
             coolingDirty = false;
+            signal = level.getBestNeighborSignal(worldPosition);
             cooling = measureCooling();
         }
 
@@ -194,7 +202,7 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
             recipe = currentRecipe;
         }
 
-        if (recipe == null || getBlockState().getValue(AssemblyTableBlock.POWERED)) {
+        if (recipe == null || paused()) {
             pending.clear();
             beamsLastTick = 0;
             status = Assembly.Status.IDLE;
@@ -292,7 +300,7 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
 
     /** Whether the table is working at all - a laser keeps its aim on one that is, and looks elsewhere otherwise. */
     public boolean wantsBeams() {
-        return current != null && !steps.isEmpty() && !assembly.overheated() && !getBlockState().getValue(AssemblyTableBlock.POWERED);
+        return current != null && !steps.isEmpty() && !assembly.overheated() && !paused();
     }
 
     /** The step in progress, or null when the table wants no beam - each laser judges its own fit against it. */
@@ -496,6 +504,7 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
     // Surroundings
 
     void neighboursChanged() {
+        signal = level.getBestNeighborSignal(worldPosition);
         coolingDirty = true;
     }
 
@@ -527,6 +536,42 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
     }
 
     // Capabilities
+
+    // Control: FactoryIO's - a switch over everything, then a redstone condition on the strongest signal.
+
+    public enum RedstoneMode {
+        /** Redstone is ignored. */
+        ALWAYS,
+        /** Works while the signal is below the threshold: at 1, the native pause on any signal. */
+        BELOW,
+        /** Works while the signal is at the threshold or above. */
+        AT_LEAST
+    }
+
+    /** Off by the switch, or held by the redstone condition. Read from a field: the signal is measured when a neighbour changes. */
+    public boolean paused() {
+        if (!switchedOn) return true;
+        return switch (redstoneMode) {
+            case ALWAYS -> false;
+            case BELOW -> signal >= threshold;
+            case AT_LEAST -> signal < threshold;
+        };
+    }
+
+    public void toggleSwitch() {
+        switchedOn = !switchedOn;
+        setChanged();
+    }
+
+    public void setRedstoneMode(RedstoneMode mode) {
+        redstoneMode = mode;
+        setChanged();
+    }
+
+    public void stepThreshold(int delta) {
+        threshold = Math.clamp(threshold + delta, 0, 15);
+        setChanged();
+    }
 
     // Lasers
 
@@ -671,6 +716,9 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
         tag.putInt("faces", packedFaces());
         tag.putBoolean("auto_import", autoImport);
         tag.putBoolean("auto_export", autoExport);
+        tag.putBoolean("switched_on", switchedOn);
+        tag.putInt("redstone_mode", redstoneMode.ordinal());
+        tag.putInt("threshold", threshold);
     }
 
     @Override
@@ -683,6 +731,9 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
         if (tag.contains("faces")) unpackFaces(tag.getInt("faces"));
         autoImport = tag.getBoolean("auto_import");
         autoExport = tag.getBoolean("auto_export");
+        if (tag.contains("switched_on")) switchedOn = tag.getBoolean("switched_on");
+        if (tag.contains("redstone_mode")) redstoneMode = RedstoneMode.values()[Math.clamp(tag.getInt("redstone_mode"), 0, 2)];
+        if (tag.contains("threshold")) threshold = Math.clamp(tag.getInt("threshold"), 0, 15);
     }
 
     // Handlers

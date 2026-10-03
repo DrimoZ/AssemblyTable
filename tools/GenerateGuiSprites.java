@@ -197,6 +197,20 @@ public final class GenerateGuiSprites {
                 ".kmmmk......",
                 "..kkk.......",
                 "............"}, PALETTE));
+        // A redstone torch, for the control tab.
+        write("icon_control", ascii(new String[]{
+                "............",
+                ".....rr.....",
+                "....rRRr....",
+                "....rRRr....",
+                ".....rr.....",
+                ".....dd.....",
+                ".....dd.....",
+                ".....dd.....",
+                ".....dd.....",
+                ".....dd.....",
+                "....kkkk....",
+                "............"}, PALETTE));
         write("icon_faces", ascii(new String[]{
                 "............",
                 "....kkkk....",

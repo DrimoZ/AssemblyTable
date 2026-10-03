@@ -24,6 +24,7 @@ public final class GuiTheme {
     public static final int TAB_INFO = 0xFFC89420;
     public static final int TAB_LASERS = 0xFFB8423A;
     public static final int TAB_FACES = 0xFF3C6FC8;
+    public static final int TAB_CONTROL = 0xFF7A4FB8;
 
     /** The green of a current choice: the step in progress. FactoryIO's selected-slot rim. */
     public static final int SELECTED = 0xFF3FBF3F;
