@@ -65,7 +65,30 @@ neoForge {
     }
 }
 
+repositories {
+    maven {
+        name = 'BlameJared (JEI)'
+        url = 'https://maven.blamejared.com'
+    }
+    maven {
+        name = 'Modrinth'
+        url = 'https://api.modrinth.com/maven'
+        content { includeGroup 'maven.modrinth' }
+    }
+}
+
+configurations {
+    // Mods to drop into the dev run folder. See copyDevMods below.
+    devMods
+}
+
 dependencies {
+    // For testing by hand only - JEI to read recipes, Jade to read a table at a glance, Mekanism for
+    // FE (its creative energy cube) and cables. None is required to play.
+    devMods "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
+    devMods "maven.modrinth:jade:${jade_version}"
+    devMods "maven.modrinth:mekanism:${mekanism_version}"
+
     // Pure-logic classes under core/ are plain Java and unit-testable.
     testImplementation platform('org.junit:junit-bom:5.10.2')
     testImplementation 'org.junit.jupiter:junit-jupiter'
@@ -75,6 +98,25 @@ dependencies {
 
 test {
     useJUnitPlatform()
+}
+
+/**
+ * Puts the dev-only mods where FML finds them: a jar on the run classpath loads but is never
+ * registered as a mod, FML discovers mods from mods/. Portable Beacons' lesson, kept as-is.
+ *
+ * A Sync rather than a Copy, so run/mods holds exactly this list; only jars that are mods, since
+ * JEI publishes its internals as dependencies that raise "not a valid mod file" on every launch.
+ * The game test run has its own directory and never sees them.
+ */
+var copyDevMods = tasks.register('copyDevMods', Sync) {
+    from configurations.devMods.filter { jar ->
+        new java.util.zip.ZipFile(jar).withCloseable { it.getEntry('META-INF/neoforge.mods.toml') != null }
+    }
+    into file('run/mods')
+}
+
+tasks.matching { it.name in ['runClient', 'runServer'] }.configureEach {
+    dependsOn copyDevMods
 }
 
 // Expand gradle.properties into neoforge.mods.toml so versions live in one place.
