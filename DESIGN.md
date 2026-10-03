@@ -44,19 +44,23 @@ namespace des recettes et ignorait le `count` des ingrédients.
 ## 4. La table
 
 - **Entrées et sorties séparées**, toujours : 12 entrées (3×4), 4 sorties. Les entrées
-  n'acceptent **que** les ingrédients des recettes cochées, au plus N crafts d'avance (règle du
-  crafter de Factor'IO) : un tuyau ne peut plus la boucher. **[à revoir]** le plafond de deux
-  crafts (`input_crafts`) ne plaît pas en jeu ; à reprendre avec l'import automatique (§4.1).
+  n'acceptent **que** les ingrédients des recettes cochées. Un joueur y met des piles entières :
+  il voit ce qu'il pose. L'automatisation (tuyaux, entonnoirs, import auto) n'y met qu'**un craft
+  d'avance** par ingrédient (`input_crafts`, config) : un tuyau ne peut pas la boucher. Le plafond
+  de deux crafts pour tout le monde gênait en jeu.
 - **Recettes réalisables** recalculées au changement d'inventaire, pas à chaque tick. Clic =
   cocher / décocher. Une recette cochée sans ses ingrédients reste cochée, voilée.
 - **Production** : les recettes cochées tournent à tour de rôle (BuildCraft), en sautant celles
   qui ne sont pas réalisables. **Ingrédients consommés à la fin** du craft : casser la table ou
   décocher ne demande aucune comptabilité.
-- **L'assemblage se voit** : au-dessus du plateau, les ingrédients de la recette en cours flottent
-  et convergent à mesure que le craft avance, les faisceaux s'allument étape par étape, le
-  résultat apparaît avec des particules. `BlockEntityRenderer`, pas de modèle animé.
-- **Contrôle** : interrupteur + réaction native à la redstone. **Comparateur** : avancement du
-  craft. **Jade** : recette en cours, étape, progression.
+- **L'assemblage se voit** : au-dessus du foyer, le résultat en cours tourne et flotte pendant le
+  travail, immobile au repos ; le foyer s'allume ; particules et son à chaque craft. Les ingrédients
+  en anneau ont été essayés : du désordre, qui ne disait pas ce qui se fabriquait. `BlockEntityRenderer`,
+  au rythme de l'horloge du jeu, sans paquet.
+- **Contrôle** (onglet, comme Factor'IO) : un interrupteur, puis la redstone — ignorée, travail
+  sous un seuil (à 1 : la pause native sur tout signal, le défaut), ou à partir d'un seuil.
+  **Comparateur** : avancement du craft. **Jade** : l'icône et le nom de ce qui se fabrique, étape,
+  progression, chaleur.
 - **Pas d'énergie dans la table** : elle ne prend aucun FE, il faut toujours un laser. Sa colonne
   0, celle de l'énergie sur les autres machines, montre sa chaleur. Au repos, la chaleur retombe
   d'elle-même.
@@ -139,16 +143,20 @@ posé dessus cacherait l'assemblage.
 - **Ciblage** : la table la plus proche dans le **demi-espace devant le laser**, portée 8 blocs
   (config), **ligne de vue obligatoire**. Cible collante : il reste sur sa table tant qu'elle
   demande de l'énergie. Plusieurs lasers sur une table vont plus vite, chacun un peu moins (§6).
-- **Écran du laser** : lentille, 2 emplacements d'augment, jauge d'énergie, cible actuelle, cran.
-- **Piloté depuis la table** : un onglet « Lasers » liste les lasers liés — lentille, cran −/+,
-  interrupteur, distance, augments — avec une ligne « tous ». On n'y change pas lentilles ni
-  augments, qui sont des items à poser dans le laser. Chaque action validée serveur (6 validations
-  de Factor'IO). Implémentation exacte à revoir en développement.
+- **La tête se tourne** vers la table liée, en douceur, et sa buse s'allume de la couleur du faisceau
+  quand il tire : le retour visuel qu'un laser a trouvé sa table. Socle fixe, tête rendue par le
+  `BlockEntityRenderer`, sans changement d'état de bloc.- **Écran du laser** : lentille, 2 emplacements d'augment, jauge d'énergie, cible actuelle, cran.
+- **Piloté depuis la table** : un onglet « Lasers » liste les lasers liés — état, une pastille par
+  lentille portée (celle qui tire cerclée), « Intensité N » et −/+, ou « Auto : N » avec un
+  Régulateur — sous une ligne « Intensité, tous ». Distance et position sont dans l'infobulle : une
+  distance nue à côté de l'intensité se lisait comme un second réglage. On n'y change pas lentilles
+  ni augments, qui sont des items à poser dans le laser. Chaque action validée serveur (6
+  validations de Factor'IO).
 - **Lentilles** : un item par type (`cut_lens`…) ; les types de faisceau sont un **registre
   datapack** `beam` (item, couleur, nom) qui désigne son item. Un item par type plutôt qu'un item à
   composant : tags, KubeJS, CraftTweaker et JEI travaillent sur des ids d'item. Un pack ajoute un
-  faisceau en enregistrant son item (KubeJS…) et en le nommant dans l'entrée. Livrés : découpe, soudure, gravure. Sans
-  lentille, faisceau **brut**.
+  faisceau en enregistrant son item (KubeJS…) et en le nommant dans l'entrée. Livrés : découpe,
+  soudure, gravure. Sans lentille, faisceau **brut**.
 - **Augments** : un item par augment, effet en registre datapack `augment` qui désigne son item,
   comme les lentilles ; un de chaque groupe par laser.
 
@@ -164,19 +172,23 @@ posé dessus cacherait l'assemblage.
 
 ## 8. Contenu livré
 
-- **Items du mod**, qui forment sa progression : table et laser à l'établi ; **lentilles sur la
+- **Items du mod**, qui forment sa progression : table et laser à l'établi, dès l'âge du fer (table :
+  fer, verre, redstone, établi ; laser : fer, redstone, cuivre, éclat d'améthyste), débloqués dans le
+  livre de recettes ; **lentilles sur la
   table** en faisceau brut (le premier usage, un tutoriel) ; **augments sur la table** avec étapes ;
   baguette à l'établi (1.1). Pas de chipsets ni de composants génériques.
-- **Recettes vanilla d'objets introuvables**, dans un datapack intégré désactivable : cotte de
-  mailles, selle, name tag, armures de cheval en brut ; trident (découpe → soudure) et éperon
-  (découpe → soudure → gravure) à étapes.
+- **Recettes vanilla d'objets introuvables**, dans un datapack intégré désactivable
+  (`datapacks/vanilla_recipes`, actif par défaut) : cotte de mailles, selle, name tag en brut ;
+  trident et armures de cheval en fer et en or (découpe → soudure), armure en diamant (découpe →
+  soudure → gravure). L'éperon n'existe pas en 1.21.1 : l'armure en diamant prend sa place.
 
 ## 9. L'écran
 
 Charte de Factor'IO (`docs/09-CONVENTIONS.md` §9) : `GuiMetrics`, `GuiTheme`, `GuiSprites` repris
 de Portable Beacons. 176 de large, énergie en colonne 0, voyant d'état, onglets — à gauche ce qui
-renseigne (informations : état, étape, intensité reçue par type, chaleur), à droite ce qui se règle
-(Lasers, Faces). Recettes en grille à ascenseur : tient dans 176 quel que soit le modpack.
+renseigne (Info : état, chaleur, refroidissement, faisceaux reçus, vitesse par rapport à un seul
+laser), à droite ce qui se règle (Lasers, Faces, Contrôle). Les onglets portent un item que le joueur
+connaît — laser, entonnoir, redstone — sauf Info, qu'aucun item ne représente. Recettes en grille à ascenseur : tient dans 176 quel que soit le modpack.
 
 ## 10. Architecture
 
@@ -199,6 +211,6 @@ renseigne (informations : état, étape, intensité reçue par type, chaleur), �
 |---|---|
 | table, lasers, lentilles, étapes, intensité, chaleur, refroidissement | baguette (lier, voir les liens, copier une table, délier) |
 | augments Régulateur, Barillet, Portée, Efficacité | commandes « en faire N » / « maintenir N » |
-| onglet Lasers, tiroir Faces avec import/export auto | miroirs |
+| onglets Lasers et Contrôle, tiroir Faces avec import/export auto | miroirs |
 | assemblage visible, filtre des entrées, `keep_components` | faisceau qu'on peut couper |
 | comparateur, Jade, JEI | option d'explosion en surcharge |
