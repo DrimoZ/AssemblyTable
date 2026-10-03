@@ -1,5 +1,13 @@
 {
+  "itemGroup.laserassembly": "Laser Assembly",
   "block.laserassembly.assembly_table": "Table d'assemblage",
+  "block.laserassembly.laser": "Laser",
+
+  "laserassembly.laser.intensity": "Intensité %s / %s",
+  "laserassembly.laser.cost": "Consomme %s FE/t en tir",
+  "laserassembly.laser.no_target": "Aucune table en vue",
+  "laserassembly.laser.firing": "Tire sur %s, %s, %s",
+  "laserassembly.laser.holding": "Vise %s, %s, %s",
 
   "beam.laserassembly.cut": "Découpe",
   "beam.laserassembly.weld": "Soudure",

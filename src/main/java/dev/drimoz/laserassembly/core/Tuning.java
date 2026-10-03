@@ -22,5 +22,5 @@ public record Tuning(double defaultIntensity, double heatMultiplier, double maxM
      * The config's defaults. Also what a recipe's thresholds are checked against when it loads,
      * since datapacks load before the server config does.
      */
-    public static final Tuning DEFAULTS = new Tuning(1, 2, 4, 0.25, 20, 1, 1, 1000);
+    public static final Tuning DEFAULTS = new Tuning(1, 3, 10, 0.25, 20, 1, 1, 1000);
 }

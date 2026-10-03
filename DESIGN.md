@@ -97,8 +97,8 @@ posé dessus cacherait l'assemblage.
   une étape refuse le faisceau brut — pour la fin de jeu.
 - **Seuils d'intensité, aucun obligatoire.** Une étape ne déclare qu'une intensité minimale ;
   ce qu'elle ne précise pas vient de la recette, puis de la config serveur. La chauffe et le
-  maximum en découlent par deux multiples (config : chauffe au-delà de ×2, surcharge au-delà
-  de ×4), qu'une recette ou une étape peut aussi fixer (`heat_above`, `max_intensity`).
+  maximum en découlent par deux multiples (config : chauffe au-delà de ×3, surcharge au-delà
+  de ×10 : un laser poussé à fond chauffe, il en faut plusieurs pour surcharger), qu'une recette ou une étape peut aussi fixer (`heat_above`, `max_intensity`).
 - `"keep_components": true` : le résultat garde les composants de l'ingrédient principal
   (enchantements, durabilité) — améliorer ou graver un objet existant.
 - `MapCodec` borné qui **refuse et journalise** : 1 à 12 ingrédients, `count` 1 à 64, 1 à 3

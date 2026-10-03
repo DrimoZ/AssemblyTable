@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "facing=down": { "model": "laserassembly:block/laser_vertical", "x": 180 },
+    "facing=up": { "model": "laserassembly:block/laser_vertical" },
+    "facing=north": { "model": "laserassembly:block/laser" },
+    "facing=east": { "model": "laserassembly:block/laser", "y": 90 },
+    "facing=south": { "model": "laserassembly:block/laser", "y": 180 },
+    "facing=west": { "model": "laserassembly:block/laser", "y": 270 }
+  }
+}

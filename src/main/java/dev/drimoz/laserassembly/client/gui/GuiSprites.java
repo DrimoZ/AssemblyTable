@@ -17,6 +17,8 @@ public final class GuiSprites {
     private static final ResourceLocation SLOT = id("slot");
     private static final ResourceLocation SLOT_SELECTED = id("slot_selected");
     private static final ResourceLocation GAUGE_EMPTY = id("gauge_empty");
+    private static final ResourceLocation BUTTON = id("button");
+    private static final ResourceLocation BUTTON_HOVER = id("button_hover");
 
     public static final ResourceLocation GAUGE_ENERGY = id("gauge_energy");
     public static final ResourceLocation GAUGE_HEAT = id("gauge_heat");
@@ -45,6 +47,10 @@ public final class GuiSprites {
         graphics.enableScissor(innerX, innerY + innerH - filled, innerX + innerW, innerY + innerH);
         graphics.blitSprite(lit, innerX, innerY, innerW, innerH);
         graphics.disableScissor();
+    }
+
+    public static void button(GuiGraphics graphics, int x, int y, int width, int height, boolean hovered) {
+        graphics.blitSprite(hovered ? BUTTON_HOVER : BUTTON, x, y, width, height);
     }
 
     public static void statusLight(GuiGraphics graphics, GuiTheme.Status status, int x, int y) {

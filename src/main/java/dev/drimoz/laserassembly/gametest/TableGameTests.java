@@ -3,7 +3,11 @@ package dev.drimoz.laserassembly.gametest;
 import dev.drimoz.laserassembly.LaserAssembly;
 import dev.drimoz.laserassembly.content.table.AssemblyTableBlockEntity;
 import dev.drimoz.laserassembly.registry.ModBlocks;
+import dev.drimoz.laserassembly.content.laser.LaserBlock;
+import dev.drimoz.laserassembly.content.laser.LaserBlockEntity;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.resources.ResourceLocation;
@@ -20,11 +24,13 @@ import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 @PrefixGameTestTemplate(false)
 public final class TableGameTests {
 
+    // Height 1 is the platform's stone floor: everything stands on it, at height 2.
+
     private static final ResourceLocation SADDLE = ResourceLocation.fromNamespaceAndPath(LaserAssembly.MOD_ID, "saddle");
 
     @GameTest(template = "platform", timeoutTicks = 400)
     public static void craftsOnDirectPowerFromFilteredInputs(GameTestHelper helper) {
-        BlockPos pos = new BlockPos(2, 1, 2);
+        BlockPos pos = new BlockPos(2, 2, 2);
         helper.setBlock(pos, ModBlocks.ASSEMBLY_TABLE.get());
         AssemblyTableBlockEntity table = helper.getBlockEntity(pos);
         table.toggle(SADDLE);
@@ -44,6 +50,40 @@ public final class TableGameTests {
             helper.assertTrue(helper.getTick() >= 200, "crafted too fast, at tick " + helper.getTick());
             helper.assertTrue(count(items, Items.LEATHER) == 3, "leather consumed: " + (6 - count(items, Items.LEATHER)));
             helper.assertTrue(count(items, Items.IRON_INGOT) == 0 && count(items, Items.STRING) == 0, "ingredients left over");
+        });
+    }
+
+    @GameTest(template = "platform", timeoutTicks = 200)
+    public static void aLaserFeedsTheTableItSees(GameTestHelper helper) {
+        BlockPos tablePos = new BlockPos(2, 2, 3);
+        helper.setBlock(tablePos, ModBlocks.ASSEMBLY_TABLE.get());
+        helper.setBlock(new BlockPos(2, 2, 1), ModBlocks.LASER.get().defaultBlockState().setValue(LaserBlock.FACING, Direction.SOUTH));
+        AssemblyTableBlockEntity table = helper.getBlockEntity(tablePos);
+        LaserBlockEntity laser = helper.getBlockEntity(new BlockPos(2, 2, 1));
+        table.toggle(SADDLE);
+        IItemHandler items = table.automation();
+        insert(items, Items.LEATHER, 3);
+        insert(items, Items.IRON_INGOT, 1);
+        insert(items, Items.STRING, 2);
+        // The laser's FE only: at intensity 5 it is 100 progress a tick, five times the direct rate.
+        laser.energy().receiveEnergy(10_000, false);
+        laser.stepIntensity(4);
+
+        helper.succeedWhen(() -> {
+            helper.assertTrue(count(items, Items.SADDLE) == 1, "no saddle yet");
+            helper.assertTrue(helper.getTick() < 100, "too slow for a laser: tick " + helper.getTick());
+        });
+    }
+
+    @GameTest(template = "platform", timeoutTicks = 60)
+    public static void aBlockInTheWayHidesTheTable(GameTestHelper helper) {
+        helper.setBlock(new BlockPos(2, 2, 3), ModBlocks.ASSEMBLY_TABLE.get());
+        helper.setBlock(new BlockPos(2, 2, 2), Blocks.STONE);
+        helper.setBlock(new BlockPos(2, 2, 1), ModBlocks.LASER.get().defaultBlockState().setValue(LaserBlock.FACING, Direction.SOUTH));
+        LaserBlockEntity laser = helper.getBlockEntity(new BlockPos(2, 2, 1));
+        helper.runAfterDelay(40, () -> {
+            helper.assertTrue(laser.target() == null, "laser aims through stone at " + laser.target());
+            helper.succeed();
         });
     }
 

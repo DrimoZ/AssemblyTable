@@ -1,5 +1,13 @@
 {
+  "itemGroup.laserassembly": "Laser Assembly",
   "block.laserassembly.assembly_table": "Assembly Table",
+  "block.laserassembly.laser": "Laser",
+
+  "laserassembly.laser.intensity": "Intensity %s / %s",
+  "laserassembly.laser.cost": "Uses %s FE/t while firing",
+  "laserassembly.laser.no_target": "No table in sight",
+  "laserassembly.laser.firing": "Firing at %s, %s, %s",
+  "laserassembly.laser.holding": "Aimed at %s, %s, %s",
 
   "beam.laserassembly.cut": "Cutting",
   "beam.laserassembly.weld": "Welding",

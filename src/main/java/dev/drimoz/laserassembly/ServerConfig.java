@@ -23,6 +23,7 @@ public final class ServerConfig {
     private static final ModConfigSpec.IntValue INPUT_CRAFTS;
     private static final ModConfigSpec.BooleanValue DIRECT_POWER;
     private static final ModConfigSpec.DoubleValue DIRECT_INTENSITY;
+    private static final ModConfigSpec.IntValue LASER_RANGE;
 
     /** Rebuilt on every load and reload, so the table reads one field per tick instead of eleven specs. */
     private static Tuning tuning = Tuning.DEFAULTS;
@@ -63,6 +64,11 @@ public final class ServerConfig {
                 .defineInRange("direct_intensity", 1.0, 0.01, 1000);
         b.pop();
 
+        b.push("laser");
+        LASER_RANGE = b.comment("How far in front of it a laser looks for a table, in blocks.")
+                .defineInRange("range", 8, 1, 32);
+        b.pop();
+
         SPEC = b.build();
     }
 
@@ -88,6 +94,10 @@ public final class ServerConfig {
 
     public static double directIntensity() {
         return SPEC.isLoaded() ? DIRECT_INTENSITY.get() : 1.0;
+    }
+
+    public static int laserRange() {
+        return SPEC.isLoaded() ? LASER_RANGE.get() : 8;
     }
 
     private ServerConfig() {}
