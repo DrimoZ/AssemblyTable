@@ -17,6 +17,7 @@ public final class GuiSprites {
     private static final ResourceLocation SLOT = id("slot");
     private static final ResourceLocation SLOT_SELECTED = id("slot_selected");
     private static final ResourceLocation GAUGE_EMPTY = id("gauge_empty");
+    private static final ResourceLocation SOCKET = id("socket");
     private static final ResourceLocation FIELD = id("field");
     private static final ResourceLocation PLUS = id("icon_plus");
     private static final ResourceLocation BUTTON = id("button");
@@ -51,7 +52,12 @@ public final class GuiSprites {
         graphics.disableScissor();
     }
 
-    /** A one-pixel recess: gauges, a scrollbar's track, a step's chip. */
+    /** The large socket for what the screen is about: here, the recipe in progress. */
+    public static void socket(GuiGraphics graphics, int x, int y) {
+        graphics.blitSprite(SOCKET, x, y, GuiMetrics.SOCKET, GuiMetrics.SOCKET);
+    }
+
+    /** A one-pixel recess: gauges, a scrollbar's track, the step bar. */
     public static void inset(GuiGraphics graphics, int x, int y, int width, int height) {
         graphics.blitSprite(INSET, x, y, width, height);
     }

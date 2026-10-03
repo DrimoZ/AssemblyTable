@@ -58,8 +58,9 @@ public final class GenerateGuiSprites {
         nineSlice("inset", inset(16, 16, 0x373737, 0xffffff, 0x8b8b8b), 1);
         nineSlice("field", inset(16, 16, 0x1a1a1a, 0xffffff, 0x2b2b2b), 1);
 
-        // Slots.
+        // Slots, and the large socket for what the screen is about: the recipe in progress.
         write("slot", inset(18, 18, 0x373737, 0xffffff, 0x8b8b8b));
+        write("socket", inset(26, 26, 0x373737, 0xffffff, 0x8b8b8b));
         write("slot_selected", selected(inset(18, 18, 0x1e7a1e, 0x6fd46f, 0x8b8b8b)));
         write("slot_disabled", hatched(inset(18, 18, 0x262626, 0x9a9a9a, 0x6a6a6a)));
 

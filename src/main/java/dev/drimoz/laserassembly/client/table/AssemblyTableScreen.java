@@ -38,33 +38,36 @@ import static dev.drimoz.laserassembly.content.table.AssemblyTableBlockEntity.*;
 import static dev.drimoz.laserassembly.content.table.AssemblyTableMenu.*;
 
 /**
+ * Built around the recipe in progress, the subject of the screen as on FactoryIO's machines:
  * <pre>
  *  ┌────────────────────────────────────────┐
  *  │ Assembly Table                       ● │
- *  │ ▌ [ ][ ][ ] ▌  [r][r][r][r]            │  heat, inputs 3x4, progress; ticked recipes 4x2,
- *  │ ▌ [ ][ ][ ] ▌  [r][r][+][ ]            │  the running one rimmed, a + for the picker
- *  │ ▌ [ ][ ][ ] ▌  [▮2][▮4][▮1]            │  the running recipe's steps, the current rimmed
- *  │ ▌ [ ][ ][ ] ▌  [o][o][o][o]            │  outputs
+ *  │ ┏━━┓ Trident                            │  the socket: the running recipe, a click opens the picker
+ *  │ ┗━━┛ Step 2 of 2: Welding               │
+ *  │ [▓▓▓▓▓▓▓▓▓▓|▒▒▒▒▒▒▒▒░░░░░░░░░░░░░░]    │  one bar for the whole recipe, a segment per step in its beam's colour
+ *  │ ▌ [ ][ ][ ][ ]      [o][o]             │  heat, inputs 4x3, outputs 2x2
+ *  │ ▌ [ ][ ][ ][ ]      [o][o]             │
+ *  │ ▌ [ ][ ][ ][ ]  [q][q][q][q]           │  the queue: the ticked recipes that come next
  *  └────────────────────────────────────────┘
  * </pre>
- * Choosing recipes happens in {@link RecipePicker}, a modal over the whole screen: the grid that
- * used to live here could not hold a modpack's worth of recipes.
+ * One bar, not a gauge beside a row of steps: two drawings of the same progress read as two things.
  */
 public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMenu> {
 
-    private static final int CONTENT_HEIGHT = CONTENT_BOTTOM - GuiMetrics.CONTENT_TOP;
-    /**
-     * The table holds no energy - lasers bring it - so column 0, the energy column on every other
-     * machine, shows what it does hold: heat. Column 4 is the progress of the current step.
-     */
-    private static final int PROGRESS_WIDTH = 8;
-    private static final int PROGRESS_X = GuiMetrics.column(4) + (GuiMetrics.SLOT - PROGRESS_WIDTH) / 2;
+    private static final int SOCKET_X = GuiMetrics.column(0);
+    private static final int SOCKET_Y = GuiMetrics.CONTENT_TOP;
+    private static final int NAME_X = SOCKET_X + GuiMetrics.SOCKET + 4;
+    private static final int NAME_WIDTH = GuiMetrics.column(9) - NAME_X;
 
-    private static final int TICKED_COLUMNS = 4;
-    private static final int TICKED_CELLS = TICKED_COLUMNS * 2;
-    private static final int STEPS_Y = GuiMetrics.row(2) + 1;
-    private static final int CHIP_WIDTH = 24;
-    private static final int CHIP_HEIGHT = 16;
+    private static final int BAR_X = GuiMetrics.column(0);
+    private static final int BAR_Y = SOCKET_Y + GuiMetrics.SOCKET + 3;
+    private static final int BAR_WIDTH = GuiMetrics.column(9) - BAR_X;
+    private static final int BAR_HEIGHT = 8;
+
+    private static final int HEAT_HEIGHT = CONTENT_BOTTOM - WORK_TOP;
+    private static final int QUEUE_COLUMN = 5;
+    private static final int QUEUE_CELLS = 4;
+    private static final int QUEUE_Y = WORK_TOP + 2 * GuiMetrics.SLOT;
 
     private final Map<ResourceLocation, RecipeHolder<AssemblyRecipe>> byId = new HashMap<>();
     private RecipePicker picker;
@@ -98,7 +101,7 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         if (picker.isOpen()) {
             // Not renderBackground: on a container screen it also runs renderBg, and the table's
-            // ticked cells, lifted above their items, showed through the picker.
+            // cells, lifted above their items, showed through the picker.
             renderTransparentBackground(graphics);
             picker.render(graphics, leftPos, topPos, imageHeight, mouseX, mouseY, partialTick);
             return;
@@ -114,49 +117,69 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
         int x = leftPos, y = topPos;
         GuiSprites.panel(graphics, x, y, imageWidth, imageHeight);
         for (Slot slot : menu.slots) GuiSprites.slot(graphics, x + slot.x - 1, y + slot.y - 1, false);
-
-        int top = y + GuiMetrics.CONTENT_TOP;
-        GuiSprites.gauge(graphics, GuiSprites.GAUGE_HEAT, x + GuiMetrics.GAUGE_X, top, GuiMetrics.GAUGE_WIDTH, CONTENT_HEIGHT,
+        GuiSprites.gauge(graphics, GuiSprites.GAUGE_HEAT, x + GuiMetrics.GAUGE_X, y + WORK_TOP, GuiMetrics.GAUGE_WIDTH, HEAT_HEIGHT,
                 menu.data(DATA_HEAT) / 1000f);
-        GuiSprites.gauge(graphics, GuiSprites.GAUGE_PROGRESS, x + PROGRESS_X, top, PROGRESS_WIDTH, CONTENT_HEIGHT, menu.data(DATA_PROGRESS) / 1000f);
 
-        renderTicked(graphics, mouseX, mouseY);
-        renderSteps(graphics);
+        renderSocket(graphics, mouseX, mouseY);
+        renderStepBar(graphics);
+        renderQueue(graphics, mouseX, mouseY);
         GuiSprites.statusLight(graphics, status().light, x + GuiMetrics.LED_X, y + GuiMetrics.LED_Y);
     }
 
-    /** The ticked recipes in the order they take turns; the running one rimmed, the others waiting. */
-    private void renderTicked(GuiGraphics graphics, int mouseX, int mouseY) {
-        List<ResourceLocation> ticked = menu.table().selected();
-        int hovered = tickedCellAt(mouseX, mouseY);
-        int shown = Math.min(ticked.size(), TICKED_CELLS - 1);
-        for (int cell = 0; cell < TICKED_CELLS; cell++) {
-            int cellX = leftPos + tickedX(cell), cellY = topPos + tickedY(cell);
-            RecipeHolder<AssemblyRecipe> recipe = cell < shown ? byId.get(ticked.get(cell)) : null;
-            boolean running = recipe != null && recipe.id().equals(menu.table().current());
-            GuiSprites.slot(graphics, cellX, cellY, running);
-            if (recipe != null) {
-                graphics.renderFakeItem(result(recipe), cellX + 1, cellY + 1);
-                if (!running) wash(graphics, cellX, cellY, GuiTheme.GHOST_WASH);
-            } else if (cell == shown) {
-                GuiSprites.plus(graphics, cellX, cellY);
-            }
-            if (cell == hovered && cell <= shown) wash(graphics, cellX, cellY, GuiTheme.HOVER_WASH);
+    /** The running recipe; failing that the first ticked one, waiting; failing that a + to tick some. */
+    private void renderSocket(GuiGraphics graphics, int mouseX, int mouseY) {
+        int x = leftPos + SOCKET_X, y = topPos + SOCKET_Y;
+        GuiSprites.socket(graphics, x, y);
+        RecipeHolder<AssemblyRecipe> shown = shownRecipe();
+        if (shown == null) {
+            GuiSprites.plus(graphics, x + 4, y + 4);
+        } else {
+            graphics.renderFakeItem(result(shown), x + 5, y + 5);
+            if (!shown.id().equals(menu.table().current())) wash(graphics, x + 4, y + 4, GuiTheme.GHOST_WASH);
+        }
+        if (overSocket(mouseX, mouseY)) wash(graphics, x + 4, y + 4, GuiTheme.HOVER_WASH);
+    }
+
+    /**
+     * The whole recipe as one bar: a segment per step, as long as its share of the energy, dim in
+     * its beam's colour, filling bright as the work goes - which step it is and what beam it wants,
+     * read in one glance.
+     */
+    private void renderStepBar(GuiGraphics graphics) {
+        int x = leftPos + BAR_X, y = topPos + BAR_Y;
+        GuiSprites.inset(graphics, x, y, BAR_WIDTH, BAR_HEIGHT);
+        List<Step> steps = runningSteps();
+        int current = menu.data(DATA_STEP);
+        float progress = menu.data(DATA_PROGRESS) / 1000f;
+        int[] edges = segmentEdges(steps);
+        for (int i = 0; i < steps.size(); i++) {
+            int rgb = BeamColors.rgb(steps.get(i).beam().orElse(null));
+            int left = x + 1 + edges[i], right = x + 1 + edges[i + 1];
+            graphics.fill(left, y + 1, right, y + BAR_HEIGHT - 1, 0xFF000000 | dim(rgb));
+            float fill = i < current ? 1 : i == current ? progress : 0;
+            if (fill > 0) graphics.fill(left, y + 1, left + Math.round((right - left) * fill), y + BAR_HEIGHT - 1, 0xFF000000 | rgb);
+            if (i > 0) graphics.fill(left, y + 1, left + 1, y + BAR_HEIGHT - 1, 0xFF373737);
         }
     }
 
-    /** One chip per step of the running recipe: its beam's colour and minimum intensity. */
-    private void renderSteps(GuiGraphics graphics) {
-        List<Step> steps = runningSteps();
-        int current = menu.data(DATA_STEP);
-        for (int i = 0; i < steps.size(); i++) {
-            Step step = steps.get(i);
-            int chipX = leftPos + GuiMetrics.column(GRID_COLUMN) + i * CHIP_WIDTH, chipY = topPos + STEPS_Y;
-            GuiSprites.inset(graphics, chipX, chipY, CHIP_WIDTH - 2, CHIP_HEIGHT);
-            graphics.fill(chipX + 2, chipY + 2, chipX + 6, chipY + CHIP_HEIGHT - 2, 0xFF000000 | BeamColors.rgb(step.beam().orElse(null)));
-            graphics.drawString(font, intensity(step.thresholds().min()), chipX + 9, chipY + 4, GuiTheme.TEXT, false);
-            if (i == current) outline(graphics, chipX - 1, chipY - 1, CHIP_WIDTH, CHIP_HEIGHT + 2, GuiTheme.SELECTED);
-            else if (i < current) wash(graphics, chipX - 1, chipY - 1, GuiTheme.GHOST_WASH);
+    /** The ticked recipes that come after the running one, in the order they will take their turn. */
+    private void renderQueue(GuiGraphics graphics, int mouseX, int mouseY) {
+        List<ResourceLocation> queue = queue();
+        int hovered = queueCellAt(mouseX, mouseY);
+        for (int cell = 0; cell < QUEUE_CELLS; cell++) {
+            int x = leftPos + GuiMetrics.column(QUEUE_COLUMN + cell), y = topPos + QUEUE_Y;
+            GuiSprites.slot(graphics, x, y, false);
+            if (cell >= queue.size()) continue;
+            boolean more = cell == QUEUE_CELLS - 1 && queue.size() > QUEUE_CELLS;
+            if (more) {
+                String count = "+" + (queue.size() - QUEUE_CELLS + 1);
+                graphics.drawString(font, count, x + 1 + (16 - font.width(count)) / 2, y + 5, GuiTheme.TEXT_MUTED, false);
+                continue;
+            }
+            RecipeHolder<AssemblyRecipe> recipe = byId.get(queue.get(cell));
+            if (recipe != null) graphics.renderFakeItem(result(recipe), x + 1, y + 1);
+            wash(graphics, x, y, GuiTheme.GHOST_WASH);
+            if (cell == hovered) wash(graphics, x, y, GuiTheme.HOVER_WASH);
         }
     }
 
@@ -164,32 +187,44 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
         graphics.drawString(font, title, titleLabelX, titleLabelY, GuiTheme.TEXT, false);
         graphics.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, GuiTheme.TEXT, false);
+
+        RecipeHolder<AssemblyRecipe> shown = shownRecipe();
+        Component name = shown == null ? text("gui.add") : result(shown).getHoverName();
+        graphics.drawString(font, font.plainSubstrByWidth(name.getString(), NAME_WIDTH), NAME_X, SOCKET_Y + 4, GuiTheme.TEXT, false);
+
+        // Under the name: the step in words while one runs, otherwise what the table is waiting for.
+        List<Step> steps = runningSteps();
+        Component line = steps.isEmpty() ? status().text
+                : text("gui.step", menu.data(DATA_STEP) + 1, steps.size(), beamName(steps.get(Math.min(menu.data(DATA_STEP), steps.size() - 1)).beam().orElse(null)));
+        graphics.drawString(font, font.plainSubstrByWidth(line.getString(), NAME_WIDTH), NAME_X, SOCKET_Y + 15, GuiTheme.TEXT_MUTED, false);
     }
 
     // Tooltips
 
     private List<Component> tooltipAt(int mouseX, int mouseY) {
         int x = mouseX - leftPos, y = mouseY - topPos;
-        int cell = tickedCellAt(mouseX, mouseY);
-        List<ResourceLocation> ticked = menu.table().selected();
-        int shown = Math.min(ticked.size(), TICKED_CELLS - 1);
-        if (cell >= 0 && cell < shown) {
-            RecipeHolder<AssemblyRecipe> recipe = byId.get(ticked.get(cell));
-            return recipe == null ? List.of(Component.literal(ticked.get(cell).toString())) : describe(recipe, true);
-        }
-        if (cell == shown) {
-            List<Component> lines = new ArrayList<>(List.of(text("gui.add")));
-            if (ticked.size() > shown) lines.add(text("gui.more", ticked.size() - shown).withStyle(ChatFormatting.GRAY));
+        if (overSocket(mouseX, mouseY)) {
+            RecipeHolder<AssemblyRecipe> shown = shownRecipe();
+            List<Component> lines = new ArrayList<>(shown == null ? List.of() : describe(shown, null));
+            lines.add(text("gui.choose").withStyle(ChatFormatting.DARK_GRAY));
             return lines;
         }
-        int chip = (x - GuiMetrics.column(GRID_COLUMN)) / CHIP_WIDTH;
-        List<Step> steps = runningSteps();
-        if (y >= STEPS_Y && y < STEPS_Y + CHIP_HEIGHT && x >= GuiMetrics.column(GRID_COLUMN) && chip < steps.size()) {
-            return stepTooltip(steps.get(chip), chip, steps.size());
+        int cell = queueCellAt(mouseX, mouseY);
+        List<ResourceLocation> queue = queue();
+        if (cell >= 0 && cell < queue.size()) {
+            if (cell == QUEUE_CELLS - 1 && queue.size() > QUEUE_CELLS) return List.of(text("gui.more", queue.size() - QUEUE_CELLS + 1));
+            RecipeHolder<AssemblyRecipe> recipe = byId.get(queue.get(cell));
+            return recipe == null ? List.of(Component.literal(queue.get(cell).toString())) : describe(recipe, true);
         }
-        if (inColumn(x, y, GuiMetrics.GAUGE_X, GuiMetrics.GAUGE_WIDTH)) return List.of(text("gui.heat", menu.data(DATA_HEAT) / 10));
-        if (inColumn(x, y, PROGRESS_X, PROGRESS_WIDTH) && menu.data(DATA_STEPS) > 0) {
-            return List.of(text("gui.progress", menu.data(DATA_STEP) + 1, menu.data(DATA_STEPS), menu.data(DATA_PROGRESS) / 10));
+        List<Step> steps = runningSteps();
+        if (y >= BAR_Y && y < BAR_Y + BAR_HEIGHT && x >= BAR_X && x < BAR_X + BAR_WIDTH && !steps.isEmpty()) {
+            int[] edges = segmentEdges(steps);
+            for (int i = 0; i < steps.size(); i++) {
+                if (x - BAR_X - 1 < edges[i + 1] || i == steps.size() - 1) return stepTooltip(steps.get(i), i, steps.size());
+            }
+        }
+        if (x >= GuiMetrics.GAUGE_X && x < GuiMetrics.GAUGE_X + GuiMetrics.GAUGE_WIDTH && y >= WORK_TOP && y < CONTENT_BOTTOM) {
+            return List.of(text("gui.heat", menu.data(DATA_HEAT) / 10));
         }
         if (x >= GuiMetrics.LED_X && x < GuiMetrics.LED_X + GuiMetrics.LED_SIZE && y >= GuiMetrics.LED_Y && y < GuiMetrics.LED_Y + GuiMetrics.LED_SIZE) {
             return List.of(status().text);
@@ -204,11 +239,17 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
                 intensity(step.thresholds().heatAbove())).withStyle(ChatFormatting.GRAY));
         lines.add(text("gui.recipe.energy", step.energy()).withStyle(ChatFormatting.GRAY));
         if (step.strict()) lines.add(text("gui.step.strict").withStyle(ChatFormatting.GOLD));
+        int current = menu.data(DATA_STEP);
+        if (index == current) lines.add(text("gui.step.progress", menu.data(DATA_PROGRESS) / 10).withStyle(ChatFormatting.GREEN));
+        else if (index < current) lines.add(text("gui.step.done").withStyle(ChatFormatting.GREEN));
         return lines;
     }
 
-    /** What a recipe makes, takes and goes through. Shared with the picker. */
-    static List<Component> describe(RecipeHolder<AssemblyRecipe> holder, boolean ticked) {
+    /**
+     * What a recipe makes, takes and goes through. Shared with the picker. {@code ticked} adds what a
+     * click would do; null when a click does something else.
+     */
+    static List<Component> describe(RecipeHolder<AssemblyRecipe> holder, @Nullable Boolean ticked) {
         AssemblyRecipe recipe = holder.value();
         List<Component> lines = new ArrayList<>();
         lines.add(result(holder).getHoverName());
@@ -224,7 +265,7 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
         } catch (IllegalArgumentException e) {
             // Unusable under this server's config: the table says so through its status light.
         }
-        lines.add(text(ticked ? "gui.recipe.untick" : "gui.recipe.tick").withStyle(ChatFormatting.DARK_GRAY));
+        if (ticked != null) lines.add(text(ticked ? "gui.recipe.untick" : "gui.recipe.tick").withStyle(ChatFormatting.DARK_GRAY));
         return lines;
     }
 
@@ -253,14 +294,18 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (picker.isOpen()) return picker.mouseClicked(leftPos, topPos, mouseX, mouseY, button);
-        List<ResourceLocation> ticked = menu.table().selected();
-        int shown = Math.min(ticked.size(), TICKED_CELLS - 1);
-        int cell = tickedCellAt(mouseX, mouseY);
-        if (cell >= 0 && cell < shown && byId.containsKey(ticked.get(cell))) {
-            toggle(byId.get(ticked.get(cell)));
+        if (overSocket(mouseX, mouseY)) {
+            picker.open();
             return true;
         }
-        if (cell == shown) {
+        int cell = queueCellAt(mouseX, mouseY);
+        List<ResourceLocation> queue = queue();
+        boolean more = cell == QUEUE_CELLS - 1 && queue.size() > QUEUE_CELLS;
+        if (cell >= 0 && cell < queue.size() && !more && byId.containsKey(queue.get(cell))) {
+            toggle(byId.get(queue.get(cell)));
+            return true;
+        }
+        if (more) {
             picker.open();
             return true;
         }
@@ -296,6 +341,26 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
 
     // Inner work
 
+    private @Nullable RecipeHolder<AssemblyRecipe> shownRecipe() {
+        ResourceLocation current = menu.table().current();
+        if (current != null && byId.containsKey(current)) return byId.get(current);
+        List<ResourceLocation> ticked = menu.table().selected();
+        return ticked.isEmpty() ? null : byId.get(ticked.getFirst());
+    }
+
+    /** Ticked recipes after the running one, wrapping round: the order they take their turn. */
+    private List<ResourceLocation> queue() {
+        List<ResourceLocation> ticked = menu.table().selected();
+        ResourceLocation shown = shownRecipe() == null ? null : shownRecipe().id();
+        int start = ticked.indexOf(shown) + 1;
+        List<ResourceLocation> queue = new ArrayList<>(ticked.size());
+        for (int i = 0; i < ticked.size(); i++) {
+            ResourceLocation id = ticked.get((start + i) % ticked.size());
+            if (!id.equals(shown)) queue.add(id);
+        }
+        return queue;
+    }
+
     private List<Step> runningSteps() {
         ResourceLocation current = menu.table().current();
         RecipeHolder<AssemblyRecipe> recipe = current == null ? null : byId.get(current);
@@ -307,23 +372,34 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
         }
     }
 
-    private static int tickedX(int cell) {
-        return GuiMetrics.column(GRID_COLUMN + cell % TICKED_COLUMNS);
+    /** Segment boundaries inside the bar, each step as long as its share of the recipe's energy. */
+    private static int[] segmentEdges(List<Step> steps) {
+        int[] edges = new int[steps.size() + 1];
+        long total = 0;
+        for (Step step : steps) total += step.energy();
+        long sum = 0;
+        for (int i = 0; i < steps.size(); i++) {
+            sum += steps.get(i).energy();
+            edges[i + 1] = (int) ((BAR_WIDTH - 2) * sum / total);
+        }
+        return edges;
     }
 
-    private static int tickedY(int cell) {
-        return GuiMetrics.row(cell / TICKED_COLUMNS);
+    /** A beam's colour, dimmed: the part of a step still to do. */
+    private static int dim(int rgb) {
+        return ((rgb >> 16 & 0xFF) * 2 / 5) << 16 | ((rgb >> 8 & 0xFF) * 2 / 5) << 8 | (rgb & 0xFF) * 2 / 5;
     }
 
-    /** The ticked-recipe cell under the mouse, or -1. */
-    private int tickedCellAt(double mouseX, double mouseY) {
-        int x = (int) mouseX - leftPos - GuiMetrics.column(GRID_COLUMN), y = (int) mouseY - topPos - GuiMetrics.CONTENT_TOP;
-        if (x < 0 || y < 0 || x >= TICKED_COLUMNS * GuiMetrics.SLOT || y >= 2 * GuiMetrics.SLOT) return -1;
-        return (y / GuiMetrics.SLOT) * TICKED_COLUMNS + x / GuiMetrics.SLOT;
+    private boolean overSocket(double mouseX, double mouseY) {
+        double x = mouseX - leftPos - SOCKET_X, y = mouseY - topPos - SOCKET_Y;
+        return x >= 0 && x < GuiMetrics.SOCKET && y >= 0 && y < GuiMetrics.SOCKET;
     }
 
-    private static boolean inColumn(int x, int y, int left, int width) {
-        return x >= left && x < left + width && y >= GuiMetrics.CONTENT_TOP && y < CONTENT_BOTTOM;
+    /** The queue cell under the mouse, or -1. */
+    private int queueCellAt(double mouseX, double mouseY) {
+        int x = (int) mouseX - leftPos - GuiMetrics.column(QUEUE_COLUMN), y = (int) mouseY - topPos - QUEUE_Y;
+        if (x < 0 || y < 0 || x >= QUEUE_CELLS * GuiMetrics.SLOT || y >= GuiMetrics.SLOT) return -1;
+        return x / GuiMetrics.SLOT;
     }
 
     /** Lifted above the item it covers, or it lands underneath. */
@@ -332,13 +408,6 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
         graphics.pose().translate(0, 0, 200);
         graphics.fill(frameX + 1, frameY + 1, frameX + 17, frameY + 17, argb);
         graphics.pose().popPose();
-    }
-
-    private static void outline(GuiGraphics graphics, int x, int y, int width, int height, int argb) {
-        graphics.fill(x, y, x + width, y + 1, argb);
-        graphics.fill(x, y + height - 1, x + width, y + height, argb);
-        graphics.fill(x, y, x + 1, y + height, argb);
-        graphics.fill(x + width - 1, y, x + width, y + height, argb);
     }
 
     private static ItemStack result(RecipeHolder<AssemblyRecipe> recipe) {

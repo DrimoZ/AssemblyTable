@@ -22,10 +22,14 @@ import java.util.List;
 
 public class AssemblyTableMenu extends AbstractContainerMenu {
 
-    public static final int INPUT_COLUMNS = 3;
-    public static final int GRID_COLUMN = 5;
-    /** Inputs fill rows 0-3; on the right, the screen's ticked recipes and steps above the outputs in row 3. */
-    public static final int CONTENT_BOTTOM = GuiMetrics.row(4);
+    /**
+     * Under the recipe band (socket, name, step bar), the work area: heat in column 0, inputs 4x3 in
+     * columns 1-4, outputs 2x2 in columns 6-7, and the screen's queue of ticked recipes beneath them.
+     */
+    public static final int WORK_TOP = GuiMetrics.CONTENT_TOP + 40;
+    public static final int INPUT_COLUMNS = 4;
+    public static final int OUTPUT_COLUMN = 6;
+    public static final int CONTENT_BOTTOM = WORK_TOP + 3 * GuiMetrics.SLOT;
 
     private static final int TABLE_SLOTS = AssemblyTableBlockEntity.INPUTS + AssemblyTableBlockEntity.OUTPUTS;
 
@@ -49,7 +53,7 @@ public class AssemblyTableMenu extends AbstractContainerMenu {
 
         for (int i = 0; i < AssemblyTableBlockEntity.INPUTS; i++) {
             addSlot(new SlotItemHandler(table.inputs(), i,
-                    GuiMetrics.column(1 + i % INPUT_COLUMNS) + 1, GuiMetrics.row(i / INPUT_COLUMNS) + 1) {
+                    GuiMetrics.column(1 + i % INPUT_COLUMNS) + 1, WORK_TOP + (i / INPUT_COLUMNS) * GuiMetrics.SLOT + 1) {
                 /**
                  * Clicks and shift-clicks ask the slot how much fits, not the handler: without this,
                  * the two-crafts cap held for pipes and not for players.
@@ -61,7 +65,7 @@ public class AssemblyTableMenu extends AbstractContainerMenu {
             });
         }
         for (int i = 0; i < AssemblyTableBlockEntity.OUTPUTS; i++) {
-            addSlot(new SlotItemHandler(table.outputs(), i, GuiMetrics.column(GRID_COLUMN + i) + 1, GuiMetrics.row(3) + 1) {
+            addSlot(new SlotItemHandler(table.outputs(), i, GuiMetrics.column(OUTPUT_COLUMN + i % 2) + 1, WORK_TOP + (i / 2) * GuiMetrics.SLOT + 1) {
                 @Override
                 public boolean mayPlace(ItemStack stack) {
                     return false;

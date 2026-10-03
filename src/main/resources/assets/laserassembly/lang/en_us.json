@@ -22,7 +22,6 @@
   "laserassembly.beam.raw": "Raw beam",
 
   "laserassembly.gui.energy": "%s / %s FE",
-  "laserassembly.gui.progress": "Step %s of %s: %s%%",
   "laserassembly.gui.heat": "Heat: %s%%",
   "laserassembly.gui.recipe.ingredient": "%s× %s",
   "laserassembly.gui.recipe.step": "%s · %s FE · intensity %s",
@@ -30,6 +29,9 @@
   "laserassembly.gui.recipe.tick": "Click to tick",
   "laserassembly.gui.recipe.untick": "Click to untick",
   "laserassembly.gui.add": "Tick recipes",
+  "laserassembly.gui.choose": "Click: choose recipes",
+  "laserassembly.gui.step.progress": "In progress: %s%%",
+  "laserassembly.gui.step.done": "Done",
   "laserassembly.gui.more": "%s more ticked",
   "laserassembly.gui.step": "Step %s of %s: %s",
   "laserassembly.gui.step.window": "Intensity %s to %s, heats above %s",

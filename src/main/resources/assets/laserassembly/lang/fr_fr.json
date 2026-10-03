@@ -22,7 +22,6 @@
   "laserassembly.beam.raw": "Faisceau brut",
 
   "laserassembly.gui.energy": "%s / %s FE",
-  "laserassembly.gui.progress": "Étape %s sur %s : %s %%",
   "laserassembly.gui.heat": "Chaleur : %s %%",
   "laserassembly.gui.recipe.ingredient": "%s × %s",
   "laserassembly.gui.recipe.step": "%s · %s FE · intensité %s",
@@ -30,6 +29,9 @@
   "laserassembly.gui.recipe.tick": "Cliquer pour cocher",
   "laserassembly.gui.recipe.untick": "Cliquer pour décocher",
   "laserassembly.gui.add": "Cocher des recettes",
+  "laserassembly.gui.choose": "Clic : choisir les recettes",
+  "laserassembly.gui.step.progress": "En cours : %s %%",
+  "laserassembly.gui.step.done": "Terminée",
   "laserassembly.gui.more": "%s autres cochées",
   "laserassembly.gui.step": "Étape %s sur %s : %s",
   "laserassembly.gui.step.window": "Intensité %s à %s, chauffe au-delà de %s",

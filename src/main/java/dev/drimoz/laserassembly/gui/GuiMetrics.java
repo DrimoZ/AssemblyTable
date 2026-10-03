@@ -19,6 +19,8 @@ public final class GuiMetrics {
     public static final int CONTENT_TOP = 20;
 
     public static final int SLOT = 18;
+    /** The large socket for what the screen is about. */
+    public static final int SOCKET = 26;
 
     /** Left edge of the slot frame in inventory column n. */
     public static int column(int n) {
