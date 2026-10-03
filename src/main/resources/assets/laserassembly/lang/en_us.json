@@ -1,3 +1,26 @@
 {
-  "block.laserassembly.assembly_table": "Assembly Table"
+  "block.laserassembly.assembly_table": "Assembly Table",
+
+  "beam.laserassembly.cut": "Cutting",
+  "beam.laserassembly.weld": "Welding",
+  "beam.laserassembly.engrave": "Engraving",
+  "laserassembly.beam.raw": "Raw beam",
+
+  "laserassembly.gui.energy": "%s / %s FE",
+  "laserassembly.gui.progress": "Step %s of %s: %s%%",
+  "laserassembly.gui.heat": "Heat: %s%%",
+  "laserassembly.gui.recipe.ingredient": "%s× %s",
+  "laserassembly.gui.recipe.step": "%s · %s FE · intensity %s",
+  "laserassembly.gui.recipe.tick": "Click to tick",
+  "laserassembly.gui.recipe.untick": "Click to untick",
+
+  "laserassembly.status.paused": "Paused by a redstone signal",
+  "laserassembly.status.nothing_ticked": "Tick a recipe to start",
+  "laserassembly.status.cannot_run": "Waiting for ingredients or output room",
+  "laserassembly.status.no_beam": "Waiting for a beam",
+  "laserassembly.status.working": "Working",
+  "laserassembly.status.slowed": "Slowed by heat",
+  "laserassembly.status.too_weak": "Beam too weak for this step",
+  "laserassembly.status.overload": "Overload: too much intensity",
+  "laserassembly.status.overheated": "Overheated: cooling down"
 }

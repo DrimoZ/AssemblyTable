@@ -18,8 +18,19 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.network.Connection;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.Containers;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ContainerData;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.entity.player.StackedContents;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -40,11 +51,45 @@ import java.util.List;
  * The table. Ingredients stay in their slots until a craft completes, so breaking the table or
  * switching recipe gives everything back with no bookkeeping: conservation needs no hidden state.
  */
-public class AssemblyTableBlockEntity extends BlockEntity {
+public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvider {
 
     public static final int INPUTS = 12;
     public static final int OUTPUTS = 4;
-    private static final int ENERGY_CAPACITY = 20_000;
+    public static final int ENERGY_CAPACITY = 20_000;
+
+    // What the screen reads, through ContainerData: synced while the menu is open, and only then.
+    // Values travel as shorts, hence permille rather than raw heat and progress.
+    public static final int DATA_ENERGY = 0;
+    public static final int DATA_HEAT = 1;
+    public static final int DATA_PROGRESS = 2;
+    public static final int DATA_STEP = 3;
+    public static final int DATA_STEPS = 4;
+    public static final int DATA_STATUS = 5;
+    public static final int DATA_COUNT = 6;
+
+    private final ContainerData data = new ContainerData() {
+        @Override
+        public int get(int index) {
+            return switch (index) {
+                case DATA_ENERGY -> energy.getEnergyStored();
+                case DATA_HEAT -> (int) (1000 * assembly.heat() / ServerConfig.tuning().maxHeat());
+                case DATA_PROGRESS -> steps.isEmpty() ? 0 : (int) (1000 * assembly.progress() / steps.get(assembly.step()).energy());
+                case DATA_STEP -> assembly.step();
+                case DATA_STEPS -> steps.size();
+                case DATA_STATUS -> status.ordinal();
+                default -> 0;
+            };
+        }
+
+        @Override
+        public void set(int index, int value) {
+        }
+
+        @Override
+        public int getCount() {
+            return DATA_COUNT;
+        }
+    };
 
     private final ItemStackHandler inputs = new ItemStackHandler(INPUTS) {
         @Override
@@ -152,8 +197,11 @@ public class AssemblyTableBlockEntity extends BlockEntity {
 
     /** Also how the caches catch up with a reload or a config change: the same id keeps its progress. */
     private void choose(@Nullable ResourceLocation next) {
-        if (next == null || !next.equals(current)) assembly.reset();
-        current = next;
+        if (next == null || !next.equals(current)) {
+            assembly.reset();
+            current = next;
+            sync();
+        }
         currentRecipe = next == null ? null : lookup(next);
         stepsTuning = ServerConfig.tuning();
         steps = currentRecipe == null ? List.of() : currentRecipe.steps(stepsTuning);
@@ -185,10 +233,81 @@ public class AssemblyTableBlockEntity extends BlockEntity {
         if (!selected.remove(id)) selected.add(id);
         contentsDirty = true;
         setChanged();
+        sync();
     }
 
     public List<ResourceLocation> selected() {
         return selected;
+    }
+
+    public @Nullable ResourceLocation current() {
+        return current;
+    }
+
+    // Menu
+
+    @Override
+    public Component getDisplayName() {
+        return getBlockState().getBlock().getName();
+    }
+
+    @Override
+    public AbstractContainerMenu createMenu(int id, Inventory inventory, Player player) {
+        return new AssemblyTableMenu(id, inventory, this, data);
+    }
+
+    public ItemStackHandler inputs() {
+        return inputs;
+    }
+
+    public ItemStackHandler outputs() {
+        return outputs;
+    }
+
+    // Client sync: what is ticked and what is running, sent when it changes - never on a timer.
+
+    private void sync() {
+        if (level != null && !level.isClientSide) level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
+    }
+
+    @Override
+    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
+        CompoundTag tag = new CompoundTag();
+        writeSelection(tag);
+        return tag;
+    }
+
+    @Override
+    public Packet<ClientGamePacketListener> getUpdatePacket() {
+        return ClientboundBlockEntityDataPacket.create(this);
+    }
+
+    /** Only the selection: the default would run loadAdditional and empty the client's inventories. */
+    @Override
+    public void handleUpdateTag(CompoundTag tag, HolderLookup.Provider registries) {
+        readSelection(tag);
+    }
+
+    @Override
+    public void onDataPacket(Connection connection, ClientboundBlockEntityDataPacket packet, HolderLookup.Provider registries) {
+        readSelection(packet.getTag());
+    }
+
+    private void writeSelection(CompoundTag tag) {
+        ListTag ids = new ListTag();
+        for (ResourceLocation id : selected) ids.add(StringTag.valueOf(id.toString()));
+        tag.put("selected", ids);
+        if (current != null) tag.putString("current", current.toString());
+    }
+
+    private void readSelection(CompoundTag tag) {
+        selected.clear();
+        for (Tag id : tag.getList("selected", Tag.TAG_STRING)) {
+            ResourceLocation parsed = ResourceLocation.tryParse(id.getAsString());
+            if (parsed != null) selected.add(parsed);
+        }
+        // Kept even if the recipe is gone after a datapack change: the table waits for it to come back.
+        current = tag.contains("current") ? ResourceLocation.tryParse(tag.getString("current")) : null;
     }
 
     /**
@@ -321,10 +440,7 @@ public class AssemblyTableBlockEntity extends BlockEntity {
         tag.put("inputs", inputs.serializeNBT(registries));
         tag.put("outputs", outputs.serializeNBT(registries));
         tag.put("energy", energy.serializeNBT(registries));
-        ListTag ids = new ListTag();
-        for (ResourceLocation id : selected) ids.add(StringTag.valueOf(id.toString()));
-        tag.put("selected", ids);
-        if (current != null) tag.putString("current", current.toString());
+        writeSelection(tag);
         tag.putInt("step", assembly.step());
         tag.putDouble("progress", assembly.progress());
         tag.putDouble("heat", assembly.heat());
@@ -337,13 +453,7 @@ public class AssemblyTableBlockEntity extends BlockEntity {
         inputs.deserializeNBT(registries, tag.getCompound("inputs"));
         outputs.deserializeNBT(registries, tag.getCompound("outputs"));
         if (tag.contains("energy")) energy.deserializeNBT(registries, tag.get("energy"));
-        selected.clear();
-        for (Tag id : tag.getList("selected", Tag.TAG_STRING)) {
-            ResourceLocation parsed = ResourceLocation.tryParse(id.getAsString());
-            if (parsed != null) selected.add(parsed);
-        }
-        // Kept even if the recipe is gone after a datapack change: the table waits for it to come back.
-        current = tag.contains("current") ? ResourceLocation.tryParse(tag.getString("current")) : null;
+        readSelection(tag);
         assembly.restore(tag.getInt("step"), tag.getDouble("progress"), tag.getDouble("heat"), tag.getBoolean("overheated"));
     }
 

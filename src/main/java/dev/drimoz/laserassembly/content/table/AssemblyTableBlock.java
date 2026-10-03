@@ -3,6 +3,9 @@ package dev.drimoz.laserassembly.content.table;
 import com.mojang.serialization.MapCodec;
 import dev.drimoz.laserassembly.registry.ModBlocks;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BaseEntityBlock;
@@ -56,6 +59,14 @@ public class AssemblyTableBlock extends BaseEntityBlock {
             table.dropContents();
         }
         super.onRemove(state, level, pos, newState, movedByPiston);
+    }
+
+    @Override
+    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
+        if (!level.isClientSide && level.getBlockEntity(pos) instanceof AssemblyTableBlockEntity table) {
+            player.openMenu(table, pos);
+        }
+        return InteractionResult.sidedSuccess(level.isClientSide);
     }
 
     @Override
