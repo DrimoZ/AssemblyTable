@@ -24,9 +24,7 @@ public class AssemblyTableMenu extends AbstractContainerMenu {
 
     public static final int INPUT_COLUMNS = 3;
     public static final int GRID_COLUMN = 5;
-    public static final int GRID_COLUMNS = 4;
-    public static final int GRID_ROWS = 3;
-    /** Inputs fill rows 0-3; the recipe grid rows 0-2, the outputs row 3 beneath it. */
+    /** Inputs fill rows 0-3; on the right, the screen's ticked recipes and steps above the outputs in row 3. */
     public static final int CONTENT_BOTTOM = GuiMetrics.row(4);
 
     private static final int TABLE_SLOTS = AssemblyTableBlockEntity.INPUTS + AssemblyTableBlockEntity.OUTPUTS;

@@ -11,6 +11,9 @@ public final class GuiTheme {
     public static final int TEXT = 0xFF404040;
     public static final int TEXT_MUTED = 0xFF6E6E6E;
 
+    /** The green of a current choice: the step in progress. FactoryIO's selected-slot rim. */
+    public static final int SELECTED = 0xFF3FBF3F;
+
     /** Under the mouse: what a click would land on. */
     public static final int HOVER_WASH = 0x60FFFFFF;
     /** Over a ticked recipe the table cannot run right now: still chosen, waiting. */

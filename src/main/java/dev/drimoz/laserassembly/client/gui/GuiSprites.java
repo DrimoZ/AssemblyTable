@@ -17,6 +17,8 @@ public final class GuiSprites {
     private static final ResourceLocation SLOT = id("slot");
     private static final ResourceLocation SLOT_SELECTED = id("slot_selected");
     private static final ResourceLocation GAUGE_EMPTY = id("gauge_empty");
+    private static final ResourceLocation FIELD = id("field");
+    private static final ResourceLocation PLUS = id("icon_plus");
     private static final ResourceLocation BUTTON = id("button");
     private static final ResourceLocation BUTTON_HOVER = id("button_hover");
 
@@ -47,6 +49,21 @@ public final class GuiSprites {
         graphics.enableScissor(innerX, innerY + innerH - filled, innerX + innerW, innerY + innerH);
         graphics.blitSprite(lit, innerX, innerY, innerW, innerH);
         graphics.disableScissor();
+    }
+
+    /** A one-pixel recess: gauges, a scrollbar's track, a step's chip. */
+    public static void inset(GuiGraphics graphics, int x, int y, int width, int height) {
+        graphics.blitSprite(INSET, x, y, width, height);
+    }
+
+    /** A text field: a dark recess where white text reads. */
+    public static void field(GuiGraphics graphics, int x, int y, int width, int height) {
+        graphics.blitSprite(FIELD, x, y, width, height);
+    }
+
+    /** The 12x12 plus, centred in a slot whose frame starts at {@code (x, y)}. */
+    public static void plus(GuiGraphics graphics, int x, int y) {
+        graphics.blitSprite(PLUS, x + 3, y + 3, 12, 12);
     }
 
     public static void button(GuiGraphics graphics, int x, int y, int width, int height, boolean hovered) {
