@@ -3,6 +3,7 @@ package dev.drimoz.laserassembly.client;
 import dev.drimoz.laserassembly.LaserAssembly;
 import dev.drimoz.laserassembly.client.laser.LaserRenderer;
 import dev.drimoz.laserassembly.client.laser.LaserScreen;
+import dev.drimoz.laserassembly.client.table.AssemblyTableRenderer;
 import dev.drimoz.laserassembly.client.table.AssemblyTableScreen;
 import dev.drimoz.laserassembly.content.beam.LensItem;
 import dev.drimoz.laserassembly.registry.ModBlocks;
@@ -26,6 +27,7 @@ public final class ClientEvents {
     @SubscribeEvent
     static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerBlockEntityRenderer(ModBlocks.LASER_ENTITY.get(), LaserRenderer::new);
+        event.registerBlockEntityRenderer(ModBlocks.ASSEMBLY_TABLE_ENTITY.get(), AssemblyTableRenderer::new);
     }
 
     /** A lens wears its beam's colour: one texture for every beam type a pack declares. */

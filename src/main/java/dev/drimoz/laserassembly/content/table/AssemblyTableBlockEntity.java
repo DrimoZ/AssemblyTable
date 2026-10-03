@@ -23,7 +23,11 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.Containers;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Inventory;
@@ -120,6 +124,8 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
 
     private final List<ResourceLocation> selected = new ArrayList<>();
     private @Nullable ResourceLocation current;
+    /** Synced, for the assembly on display. */
+    private boolean working;
     private final Assembly assembly = new Assembly();
     private Assembly.Status status = Assembly.Status.IDLE;
 
@@ -159,6 +165,7 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
         if (recipe == null || getBlockState().getValue(AssemblyTableBlock.POWERED)) {
             pending.clear();
             status = Assembly.Status.IDLE;
+            setWorking(false);
             if (assembly.heat() > 0) {
                 assembly.cool(cooling, tuning);
                 setChanged();
@@ -168,13 +175,36 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
 
         status = assembly.tick(steps, pending, cooling, tuning);
         pending.clear();
+        setWorking(status == Assembly.Status.WORKING || status == Assembly.Status.SLOWED || status == Assembly.Status.DONE);
         if (status == Assembly.Status.DONE) {
             Craft craft = plan(recipe);
-            if (craft != null) craft.apply();
+            if (craft != null) {
+                craft.apply();
+                finished();
+            }
             // BuildCraft's turn-taking: after each craft, the next ticked recipe that can run.
             choose(Rotation.next(selected, current, id -> canRun(lookup(id))));
         }
         setChanged();
+    }
+
+    /** Sent to clients only when it flips: the assembly on the plate turns while it is true. */
+    private void setWorking(boolean now) {
+        if (now == working) return;
+        working = now;
+        sync();
+    }
+
+    /** Once per craft, from the server: a burst over the plate and a chime. Not a timer. */
+    private void finished() {
+        if (!(level instanceof ServerLevel server)) return;
+        double x = worldPosition.getX() + 0.5, y = worldPosition.getY() + 1.3, z = worldPosition.getZ() + 0.5;
+        server.sendParticles(ParticleTypes.END_ROD, x, y, z, 12, 0.15, 0.1, 0.15, 0.04);
+        server.playSound(null, worldPosition, SoundEvents.AMETHYST_CLUSTER_PLACE, SoundSource.BLOCKS, 0.7f, 1.4f);
+    }
+
+    public boolean working() {
+        return working;
     }
 
     /** Lasers and other beam sources call this during their own tick. */
@@ -298,6 +328,7 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
         for (ResourceLocation id : selected) ids.add(StringTag.valueOf(id.toString()));
         tag.put("selected", ids);
         if (current != null) tag.putString("current", current.toString());
+        tag.putBoolean("working", working);
     }
 
     private void readSelection(CompoundTag tag) {
@@ -308,6 +339,7 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
         }
         // Kept even if the recipe is gone after a datapack change: the table waits for it to come back.
         current = tag.contains("current") ? ResourceLocation.tryParse(tag.getString("current")) : null;
+        working = tag.getBoolean("working");
     }
 
     /**
