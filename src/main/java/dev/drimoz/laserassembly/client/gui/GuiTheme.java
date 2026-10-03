@@ -36,19 +36,22 @@ public final class GuiTheme {
     /** FactoryIO's five shared states: the band's light says the same thing on every machine. */
     public enum Status {
         /** Running. */
-        WORKING("led_working"),
+        WORKING(0xFF90FF90, "led_working"),
         /** Ready, but something has to arrive: a beam, ingredients, room in the outputs. */
-        WAITING("led_waiting"),
+        WAITING(0xFFFFFFA0, "led_waiting"),
         /** Running, but held back - here, by heat. */
-        BLOCKED("led_blocked"),
+        BLOCKED(0xFFFFC060, "led_blocked"),
         /** Stopped until you act: overload, overheat. */
-        PROBLEM("led_problem"),
+        PROBLEM(0xFFFF8A80, "led_problem"),
         /** Off on purpose: nothing ticked, or a redstone signal. */
-        OFF("led_off");
+        OFF(0xFFB8B8B8, "led_off");
 
+        /** Text tint on a tab background: the info tab says the state in the band light's colour. */
+        public final int tabColour;
         final String sprite;
 
-        Status(String sprite) {
+        Status(int tabColour, String sprite) {
+            this.tabColour = tabColour;
             this.sprite = sprite;
         }
     }

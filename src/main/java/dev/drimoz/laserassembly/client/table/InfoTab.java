@@ -10,6 +10,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 
 import java.util.function.Supplier;
+import dev.drimoz.laserassembly.client.gui.GuiTheme.Status;
 
 import static dev.drimoz.laserassembly.content.table.AssemblyTableBlockEntity.*;
 
@@ -20,14 +21,18 @@ import static dev.drimoz.laserassembly.content.table.AssemblyTableBlockEntity.*;
 final class InfoTab extends SideTab {
 
     private static final int WIDTH = 120;
-    private static final int LINES = 4;
+    /** A label and its value, then FactoryIO's 3-pixel gap before the next. */
+    private static final int ROW = 2 * GuiTheme.LINE + 3;
+    private static final int ROWS = 4;
 
     private final AssemblyTableMenu menu;
+    private final Supplier<Status> light;
     private final Supplier<Component> status;
 
-    InfoTab(AssemblyTableMenu menu, Supplier<Component> status) {
+    InfoTab(AssemblyTableMenu menu, Supplier<Status> light, Supplier<Component> status) {
         super("info", Side.LEFT, GuiTheme.TAB_INFO);
         this.menu = menu;
+        this.light = light;
         this.status = status;
     }
 
@@ -48,22 +53,22 @@ final class InfoTab extends SideTab {
 
     @Override
     protected int contentHeight() {
-        return LINES * GuiTheme.LINE * 2 - GuiTheme.LINE / 2;
+        return ROWS * ROW - 3;
     }
 
     @Override
     protected void renderContent(GuiGraphics graphics, Font font, int x, int y, int mouseX, int mouseY) {
-        line(graphics, font, x, y, text("tab.info.status"), status.get());
-        line(graphics, font, x, y + 2 * GuiTheme.LINE, text("tab.info.heat"), text("tab.info.heat_value", menu.data(DATA_HEAT) / 10));
-        line(graphics, font, x, y + 4 * GuiTheme.LINE, text("tab.info.cooling"),
-                text("tab.info.cooling_value", String.format("%.1f", menu.data(DATA_COOLING) / 10.0)));
-        line(graphics, font, x, y + 6 * GuiTheme.LINE, text("tab.info.beams"), Component.literal(Integer.toString(menu.data(DATA_BEAMS))));
+        line(graphics, font, x, y, text("tab.info.status"), status.get(), light.get().tabColour);
+        line(graphics, font, x, y + ROW, text("tab.info.heat"), text("tab.info.heat_value", menu.data(DATA_HEAT) / 10), GuiTheme.TAB_VALUE);
+        line(graphics, font, x, y + 2 * ROW, text("tab.info.cooling"),
+                text("tab.info.cooling_value", String.format("%.1f", menu.data(DATA_COOLING) / 10.0)), GuiTheme.TAB_VALUE);
+        line(graphics, font, x, y + 3 * ROW, text("tab.info.beams"), Component.literal(Integer.toString(menu.data(DATA_BEAMS))), GuiTheme.TAB_VALUE);
     }
 
-    /** A label, and its value beneath it: tabs are narrow, and a value never wraps under its label. */
-    private static void line(GuiGraphics graphics, Font font, int x, int y, Component label, Component value) {
+    /** A label, and its value beneath it, as FactoryIO's tabs: tabs are narrow, and a value never wraps. */
+    private static void line(GuiGraphics graphics, Font font, int x, int y, Component label, Component value, int colour) {
         graphics.drawString(font, label, x, y, GuiTheme.TAB_LABEL, true);
-        graphics.drawString(font, value, x + 4, y + GuiTheme.LINE, GuiTheme.TAB_VALUE, true);
+        graphics.drawString(font, value, x, y + GuiTheme.LINE, colour, true);
     }
 
     private static Component text(String key, Object... args) {
