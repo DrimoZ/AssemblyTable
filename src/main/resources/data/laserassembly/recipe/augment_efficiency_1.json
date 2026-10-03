@@ -1,0 +1,12 @@
+{
+  "type": "laserassembly:assembling",
+  "ingredients": [
+    { "ingredient": { "item": "minecraft:copper_ingot" }, "count": 4 },
+    { "ingredient": { "item": "minecraft:redstone" }, "count": 2 },
+    { "ingredient": { "item": "minecraft:lapis_lazuli" }, "count": 2 }
+  ],
+  "result": { "id": "laserassembly:augment", "components": { "laserassembly:augment": "laserassembly:efficiency_1" } },
+  "steps": [
+    { "beam": "laserassembly:engrave", "energy": 4000 }
+  ]
+}

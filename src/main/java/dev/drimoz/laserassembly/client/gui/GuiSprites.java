@@ -16,6 +16,7 @@ public final class GuiSprites {
     private static final ResourceLocation INSET = id("inset");
     private static final ResourceLocation SLOT = id("slot");
     private static final ResourceLocation SLOT_SELECTED = id("slot_selected");
+    private static final ResourceLocation SLOT_DISABLED = id("slot_disabled");
     private static final ResourceLocation GAUGE_EMPTY = id("gauge_empty");
     private static final ResourceLocation SOCKET = id("socket");
     private static final ResourceLocation ARROW = id("arrow");
@@ -52,6 +53,11 @@ public final class GuiSprites {
         graphics.enableScissor(innerX, innerY + innerH - filled, innerX + innerW, innerY + innerH);
         graphics.blitSprite(lit, innerX, innerY, innerW, innerH);
         graphics.disableScissor();
+    }
+
+    /** Darker and hatched: a slot that will take nothing in the current configuration. */
+    public static void disabledSlot(GuiGraphics graphics, int x, int y) {
+        graphics.blitSprite(SLOT_DISABLED, x, y, GuiMetrics.SLOT, GuiMetrics.SLOT);
     }
 
     /** The large socket for what the screen is about: here, the recipe in progress. */

@@ -19,6 +19,7 @@ import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.util.Mth;
+import net.minecraft.world.Containers;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -47,6 +48,8 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
 
     public static final int MAX_INTENSITY = 5;
     public static final int ENERGY_CAPACITY = 10_000;
+    public static final int AUGMENT_SLOTS = 2;
+    public static final int BARREL_SLOTS = 3;
     /** Searching scans nearby chunks and casts rays: once a second is plenty. */
     private static final int RETARGET_TICKS = 20;
 
@@ -90,8 +93,52 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
         }
     };
 
-    /** The lens's beam type, null for raw. Synced: the client draws the beam in its colour. */
+    /** Augments, one of each group. Their combined effect is read once when they change. */
+    private final ItemStackHandler augments = new ItemStackHandler(AUGMENT_SLOTS) {
+        @Override
+        protected void onContentsChanged(int slot) {
+            effects = null;
+            setChanged();
+        }
+
+        @Override
+        public boolean isItemValid(int slot, ItemStack stack) {
+            return AugmentItem.key(stack) != null && !groupTakenElsewhere(slot, stack);
+        }
+
+        @Override
+        public int getSlotLimit(int slot) {
+            return 1;
+        }
+    };
+
+    /** A Barrel's extra lenses: usable only as far as the Barrel augment opens them. */
+    private final ItemStackHandler barrel = new ItemStackHandler(BARREL_SLOTS) {
+        @Override
+        protected void onContentsChanged(int slot) {
+            setChanged();
+        }
+
+        @Override
+        public boolean isItemValid(int slot, ItemStack stack) {
+            return LensItem.beam(stack) != null && slot < effects().barrel();
+        }
+
+        @Override
+        public int getSlotLimit(int slot) {
+            return 1;
+        }
+    };
+
+    /** The beam type it fires, null for raw: its lens's, or the Barrel's pick. Synced, for the beam's colour. */
     private @Nullable ResourceLocation beam;
+
+    /** What the augments add up to. */
+    public record Effects(int range, double efficiency, boolean regulator, int barrel) {
+        public static final Effects NONE = new Effects(0, 1, false, 0);
+    }
+
+    private @Nullable Effects effects;
 
     private final ContainerData data = new ContainerData() {
         @Override
@@ -140,24 +187,108 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
         }
 
         boolean fired = false;
-        Step.Fit fit = table == null || table.isRemoved() ? null : table.fit(beam, intensity);
-        if (fit == Step.Fit.OK) {
-            // Spent in whole FE: a fraction would round to free power at low intensities.
-            if (energy.spend(Mth.ceil(intensity * ServerConfig.tuning().fePerIntensity()))) {
-                table.receiveBeam(beam, intensity);
-                fired = true;
-                state = STATE_FIRING;
-            } else {
-                state = STATE_NO_POWER;
-            }
+        ResourceLocation beamBefore = beam;
+        Step step = table == null || table.isRemoved() ? null : table.currentStep();
+        if (step == null) {
+            state = target == null ? STATE_NO_TARGET : STATE_HOLDING;
         } else {
-            state = target == null ? STATE_NO_TARGET : fit == null ? STATE_HOLDING
-                    : fit == Step.Fit.TOO_WEAK ? STATE_TOO_WEAK : fit == Step.Fit.TOO_STRONG ? STATE_TOO_STRONG : STATE_WRONG_BEAM;
+            Step.Fit fit = aim(step, effects());
+            if (fit == Step.Fit.OK) {
+                // Spent in whole FE: a fraction would round to free power at low intensities.
+                if (energy.spend(Mth.ceil(intensity * ServerConfig.tuning().fePerIntensity() * effects().efficiency()))) {
+                    table.receiveBeam(beam, intensity);
+                    fired = true;
+                    state = STATE_FIRING;
+                } else {
+                    state = STATE_NO_POWER;
+                }
+            } else {
+                state = fit == Step.Fit.TOO_WEAK ? STATE_TOO_WEAK : fit == Step.Fit.TOO_STRONG ? STATE_TOO_STRONG : STATE_WRONG_BEAM;
+            }
         }
-        if (fired != firing || !Objects.equals(before, target)) {
+        if (fired != firing || !Objects.equals(before, target) || !Objects.equals(beamBefore, beam)) {
             firing = fired;
             sync();
         }
+    }
+
+    /**
+     * Settles which lens and what intensity to fire on {@code step}: the lens, then each Barrel lens,
+     * the first that fits; with a Regulator, at the intensity it picks. Reports how the lens itself
+     * fits when nothing does - that is the message a player can act on.
+     */
+    private Step.Fit aim(Step step, Effects fx) {
+        double rawFactor = ServerConfig.tuning().rawFactor();
+        Step.Fit reported = null;
+        for (int i = 0; i <= fx.barrel(); i++) {
+            ItemStack stack = i == 0 ? lens.getStackInSlot(0) : barrel.getStackInSlot(i - 1);
+            if (i > 0 && stack.isEmpty()) continue;
+            ResourceLocation candidate = LensItem.beam(stack);
+            int power = fx.regulator() ? regulate(step, candidate, rawFactor) : intensity;
+            Step.Fit fit = step.fit(candidate, power, rawFactor);
+            if (reported == null) reported = fit;
+            if (fit != Step.Fit.OK) continue;
+            beam = candidate;
+            if (power != intensity) {
+                intensity = power;
+                setChanged();
+            }
+            return fit;
+        }
+        return reported;
+    }
+
+    /**
+     * The Regulator's pick: the highest intensity that fits without heating; failing that, the
+     * lowest that fits at all; failing that the current one, which reports why it does not.
+     */
+    private int regulate(Step step, @Nullable ResourceLocation candidate, double rawFactor) {
+        int lowestFitting = -1;
+        for (int power = MAX_INTENSITY; power >= 1; power--) {
+            if (step.fit(candidate, power, rawFactor) != Step.Fit.OK) continue;
+            if (power <= step.thresholds().heatAbove()) return power;
+            lowestFitting = power;
+        }
+        return lowestFitting > 0 ? lowestFitting : intensity;
+    }
+
+    public Effects effects() {
+        if (effects == null) {
+            // Not cached until the level is there: a laser loading with its chunk has no registries yet.
+            if (level == null) return Effects.NONE;
+            int range = 0, barrelSlots = 0;
+            double efficiency = 1;
+            boolean regulator = false;
+            for (int i = 0; i < AUGMENT_SLOTS; i++) {
+                AugmentType type = AugmentItem.type(augments.getStackInSlot(i), level.registryAccess()).orElse(null);
+                if (type == null) continue;
+                range += type.range();
+                efficiency *= type.efficiency();
+                regulator |= type.regulator();
+                barrelSlots = Math.max(barrelSlots, type.barrel());
+            }
+            effects = new Effects(range, efficiency, regulator, barrelSlots);
+        }
+        return effects;
+    }
+
+    /** One augment of each group: a second Range on the same laser is refused, not stacked. */
+    private boolean groupTakenElsewhere(int slot, ItemStack stack) {
+        if (level == null) return false;
+        ResourceLocation group = group(stack);
+        for (int i = 0; i < AUGMENT_SLOTS; i++) {
+            if (i != slot && group != null && group.equals(group(augments.getStackInSlot(i)))) return true;
+        }
+        return false;
+    }
+
+    private @Nullable ResourceLocation group(ItemStack stack) {
+        ResourceLocation id = AugmentItem.id(stack);
+        return id == null ? null : AugmentItem.type(stack, level.registryAccess()).map(type -> type.group(id)).orElse(id);
+    }
+
+    private int range() {
+        return ServerConfig.laserRange() + effects().range();
     }
 
     /** FE in from any side; nothing may pull it back out, only the laser spends it. */
@@ -183,7 +314,7 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
 
     /** The nearest table in front, in reach and in sight; one that wants beams before one that does not. */
     private @Nullable AssemblyTableBlockEntity search() {
-        int range = ServerConfig.laserRange();
+        int range = range();
         AssemblyTableBlockEntity best = null;
         double bestScore = Double.MAX_VALUE;
         int minX = (worldPosition.getX() - range) >> 4, maxX = (worldPosition.getX() + range) >> 4;
@@ -213,7 +344,7 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
         Direction facing = getBlockState().getValue(LaserBlock.FACING);
         BlockPos offset = pos.subtract(worldPosition);
         if (offset.getX() * facing.getStepX() + offset.getY() * facing.getStepY() + offset.getZ() * facing.getStepZ() <= 0) return false;
-        int range = ServerConfig.laserRange();
+        int range = range();
         if (worldPosition.distSqr(pos) > range * range) return false;
         BlockHitResult hit = level.clip(new ClipContext(muzzle(), beamEnd(pos), ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, CollisionContext.empty()));
         return hit.getType() == HitResult.Type.MISS || hit.getBlockPos().equals(pos);
@@ -249,6 +380,23 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
 
     public ItemStackHandler lens() {
         return lens;
+    }
+
+    public ItemStackHandler augments() {
+        return augments;
+    }
+
+    public ItemStackHandler barrel() {
+        return barrel;
+    }
+
+    /** Lens, augments and Barrel lenses, when the laser is broken. */
+    void dropContents() {
+        for (ItemStackHandler handler : new ItemStackHandler[]{lens, augments, barrel}) {
+            for (int i = 0; i < handler.getSlots(); i++) {
+                Containers.dropItemStack(level, worldPosition.getX(), worldPosition.getY(), worldPosition.getZ(), handler.getStackInSlot(i));
+            }
+        }
     }
 
     public @Nullable ResourceLocation beam() {
@@ -314,6 +462,8 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
         tag.put("energy", energy.serializeNBT(registries));
         tag.putInt("intensity", intensity);
         tag.put("lens", lens.serializeNBT(registries));
+        tag.put("augments", augments.serializeNBT(registries));
+        tag.put("barrel", barrel.serializeNBT(registries));
     }
 
     @Override
@@ -322,5 +472,8 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
         if (tag.contains("energy")) energy.deserializeNBT(registries, tag.get("energy"));
         intensity = Mth.clamp(tag.getInt("intensity"), 1, MAX_INTENSITY);
         lens.deserializeNBT(registries, tag.getCompound("lens"));
+        augments.deserializeNBT(registries, tag.getCompound("augments"));
+        barrel.deserializeNBT(registries, tag.getCompound("barrel"));
+        effects = null;
     }
 }

@@ -17,6 +17,7 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.Slot;
+import net.neoforged.neoforge.items.SlotItemHandler;
 
 import static dev.drimoz.laserassembly.content.laser.LaserBlockEntity.*;
 import static dev.drimoz.laserassembly.content.laser.LaserMenu.CONTENT_BOTTOM;
@@ -45,7 +46,14 @@ public class LaserScreen extends AbstractContainerScreen<LaserMenu> {
     protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
         int x = leftPos, y = topPos;
         GuiSprites.panel(graphics, x, y, imageWidth, imageHeight);
-        for (Slot slot : menu.slots) GuiSprites.slot(graphics, x + slot.x - 1, y + slot.y - 1, false);
+        int barrelOpen = menu.laser().effects().barrel();
+        for (Slot slot : menu.slots) {
+            // Barrel slots stay hatched until a Barrel augment opens them.
+            boolean closed = slot instanceof SlotItemHandler handler && handler.getItemHandler() == menu.laser().barrel()
+                    && slot.getSlotIndex() >= barrelOpen && !slot.hasItem();
+            if (closed) GuiSprites.disabledSlot(graphics, x + slot.x - 1, y + slot.y - 1);
+            else GuiSprites.slot(graphics, x + slot.x - 1, y + slot.y - 1, false);
+        }
         GuiSprites.gauge(graphics, GuiSprites.GAUGE_ENERGY, x + GuiMetrics.GAUGE_X, y + GuiMetrics.CONTENT_TOP,
                 GuiMetrics.GAUGE_WIDTH, CONTENT_BOTTOM - GuiMetrics.CONTENT_TOP, (float) menu.data(DATA_ENERGY) / ENERGY_CAPACITY);
         button(graphics, MINUS_X, "-", mouseX, mouseY);
@@ -90,6 +98,13 @@ public class LaserScreen extends AbstractContainerScreen<LaserMenu> {
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         super.render(graphics, mouseX, mouseY, partialTick);
         renderTooltip(graphics, mouseX, mouseY);
+        // An empty laser slot says what it is for: three kinds sit side by side.
+        if (hoveredSlot instanceof SlotItemHandler handler && !hoveredSlot.hasItem()) {
+            String hint = handler.getItemHandler() == menu.laser().lens() ? "laser.slot.lens"
+                    : handler.getItemHandler() == menu.laser().augments() ? "laser.slot.augment"
+                    : hoveredSlot.getSlotIndex() < menu.laser().effects().barrel() ? "laser.slot.barrel" : "laser.slot.barrel_closed";
+            graphics.renderTooltip(font, text(hint), mouseX, mouseY);
+        }
         int x = mouseX - leftPos, y = mouseY - topPos;
         if (x >= GuiMetrics.GAUGE_X && x < GuiMetrics.GAUGE_X + GuiMetrics.GAUGE_WIDTH && y >= GuiMetrics.CONTENT_TOP && y < CONTENT_BOTTOM) {
             int cost = Mth.ceil(menu.data(DATA_INTENSITY) * ServerConfig.tuning().fePerIntensity());

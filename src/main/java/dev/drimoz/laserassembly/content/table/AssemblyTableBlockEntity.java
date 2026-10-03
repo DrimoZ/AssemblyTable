@@ -217,12 +217,9 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
         return current != null && !steps.isEmpty() && !assembly.overheated() && !getBlockState().getValue(AssemblyTableBlock.POWERED);
     }
 
-    /**
-     * How a beam would fit the step in progress, or null when the table wants none. A laser fires
-     * only on {@link Step.Fit#OK}: a beam that would do nothing costs nothing and heats nothing.
-     */
-    public @Nullable Step.Fit fit(@Nullable ResourceLocation beam, double intensity) {
-        return wantsBeams() ? steps.get(assembly.step()).fit(beam, intensity, ServerConfig.tuning().rawFactor()) : null;
+    /** The step in progress, or null when the table wants no beam - each laser judges its own fit against it. */
+    public @Nullable Step currentStep() {
+        return wantsBeams() ? steps.get(assembly.step()) : null;
     }
 
     /** Also how the caches catch up with a reload or a config change: the same id keeps its progress. */

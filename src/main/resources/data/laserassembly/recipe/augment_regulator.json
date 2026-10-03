@@ -1,0 +1,13 @@
+{
+  "type": "laserassembly:assembling",
+  "ingredients": [
+    { "ingredient": { "item": "minecraft:comparator" }, "count": 1 },
+    { "ingredient": { "item": "minecraft:redstone" }, "count": 4 },
+    { "ingredient": { "item": "minecraft:quartz" }, "count": 2 }
+  ],
+  "result": { "id": "laserassembly:augment", "components": { "laserassembly:augment": "laserassembly:regulator" } },
+  "steps": [
+    { "beam": "laserassembly:cut", "energy": 3000 },
+    { "beam": "laserassembly:engrave", "energy": 3000 }
+  ]
+}

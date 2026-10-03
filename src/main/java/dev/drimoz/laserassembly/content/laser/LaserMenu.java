@@ -13,11 +13,18 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.SlotItemHandler;
 
-/** The lens slot in column 1, the player's inventory below. Buttons 0 and 1 step the intensity. */
+/**
+ * The lens in column 1; on the row beneath, the augments in columns 1-2 and the Barrel's lenses in
+ * columns 6-8; the player's inventory below. Buttons 0 and 1 step the intensity.
+ */
 public class LaserMenu extends AbstractContainerMenu {
 
-    /** Content rows 0-2: intensity, cost, state. */
-    public static final int CONTENT_BOTTOM = GuiMetrics.row(3);
+    /** Content rows 0-2: intensity, beam, state; row 3 the augments and the Barrel. */
+    public static final int CONTENT_BOTTOM = GuiMetrics.row(4);
+    public static final int AUGMENT_COLUMN = 1;
+    public static final int BARREL_COLUMN = 6;
+    public static final int EXTRA_Y = GuiMetrics.row(3) + 1;
+    private static final int LASER_SLOTS = 1 + LaserBlockEntity.AUGMENT_SLOTS + LaserBlockEntity.BARREL_SLOTS;
     public static final int LENS_X = GuiMetrics.column(1) + 1;
     public static final int LENS_Y = GuiMetrics.row(1) + 1;
 
@@ -37,6 +44,12 @@ public class LaserMenu extends AbstractContainerMenu {
         this.access = ContainerLevelAccess.create(laser.getLevel(), laser.getBlockPos());
 
         addSlot(new SlotItemHandler(laser.lens(), 0, LENS_X, LENS_Y));
+        for (int i = 0; i < LaserBlockEntity.AUGMENT_SLOTS; i++) {
+            addSlot(new SlotItemHandler(laser.augments(), i, GuiMetrics.column(AUGMENT_COLUMN + i) + 1, EXTRA_Y));
+        }
+        for (int i = 0; i < LaserBlockEntity.BARREL_SLOTS; i++) {
+            addSlot(new SlotItemHandler(laser.barrel(), i, GuiMetrics.column(BARREL_COLUMN + i) + 1, EXTRA_Y));
+        }
         int inventoryY = GuiMetrics.inventoryY(CONTENT_BOTTOM);
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
@@ -67,7 +80,8 @@ public class LaserMenu extends AbstractContainerMenu {
         if (!slot.hasItem()) return ItemStack.EMPTY;
         ItemStack stack = slot.getItem();
         ItemStack original = stack.copy();
-        boolean moved = index == 0 ? moveItemStackTo(stack, 1, slots.size(), true) : moveItemStackTo(stack, 0, 1, false);
+        boolean moved = index < LASER_SLOTS ? moveItemStackTo(stack, LASER_SLOTS, slots.size(), true)
+                : moveItemStackTo(stack, 0, LASER_SLOTS, false);
         if (!moved) return ItemStack.EMPTY;
         if (stack.isEmpty()) slot.setByPlayer(ItemStack.EMPTY);
         else slot.setChanged();

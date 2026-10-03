@@ -5,6 +5,8 @@ import dev.drimoz.laserassembly.content.table.AssemblyTableBlockEntity;
 import dev.drimoz.laserassembly.registry.ModBlocks;
 import dev.drimoz.laserassembly.content.beam.BeamType;
 import dev.drimoz.laserassembly.content.beam.LensItem;
+import dev.drimoz.laserassembly.content.laser.AugmentItem;
+import dev.drimoz.laserassembly.content.laser.AugmentType;
 import dev.drimoz.laserassembly.content.laser.LaserBlock;
 import net.minecraft.resources.ResourceKey;
 import dev.drimoz.laserassembly.content.laser.LaserBlockEntity;
@@ -76,6 +78,42 @@ public final class TableGameTests {
 
         helper.runAfterDelay(10, () -> helper.assertTrue(cutter.firing() && !welder.firing(), "the cut step should take the cutter alone"));
         helper.succeedWhen(() -> helper.assertTrue(count(items, Items.TRIDENT) == 1, "no trident yet"));
+    }
+
+    /**
+     * One laser runs a recipe in steps on its own: a Barrel to switch lenses, a Regulator to pick an
+     * intensity that does not heat. And it takes one augment of each group.
+     */
+    @GameTest(template = "platform", timeoutTicks = 400)
+    public static void augmentsLetOneLaserRunEveryStep(GameTestHelper helper) {
+        BlockPos tablePos = new BlockPos(2, 2, 3);
+        helper.setBlock(tablePos, ModBlocks.ASSEMBLY_TABLE.get());
+        AssemblyTableBlockEntity table = helper.getBlockEntity(tablePos);
+        LaserBlockEntity laser = laser(helper, new BlockPos(2, 2, 1), Direction.SOUTH, "cut");
+        helper.assertTrue(laser.augments().insertItem(0, augment("regulator"), false).isEmpty(), "regulator refused");
+        helper.assertTrue(laser.augments().insertItem(1, augment("range_1"), false).isEmpty(), "range refused");
+        helper.assertTrue(!laser.augments().isItemValid(0, augment("range_2")), "a second range should be refused");
+        laser.augments().setStackInSlot(1, augment("barrel"));
+        laser.barrel().insertItem(0, LensItem.of(ResourceKey.create(BeamType.REGISTRY,
+                ResourceLocation.fromNamespaceAndPath(LaserAssembly.MOD_ID, "weld"))), false);
+
+        table.toggle(ResourceLocation.fromNamespaceAndPath(LaserAssembly.MOD_ID, "trident"));
+        IItemHandler items = table.automation();
+        insert(items, Items.IRON_INGOT, 3);
+        insert(items, Items.PRISMARINE_SHARD, 4);
+        insert(items, Items.PRISMARINE_CRYSTALS, 2);
+        // The trident costs 10 000 FE of work, the laser's whole buffer: keep it topped up.
+        helper.onEachTick(() -> laser.energy().receiveEnergy(LaserBlockEntity.ENERGY_CAPACITY, false));
+
+        helper.succeedWhen(() -> {
+            helper.assertTrue(count(items, Items.TRIDENT) == 1, "no trident yet");
+            // Default thresholds for an intensity-1 step: heating above 3, so the Regulator settles on 3.
+            helper.assertTrue(laser.effects().regulator(), "regulator not counted");
+        });
+    }
+
+    private static ItemStack augment(String id) {
+        return AugmentItem.of(ResourceKey.create(AugmentType.REGISTRY, ResourceLocation.fromNamespaceAndPath(LaserAssembly.MOD_ID, id)));
     }
 
     /** A laser at full intensity, with a full buffer and a lens of {@code beam}. */

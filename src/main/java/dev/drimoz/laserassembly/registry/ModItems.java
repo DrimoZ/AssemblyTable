@@ -3,6 +3,8 @@ package dev.drimoz.laserassembly.registry;
 import dev.drimoz.laserassembly.LaserAssembly;
 import dev.drimoz.laserassembly.content.beam.BeamType;
 import dev.drimoz.laserassembly.content.beam.LensItem;
+import dev.drimoz.laserassembly.content.laser.AugmentItem;
+import dev.drimoz.laserassembly.content.laser.AugmentType;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -28,9 +30,16 @@ public final class ModItems {
                     .persistent(ResourceKey.codec(BeamType.REGISTRY))
                     .networkSynchronized(ResourceKey.streamCodec(BeamType.REGISTRY)));
 
-    public static final DeferredItem<LensItem> LENS = ITEMS.register("lens", () -> new LensItem(new Item.Properties().stacksTo(16)));
+    /** Which augment an augment item is, by id, as for lenses. */
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<ResourceKey<AugmentType>>> AUGMENT_TYPE =
+            COMPONENTS.registerComponentType("augment", builder -> builder
+                    .persistent(ResourceKey.codec(AugmentType.REGISTRY))
+                    .networkSynchronized(ResourceKey.streamCodec(AugmentType.REGISTRY)));
 
-    /** Every item the mod registers, and one lens per beam type the datapacks declare. */
+    public static final DeferredItem<LensItem> LENS = ITEMS.register("lens", () -> new LensItem(new Item.Properties().stacksTo(16)));
+    public static final DeferredItem<AugmentItem> AUGMENT = ITEMS.register("augment", () -> new AugmentItem(new Item.Properties().stacksTo(16)));
+
+    /** Every item the mod registers, one lens per beam type and one augment per augment type the datapacks declare. */
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> TAB = TABS.register("main", () -> CreativeModeTab.builder()
             .title(Component.translatable("itemGroup.laserassembly"))
             .icon(() -> new ItemStack(ModBlocks.LASER_ITEM.get()))
@@ -38,6 +47,9 @@ public final class ModItems {
                 if (item == LENS) {
                     parameters.holders().lookup(BeamType.REGISTRY).ifPresent(beams ->
                             beams.listElementIds().forEach(beam -> output.accept(LensItem.of(beam))));
+                } else if (item == AUGMENT) {
+                    parameters.holders().lookup(AugmentType.REGISTRY).ifPresent(augments ->
+                            augments.listElementIds().forEach(augment -> output.accept(AugmentItem.of(augment))));
                 } else {
                     output.accept(item.get());
                 }

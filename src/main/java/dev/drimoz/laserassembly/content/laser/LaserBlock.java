@@ -4,7 +4,6 @@ import com.mojang.serialization.MapCodec;
 import dev.drimoz.laserassembly.registry.ModBlocks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.world.Containers;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.context.BlockPlaceContext;
@@ -57,7 +56,7 @@ public class LaserBlock extends BaseEntityBlock {
     @Override
     protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean movedByPiston) {
         if (!state.is(newState.getBlock()) && level.getBlockEntity(pos) instanceof LaserBlockEntity laser) {
-            Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), laser.lens().getStackInSlot(0));
+            laser.dropContents();
         }
         super.onRemove(state, level, pos, newState, movedByPiston);
     }

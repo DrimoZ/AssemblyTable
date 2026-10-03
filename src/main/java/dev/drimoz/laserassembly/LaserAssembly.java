@@ -2,6 +2,7 @@ package dev.drimoz.laserassembly;
 
 import com.mojang.logging.LogUtils;
 import dev.drimoz.laserassembly.content.beam.BeamType;
+import dev.drimoz.laserassembly.content.laser.AugmentType;
 import dev.drimoz.laserassembly.content.table.Coolant;
 import dev.drimoz.laserassembly.registry.ModBlocks;
 import dev.drimoz.laserassembly.registry.ModItems;
@@ -26,8 +27,9 @@ public class LaserAssembly {
         ModRecipes.register(modEventBus);
         modEventBus.addListener(DataPackRegistryEvent.NewRegistry.class, event -> {
             event.dataPackRegistry(Coolant.REGISTRY, Coolant.CODEC);
-            // Synced: clients draw beams and lenses in their colour.
+            // Synced: clients draw beams, lenses and augments in their colour and describe them.
             event.dataPackRegistry(BeamType.REGISTRY, BeamType.CODEC, BeamType.CODEC);
+            event.dataPackRegistry(AugmentType.REGISTRY, AugmentType.CODEC, AugmentType.CODEC);
         });
 
         modContainer.registerConfig(ModConfig.Type.SERVER, ServerConfig.SPEC);
