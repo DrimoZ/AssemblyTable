@@ -4,6 +4,6 @@
     { "ingredient": { "item": "minecraft:glass_pane" }, "count": 2 },
     { "ingredient": { "item": "minecraft:blaze_powder" }, "count": 1 }
   ],
-  "result": { "id": "laserassembly:lens", "components": { "laserassembly:beam": "laserassembly:weld" } },
+  "result": { "id": "laserassembly:weld_lens" },
   "energy": 2000
 }

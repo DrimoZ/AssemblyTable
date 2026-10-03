@@ -2,7 +2,7 @@ package dev.drimoz.laserassembly.content.laser;
 
 import dev.drimoz.laserassembly.ServerConfig;
 import dev.drimoz.laserassembly.content.table.AssemblyTableBlockEntity;
-import dev.drimoz.laserassembly.content.beam.LensItem;
+import dev.drimoz.laserassembly.content.beam.BeamType;
 import dev.drimoz.laserassembly.core.Step;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
@@ -78,19 +78,15 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
     private final ItemStackHandler lens = new ItemStackHandler(1) {
         @Override
         protected void onContentsChanged(int slot) {
-            onLoad();
+            lensBeams = null;
+            beam = lensBeam(0);
             setChanged();
             if (level != null && !level.isClientSide) sync();
         }
 
         @Override
-        protected void onLoad() {
-            beam = LensItem.beam(getStackInSlot(0));
-        }
-
-        @Override
         public boolean isItemValid(int slot, ItemStack stack) {
-            return LensItem.beam(stack) != null && !beamTakenElsewhere(this, slot, stack);
+            return isLens(stack) && !beamTakenElsewhere(this, slot, stack);
         }
 
         @Override
@@ -111,7 +107,7 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
 
         @Override
         public boolean isItemValid(int slot, ItemStack stack) {
-            return AugmentItem.key(stack) != null && !groupTakenElsewhere(slot, stack);
+            return level != null && AugmentType.of(stack, level.registryAccess()).isPresent() && !groupTakenElsewhere(slot, stack);
         }
 
         @Override
@@ -124,6 +120,7 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
     private final ItemStackHandler barrel = new ItemStackHandler(BARREL_SLOTS) {
         @Override
         protected void onContentsChanged(int slot) {
+            lensBeams = null;
             setChanged();
             // The table's lasers tab shows every lens a laser carries.
             if (level != null && !level.isClientSide) sync();
@@ -131,7 +128,7 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
 
         @Override
         public boolean isItemValid(int slot, ItemStack stack) {
-            return LensItem.beam(stack) != null && slot < effects().barrel() && !beamTakenElsewhere(this, slot, stack);
+            return isLens(stack) && slot < effects().barrel() && !beamTakenElsewhere(this, slot, stack);
         }
 
         @Override
@@ -142,6 +139,7 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
 
     /** The beam type it fires, null for raw: its lens's, or the Barrel's pick. Synced, for the beam's colour. */
     private @Nullable ResourceLocation beam;
+    private @Nullable ResourceLocation[] lensBeams;
 
     /** The client has no augments outside the laser's own menu: whether one is a Regulator comes synced. */
     private boolean regulatedOnClient;
@@ -246,7 +244,7 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
         for (int i = 0; i <= fx.barrel(); i++) {
             ItemStack stack = i == 0 ? lens.getStackInSlot(0) : barrel.getStackInSlot(i - 1);
             if (i > 0 && stack.isEmpty()) continue;
-            ResourceLocation candidate = LensItem.beam(stack);
+            ResourceLocation candidate = lensBeam(i);
             int power = fx.regulator() ? regulate(step, candidate, rawFactor) : intensity;
             Step.Fit fit = step.fit(candidate, power, rawFactor);
             if (reported == null) reported = fit;
@@ -306,10 +304,10 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
     public List<ResourceLocation> lenses() {
         if (level != null && level.isClientSide) return lensesOnClient;
         List<ResourceLocation> carried = new ArrayList<>();
-        ResourceLocation main = LensItem.beam(lens.getStackInSlot(0));
+        ResourceLocation main = lensBeam(0);
         if (main != null) carried.add(main);
         for (int i = 0; i < BARREL_SLOTS; i++) {
-            ResourceLocation extra = LensItem.beam(barrel.getStackInSlot(i));
+            ResourceLocation extra = lensBeam(1 + i);
             if (extra != null) carried.add(extra);
         }
         return carried;
@@ -332,7 +330,7 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
             double efficiency = 1;
             boolean regulator = false;
             for (int i = 0; i < AUGMENT_SLOTS; i++) {
-                AugmentType type = AugmentItem.type(augments.getStackInSlot(i), level.registryAccess()).orElse(null);
+                AugmentType type = AugmentType.of(augments.getStackInSlot(i), level.registryAccess()).map(holder -> holder.value()).orElse(null);
                 if (type == null) continue;
                 range += type.range();
                 efficiency *= type.efficiency();
@@ -349,10 +347,10 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
      * type would only ever sit there. It also spreads a shift-click across the type it lacks.
      */
     private boolean beamTakenElsewhere(ItemStackHandler handler, int slot, ItemStack stack) {
-        ResourceLocation wanted = LensItem.beam(stack);
-        if (handler != lens && wanted.equals(LensItem.beam(lens.getStackInSlot(0)))) return true;
+        ResourceLocation wanted = BeamType.of(stack, level.registryAccess());
+        if (handler != lens && wanted.equals(lensBeam(0))) return true;
         for (int i = 0; i < BARREL_SLOTS; i++) {
-            if ((handler != barrel || i != slot) && wanted.equals(LensItem.beam(barrel.getStackInSlot(i)))) return true;
+            if ((handler != barrel || i != slot) && wanted.equals(lensBeam(1 + i))) return true;
         }
         return false;
     }
@@ -368,8 +366,27 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
     }
 
     private @Nullable ResourceLocation group(ItemStack stack) {
-        ResourceLocation id = AugmentItem.id(stack);
-        return id == null ? null : AugmentItem.type(stack, level.registryAccess()).map(type -> type.group(id)).orElse(id);
+        return AugmentType.of(stack, level.registryAccess()).map(AugmentType::group).orElse(null);
+    }
+
+    private boolean isLens(ItemStack stack) {
+        return level != null && BeamType.of(stack, level.registryAccess()) != null;
+    }
+
+    /**
+     * The beam of the lens in slot {@code i} - 0 the lens slot, then the Barrel's - resolved once
+     * after the lenses change: {@link #aim} reads them every tick. Not before the level is there, as
+     * for {@link #effects}.
+     */
+    private @Nullable ResourceLocation lensBeam(int i) {
+        if (lensBeams == null) {
+            if (level == null) return null;
+            lensBeams = new ResourceLocation[1 + BARREL_SLOTS];
+            for (int j = 0; j < lensBeams.length; j++) {
+                lensBeams[j] = BeamType.of(j == 0 ? lens.getStackInSlot(0) : barrel.getStackInSlot(j - 1), level.registryAccess());
+            }
+        }
+        return lensBeams[i];
     }
 
     private int range() {

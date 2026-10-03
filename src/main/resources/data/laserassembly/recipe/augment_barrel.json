@@ -5,7 +5,7 @@
     { "ingredient": { "item": "minecraft:iron_ingot" }, "count": 4 },
     { "ingredient": { "item": "minecraft:glass_pane" }, "count": 3 }
   ],
-  "result": { "id": "laserassembly:augment", "components": { "laserassembly:augment": "laserassembly:barrel" } },
+  "result": { "id": "laserassembly:barrel_augment" },
   "steps": [
     { "beam": "laserassembly:cut", "energy": 4000 },
     { "beam": "laserassembly:weld", "energy": 4000 }

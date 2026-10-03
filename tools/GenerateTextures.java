@@ -2,6 +2,7 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.Map;
 
 /**
  * Generates the block and item textures, in Portable Beacons' way: drawn by code, so a colour or a
@@ -12,10 +13,8 @@ import java.io.IOException;
  * the table's focus, where the beams meet; the laser's socket; vents on the sides. What moves or
  * lights up - the laser's head, the focus at work - is drawn by the renderers over these.
  *
- * <p>The lens and the augment are tinted from their registry entry, so each keeps its coloured part
- * on a greyscale layer of its own, and its metal on another, untinted: a tinted frame turned the
- * whole item one flat colour. The augment is drawn in FactoryIO's module family - a dark casing
- * round a screen - so it reads as a part you fit into something.
+ * <p>The augments are drawn in FactoryIO's module family - a dark casing round a screen - so an
+ * augment reads as a part you fit into something.
  *
  * <pre>java tools/GenerateTextures.java</pre>
  */
@@ -44,10 +43,7 @@ public final class GenerateTextures {
         write("block/laser_head", laserHead());
         write("block/laser_glow", laserGlow());
 
-        write("item/lens_glass", lensGlass());
-        write("item/lens_rim", lensRim());
-        write("item/augment_casing", augmentCasing());
-        write("item/augment_screen", augmentScreen());
+        writeItems();
         System.out.println("Textures written.");
     }
 
@@ -164,31 +160,42 @@ public final class GenerateTextures {
 
     // ------------------------------------------------------------------ items
 
-    /** Greyscale, lit from the top-left, so the beam colour shades rather than flattens. */
-    private static BufferedImage lensGlass() {
+    /*
+     * One texture per item, its colour baked in: each lens and augment is its own item, so it has
+     * its own texture, and an item a pack adds brings its own. The colours are the datapack
+     * entries' - kept in step by hand, they change rarely.
+     */
+
+    private static void writeItems() throws IOException {
+        lens("cut_lens", 0xFF8C1A);
+        lens("weld_lens", 0x3C8CFF);
+        lens("engrave_lens", 0x3CE05A);
+
+        augment("regulator_augment", 0xE8D44A, 0, "regulator");
+        augment("barrel_augment", 0xB0B0C8, 0, "barrel");
+        augment("range_augment_1", 0x4AC8E8, 1, "range");
+        augment("range_augment_2", 0x2A8CD8, 2, "range");
+        augment("efficiency_augment_1", 0x6AD86A, 1, "efficiency");
+        augment("efficiency_augment_2", 0x2EA84A, 2, "efficiency");
+    }
+
+    /** Glass in the beam's colour, lit from the top-left, in a steel rim. */
+    private static void lens(String name, int colour) throws IOException {
         BufferedImage image = blank();
         for (int y = 0; y < 16; y++) {
             for (int x = 0; x < 16; x++) {
-                if (distance(x, y) > 5.2) continue;
-                int grey = (int) Math.round(235 - 9 * (x + y - 8) / 2.0);
-                set(image, x, y, grey << 16 | grey << 8 | grey);
+                double d = distance(x, y);
+                if (d <= 5.2) {
+                    set(image, x, y, shade(colour, 1.15 - 0.045 * (x + y - 8)));
+                } else if (d <= 7.0) {
+                    set(image, x, y, x + y < 15 ? BEVEL : SHADOW);
+                }
             }
         }
         set(image, 5, 5, 0xFFFFFF);
         set(image, 6, 5, 0xFFFFFF);
         set(image, 5, 6, 0xFFFFFF);
-        return image;
-    }
-
-    private static BufferedImage lensRim() {
-        BufferedImage image = blank();
-        for (int y = 0; y < 16; y++) {
-            for (int x = 0; x < 16; x++) {
-                double d = distance(x, y);
-                if (d > 5.2 && d <= 7.0) set(image, x, y, x + y < 15 ? BEVEL : SHADOW);
-            }
-        }
-        return image;
+        write("item/" + name, image);
     }
 
     private static final String[] CASING = {
@@ -204,40 +211,60 @@ public final class GenerateTextures {
             ".kLK........KDk.",
             ".kLKKKKKKKKKKDk.",
             ".kDDDDDDDDDDDDk.",
-            ".kDDcDDDDDDcDDk.",
+            ".kDDD1DDDD2DDDk.",
             ".kSSSSSSSSSSSSk.",
             "..kkkkkkkkkkkk..",
             "................"};
 
-    private static BufferedImage augmentCasing() {
+    /** 8x6 white glyphs on the screen: shape carries the meaning, so two close colours stay apart. */
+    private static final Map<String, String[]> GLYPHS = Map.of(
+            // A gauge with its needle: sets its own intensity.
+            "regulator", new String[]{"..wwww..", ".w....w.", "w...w..w", "w..w...w", "w.ww...w", "........"},
+            // Three chambers: more lenses.
+            "barrel", new String[]{"...ww...", "...ww...", "........", "ww....ww", "ww....ww", "........"},
+            // Double chevron: reaches further.
+            "range", new String[]{"ww..ww..", ".ww..ww.", "..ww..ww", ".ww..ww.", "ww..ww..", "........"},
+            // Arrow down: draws less.
+            "efficiency", new String[]{"...ww...", "...ww...", "...ww...", ".wwwwww.", "..wwww..", "...ww..."});
+
+    /**
+     * FactoryIO's module: a dark casing round a screen in the augment's colour, lit from the top,
+     * a white glyph on it, and tier pips along the foot - lit for each tier, so Range I and II differ
+     * by more than a shade. The screen is the colour's mid-tones: a full colour drowned the glyph.
+     */
+    private static void augment(String name, int colour, int tier, String glyph) throws IOException {
         BufferedImage image = blank();
         for (int y = 0; y < 16; y++) {
             for (int x = 0; x < 16; x++) {
-                int colour = switch (CASING[y].charAt(x)) {
+                int rgb = switch (CASING[y].charAt(x)) {
                     case 'k' -> 0x1B1B1B;
                     case 'L' -> 0x6A6A6A;
                     case 'D' -> 0x3E3E3E;
                     case 'S' -> 0x2A2A2A;
                     case 'K' -> 0x101010;
-                    case 'c' -> 0xB87333;
+                    case '1' -> tier >= 1 ? 0xF7D44A : 0x262626;
+                    case '2' -> tier >= 2 ? 0xF7D44A : 0x262626;
                     default -> -1;
                 };
-                if (colour >= 0) set(image, x, y, colour);
+                if (rgb >= 0) set(image, x, y, rgb);
             }
         }
-        return image;
+        double[] rows = {0.71, 0.63, 0.59, 0.55, 0.51, 0.47};
+        String[] art = GLYPHS.get(glyph);
+        for (int y = 0; y < rows.length; y++) {
+            for (int x = 0; x < 8; x++) {
+                set(image, 4 + x, 4 + y, art[y].charAt(x) == 'w' ? 0xFFFFFF : shade(colour, rows[y] * 1.4));
+            }
+        }
+        write("item/" + name, image);
     }
 
-    /**
-     * The screen, x 4..11 and y 4..9: mid-greys lit from the top, crossed by a white beam. A
-     * full-white screen made pale colours swallow what is drawn on it, as in Portable Beacons.
-     */
-    private static BufferedImage augmentScreen() {
-        BufferedImage image = blank();
-        int[] rows = {0xB4B4B4, 0xA0A0A0, 0x969696, 0x8C8C8C, 0x828282, 0x787878};
-        for (int y = 0; y < rows.length; y++) fill(image, 4, 4 + y, 8, 1, rows[y]);
-        for (int x = 4; x < 12; x++) set(image, x, 9 - (x - 4) * 5 / 7, 0xFFFFFF);
-        return image;
+    /** The colour scaled by {@code factor}, each channel clamped. */
+    private static int shade(int rgb, double factor) {
+        int r = (int) Math.min(255, ((rgb >> 16) & 255) * factor);
+        int g = (int) Math.min(255, ((rgb >> 8) & 255) * factor);
+        int b = (int) Math.min(255, (rgb & 255) * factor);
+        return r << 16 | g << 8 | b;
     }
 
     // ------------------------------------------------------------------ plumbing

@@ -3,15 +3,11 @@ package dev.drimoz.laserassembly.gametest;
 import dev.drimoz.laserassembly.LaserAssembly;
 import dev.drimoz.laserassembly.content.table.AssemblyTableBlockEntity;
 import dev.drimoz.laserassembly.registry.ModBlocks;
-import dev.drimoz.laserassembly.content.beam.BeamType;
-import dev.drimoz.laserassembly.content.beam.LensItem;
-import dev.drimoz.laserassembly.content.laser.AugmentItem;
-import dev.drimoz.laserassembly.content.laser.AugmentType;
 import dev.drimoz.laserassembly.content.laser.LaserBlock;
-import net.minecraft.resources.ResourceKey;
 import dev.drimoz.laserassembly.content.laser.LaserBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.HopperBlock;
 import net.minecraft.world.level.block.entity.HopperBlockEntity;
@@ -94,10 +90,10 @@ public final class TableGameTests {
         helper.setBlock(tablePos, ModBlocks.ASSEMBLY_TABLE.get());
         AssemblyTableBlockEntity table = helper.getBlockEntity(tablePos);
         LaserBlockEntity laser = laser(helper, new BlockPos(2, 2, 1), Direction.SOUTH, "cut");
-        helper.assertTrue(laser.augments().insertItem(0, augment("regulator"), false).isEmpty(), "regulator refused");
-        helper.assertTrue(laser.augments().insertItem(1, augment("range_1"), false).isEmpty(), "range refused");
-        helper.assertTrue(!laser.augments().isItemValid(0, augment("range_2")), "a second range should be refused");
-        laser.augments().setStackInSlot(1, augment("barrel"));
+        helper.assertTrue(laser.augments().insertItem(0, item("regulator_augment"), false).isEmpty(), "regulator refused");
+        helper.assertTrue(laser.augments().insertItem(1, item("range_augment_1"), false).isEmpty(), "range refused");
+        helper.assertTrue(!laser.augments().isItemValid(0, item("range_augment_2")), "a second range should be refused");
+        laser.augments().setStackInSlot(1, item("barrel_augment"));
         // Both lenses in the Barrel and the lens slot empty: an empty slot is a raw beam, which fits a
         // typed step at a tenth of its power, and once took the turn of the right lenses.
         laser.lens().setStackInSlot(0, ItemStack.EMPTY);
@@ -120,11 +116,11 @@ public final class TableGameTests {
     }
 
     private static ItemStack lens(String beam) {
-        return LensItem.of(ResourceKey.create(BeamType.REGISTRY, ResourceLocation.fromNamespaceAndPath(LaserAssembly.MOD_ID, beam)));
+        return item(beam + "_lens");
     }
 
-    private static ItemStack augment(String id) {
-        return AugmentItem.of(ResourceKey.create(AugmentType.REGISTRY, ResourceLocation.fromNamespaceAndPath(LaserAssembly.MOD_ID, id)));
+    private static ItemStack item(String name) {
+        return new ItemStack(BuiltInRegistries.ITEM.get(LaserAssembly.id(name)));
     }
 
     /** A laser at full intensity, with a full buffer and a lens of {@code beam}. */
@@ -133,8 +129,7 @@ public final class TableGameTests {
         LaserBlockEntity laser = helper.getBlockEntity(pos);
         laser.energy().receiveEnergy(LaserBlockEntity.ENERGY_CAPACITY, false);
         laser.stepIntensity(LaserBlockEntity.MAX_INTENSITY);
-        laser.lens().insertItem(0, LensItem.of(ResourceKey.create(BeamType.REGISTRY,
-                ResourceLocation.fromNamespaceAndPath(LaserAssembly.MOD_ID, beam))), false);
+        laser.lens().insertItem(0, lens(beam), false);
         return laser;
     }
 

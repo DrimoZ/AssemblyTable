@@ -144,11 +144,13 @@ posé dessus cacherait l'assemblage.
   interrupteur, distance, augments — avec une ligne « tous ». On n'y change pas lentilles ni
   augments, qui sont des items à poser dans le laser. Chaque action validée serveur (6 validations
   de Factor'IO). Implémentation exacte à revoir en développement.
-- **Lentilles** : un seul item, type porté par un composant ; les types de faisceau sont un
-  **registre datapack** `beam` (id, couleur, nom). Livrés : découpe, soudure, gravure. Sans
+- **Lentilles** : un item par type (`cut_lens`…) ; les types de faisceau sont un **registre
+  datapack** `beam` (item, couleur, nom) qui désigne son item. Un item par type plutôt qu'un item à
+  composant : tags, KubeJS, CraftTweaker et JEI travaillent sur des ids d'item. Un pack ajoute un
+  faisceau en enregistrant son item (KubeJS…) et en le nommant dans l'entrée. Livrés : découpe, soudure, gravure. Sans
   lentille, faisceau **brut**.
-- **Augments** : un seul item, type en registre datapack (le modèle de Portable Beacons), un de
-  chaque type par laser.
+- **Augments** : un item par augment, effet en registre datapack `augment` qui désigne son item,
+  comme les lentilles ; un de chaque groupe par laser.
 
 | Augment | Effet |
 |---|---|

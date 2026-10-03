@@ -1,14 +1,9 @@
 package dev.drimoz.laserassembly.registry;
 
 import dev.drimoz.laserassembly.LaserAssembly;
-import dev.drimoz.laserassembly.content.beam.BeamType;
-import dev.drimoz.laserassembly.content.beam.LensItem;
 import dev.drimoz.laserassembly.content.laser.AugmentItem;
-import dev.drimoz.laserassembly.content.laser.AugmentType;
-import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -17,48 +12,42 @@ import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
+/**
+ * One item per lens and per augment. What each does lives in its datapack entry, which names the
+ * item: {@code laserassembly:beam/cut} gives {@code cut_lens} its beam.
+ */
 public final class ModItems {
 
     static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(LaserAssembly.MOD_ID);
-    private static final DeferredRegister.DataComponents COMPONENTS =
-            DeferredRegister.createDataComponents(Registries.DATA_COMPONENT_TYPE, LaserAssembly.MOD_ID);
     private static final DeferredRegister<CreativeModeTab> TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, LaserAssembly.MOD_ID);
 
-    /** The beam a lens gives, by id: a key rather than a holder, so a lens of a beam a pack removed simply gives none. */
-    public static final DeferredHolder<DataComponentType<?>, DataComponentType<ResourceKey<BeamType>>> BEAM =
-            COMPONENTS.registerComponentType("beam", builder -> builder
-                    .persistent(ResourceKey.codec(BeamType.REGISTRY))
-                    .networkSynchronized(ResourceKey.streamCodec(BeamType.REGISTRY)));
+    public static final DeferredItem<Item> CUT_LENS = lens("cut_lens");
+    public static final DeferredItem<Item> WELD_LENS = lens("weld_lens");
+    public static final DeferredItem<Item> ENGRAVE_LENS = lens("engrave_lens");
 
-    /** Which augment an augment item is, by id, as for lenses. */
-    public static final DeferredHolder<DataComponentType<?>, DataComponentType<ResourceKey<AugmentType>>> AUGMENT_TYPE =
-            COMPONENTS.registerComponentType("augment", builder -> builder
-                    .persistent(ResourceKey.codec(AugmentType.REGISTRY))
-                    .networkSynchronized(ResourceKey.streamCodec(AugmentType.REGISTRY)));
+    public static final DeferredItem<AugmentItem> REGULATOR_AUGMENT = augment("regulator_augment");
+    public static final DeferredItem<AugmentItem> BARREL_AUGMENT = augment("barrel_augment");
+    public static final DeferredItem<AugmentItem> RANGE_AUGMENT_1 = augment("range_augment_1");
+    public static final DeferredItem<AugmentItem> RANGE_AUGMENT_2 = augment("range_augment_2");
+    public static final DeferredItem<AugmentItem> EFFICIENCY_AUGMENT_1 = augment("efficiency_augment_1");
+    public static final DeferredItem<AugmentItem> EFFICIENCY_AUGMENT_2 = augment("efficiency_augment_2");
 
-    public static final DeferredItem<LensItem> LENS = ITEMS.register("lens", () -> new LensItem(new Item.Properties().stacksTo(16)));
-    public static final DeferredItem<AugmentItem> AUGMENT = ITEMS.register("augment", () -> new AugmentItem(new Item.Properties().stacksTo(16)));
-
-    /** Every item the mod registers, one lens per beam type and one augment per augment type the datapacks declare. */
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> TAB = TABS.register("main", () -> CreativeModeTab.builder()
             .title(Component.translatable("itemGroup.laserassembly"))
             .icon(() -> new ItemStack(ModBlocks.LASER_ITEM.get()))
-            .displayItems((parameters, output) -> ITEMS.getEntries().forEach(item -> {
-                if (item == LENS) {
-                    parameters.holders().lookup(BeamType.REGISTRY).ifPresent(beams ->
-                            beams.listElementIds().forEach(beam -> output.accept(LensItem.of(beam))));
-                } else if (item == AUGMENT) {
-                    parameters.holders().lookup(AugmentType.REGISTRY).ifPresent(augments ->
-                            augments.listElementIds().forEach(augment -> output.accept(AugmentItem.of(augment))));
-                } else {
-                    output.accept(item.get());
-                }
-            }))
+            .displayItems((parameters, output) -> ITEMS.getEntries().forEach(item -> output.accept(item.get())))
             .build());
+
+    private static DeferredItem<Item> lens(String name) {
+        return ITEMS.registerSimpleItem(name, new Item.Properties().stacksTo(16));
+    }
+
+    private static DeferredItem<AugmentItem> augment(String name) {
+        return ITEMS.register(name, () -> new AugmentItem(new Item.Properties().stacksTo(16)));
+    }
 
     public static void register(IEventBus modBus) {
         ITEMS.register(modBus);
-        COMPONENTS.register(modBus);
         TABS.register(modBus);
     }
 

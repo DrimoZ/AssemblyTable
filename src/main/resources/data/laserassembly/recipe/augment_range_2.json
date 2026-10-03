@@ -5,7 +5,7 @@
     { "ingredient": { "item": "minecraft:gold_ingot" }, "count": 4 },
     { "ingredient": { "item": "minecraft:glass" }, "count": 2 }
   ],
-  "result": { "id": "laserassembly:augment", "components": { "laserassembly:augment": "laserassembly:range_2" } },
+  "result": { "id": "laserassembly:range_augment_2" },
   "steps": [
     { "beam": "laserassembly:cut", "energy": 4000 },
     { "beam": "laserassembly:weld", "energy": 8000 }
