@@ -43,9 +43,12 @@ public final class TableGameTests {
         table.toggle(SADDLE);
         IItemHandler items = table.automation();
 
-        // Two crafts' worth of leather (input_crafts = 2), and nothing the ticked recipe does not use.
-        helper.assertTrue(insert(items, Items.LEATHER, 64) == 58, "inputs should take exactly 6 leather");
+        // One craft's worth of leather for automation (input_crafts = 1), and nothing the ticked recipe does not use.
+        helper.assertTrue(insert(items, Items.LEATHER, 64) == 61, "automation should put in exactly 3 leather");
         helper.assertTrue(insert(items, Items.DIRT, 1) == 1, "inputs took dirt");
+        // A player is not capped: three more by hand, the second craft's worth.
+        helper.assertTrue(ItemHandlerHelper.insertItemStacked(table.inputs(), new ItemStack(Items.LEATHER, 3), false).isEmpty(),
+                "a player should fill past the automation cap");
         insert(items, Items.IRON_INGOT, 1);
         insert(items, Items.STRING, 2);
         // At intensity 5, 100 progress a tick: 4000 FE in 40 ticks.

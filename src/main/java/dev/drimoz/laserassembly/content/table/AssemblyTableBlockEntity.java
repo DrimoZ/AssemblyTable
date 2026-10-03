@@ -47,6 +47,8 @@ import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import net.neoforged.neoforge.items.ItemHandlerHelper;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import net.neoforged.neoforge.items.wrapper.CombinedInvWrapper;
+
+import java.util.function.ToIntFunction;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -117,19 +119,10 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
             contentsChanged();
         }
 
+        /** Only what a ticked recipe uses; a player may put in whole stacks of it, automation less (see {@link #room}). */
         @Override
         public boolean isItemValid(int slot, ItemStack stack) {
-            return room(stack) > 0;
-        }
-
-        /** Only what the ticked recipes use, and at most a few crafts of it: a pipe cannot clog the table. */
-        @Override
-        public ItemStack insertItem(int slot, ItemStack stack, boolean simulate) {
-            int room = room(stack);
-            if (room <= 0) return stack;
-            if (stack.getCount() <= room) return super.insertItem(slot, stack, simulate);
-            ItemStack rest = super.insertItem(slot, stack.copyWithCount(room), simulate);
-            return stack.copyWithCount(stack.getCount() - room + rest.getCount());
+            return uses(stack) > 0;
         }
     };
 
@@ -141,8 +134,8 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
     };
 
     /** What pipes and hoppers see: inputs take, outputs give, nothing else. */
-    private final OneWay inputView = new OneWay(inputs, true);
-    private final OneWay outputView = new OneWay(outputs, false);
+    private final OneWay inputView = new OneWay(inputs, true, this::room);
+    private final OneWay outputView = new OneWay(outputs, false, stack -> 0);
     /** What pipes and hoppers see on a face set to both: inputs take, outputs give, nothing else. */
     private final IItemHandler automation = new CombinedInvWrapper(inputView, outputView);
 
@@ -431,10 +424,21 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
     }
 
     /**
-     * How many more of {@code stack} the inputs take: enough for {@code input_crafts} crafts of the
-     * ticked recipe that uses the most of it, minus what is already there.
+     * How many more of {@code stack} automation may put in: enough for {@code input_crafts} crafts of
+     * the ticked recipe that uses the most of it, minus what is already there. A pipe or the auto
+     * import cannot clog the table with one ingredient; a player, who sees what they put in, can.
      */
-    public int room(ItemStack stack) {
+    private int room(ItemStack stack) {
+        int held = 0;
+        for (int i = 0; i < INPUTS; i++) {
+            ItemStack slot = inputs.getStackInSlot(i);
+            if (ItemStack.isSameItemSameComponents(slot, stack)) held += slot.getCount();
+        }
+        return uses(stack) * ServerConfig.inputCrafts() - held;
+    }
+
+    /** How many of {@code stack} one craft takes, in the ticked recipe that takes the most. */
+    private int uses(ItemStack stack) {
         int perCraft = 0;
         for (ResourceLocation id : selected) {
             AssemblyRecipe recipe = lookup(id);
@@ -445,12 +449,7 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
             for (var sized : recipe.ingredients()) if (sized.ingredient().test(stack)) uses += sized.count();
             perCraft = Math.max(perCraft, uses);
         }
-        int held = 0;
-        for (int i = 0; i < INPUTS; i++) {
-            ItemStack slot = inputs.getStackInSlot(i);
-            if (ItemStack.isSameItemSameComponents(slot, stack)) held += slot.getCount();
-        }
-        return perCraft * ServerConfig.inputCrafts() - held;
+        return perCraft;
     }
 
     // Crafting
@@ -740,8 +739,8 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
 
     // Handlers
 
-    /** A handler seen from outside: insert-only or extract-only. */
-    private record OneWay(IItemHandlerModifiable inner, boolean insert) implements IItemHandlerModifiable {
+    /** A handler seen from outside: insert-only, within {@code room}, or extract-only. */
+    private record OneWay(IItemHandlerModifiable inner, boolean insert, ToIntFunction<ItemStack> room) implements IItemHandlerModifiable {
         @Override
         public int getSlots() {
             return inner.getSlots();
@@ -754,7 +753,11 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
 
         @Override
         public ItemStack insertItem(int slot, ItemStack stack, boolean simulate) {
-            return insert ? inner.insertItem(slot, stack, simulate) : stack;
+            int room = insert ? this.room.applyAsInt(stack) : 0;
+            if (room <= 0) return stack;
+            if (stack.getCount() <= room) return inner.insertItem(slot, stack, simulate);
+            ItemStack rest = inner.insertItem(slot, stack.copyWithCount(room), simulate);
+            return stack.copyWithCount(stack.getCount() - room + rest.getCount());
         }
 
         @Override
@@ -769,7 +772,7 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
 
         @Override
         public boolean isItemValid(int slot, ItemStack stack) {
-            return insert && inner.isItemValid(slot, stack);
+            return insert && room.applyAsInt(stack) > 0 && inner.isItemValid(slot, stack);
         }
 
         @Override

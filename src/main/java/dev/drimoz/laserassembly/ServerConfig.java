@@ -59,8 +59,9 @@ public final class ServerConfig {
         b.pop();
 
         b.push("table");
-        INPUT_CRAFTS = b.comment("How many crafts' worth of each ingredient the inputs accept. Keeps a pipe from filling a table.")
-                .defineInRange("input_crafts", 2, 1, 64);
+        INPUT_CRAFTS = b.comment("How many crafts' worth of each ingredient automation (pipes, hoppers, auto import) may put in.",
+                        "Keeps a pipe from filling a table with one ingredient. Players can always fill whole stacks.")
+                .defineInRange("input_crafts", 1, 1, 64);
         b.pop();
 
         b.push("laser");
