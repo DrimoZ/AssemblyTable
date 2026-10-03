@@ -12,6 +12,9 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.StringTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.network.Connection;
 import net.minecraft.network.chat.Component;
@@ -37,6 +40,8 @@ import net.minecraft.world.phys.shapes.CollisionContext;
 import net.neoforged.neoforge.energy.EnergyStorage;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -119,6 +124,8 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
         @Override
         protected void onContentsChanged(int slot) {
             setChanged();
+            // The table's lasers tab shows every lens a laser carries.
+            if (level != null && !level.isClientSide) sync();
         }
 
         @Override
@@ -137,6 +144,7 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
 
     /** The client has no augments outside the laser's own menu: whether one is a Regulator comes synced. */
     private boolean regulatedOnClient;
+    private final List<ResourceLocation> lensesOnClient = new ArrayList<>();
 
     /** What the augments add up to. */
     public record Effects(int range, double efficiency, boolean regulator, int barrel) {
@@ -182,6 +190,7 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
     void serverTick() {
         BlockPos before = target;
         int intensityBefore = intensity;
+        int stateBefore = state;
         if (--retargetIn <= 0) {
             retargetIn = RETARGET_TICKS;
             if (table == null || !reachable(table) || !table.wantsBeams()) {
@@ -212,7 +221,7 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
                 state = fit == Step.Fit.TOO_WEAK ? STATE_TOO_WEAK : fit == Step.Fit.TOO_STRONG ? STATE_TOO_STRONG : STATE_WRONG_BEAM;
             }
         }
-        if (fired != firing || !Objects.equals(before, target) || !Objects.equals(beamBefore, beam) || intensity != intensityBefore) {
+        if (fired != firing || !Objects.equals(before, target) || !Objects.equals(beamBefore, beam) || intensity != intensityBefore || state != stateBefore) {
             firing = fired;
             sync();
         }
@@ -286,6 +295,24 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
 
     public int intensity() {
         return intensity;
+    }
+
+    /** Every lens it carries, lens slot first, then the Barrel's. */
+    public List<ResourceLocation> lenses() {
+        if (level != null && level.isClientSide) return lensesOnClient;
+        List<ResourceLocation> carried = new ArrayList<>();
+        ResourceLocation main = LensItem.beam(lens.getStackInSlot(0));
+        if (main != null) carried.add(main);
+        for (int i = 0; i < BARREL_SLOTS; i++) {
+            ResourceLocation extra = LensItem.beam(barrel.getStackInSlot(i));
+            if (extra != null) carried.add(extra);
+        }
+        return carried;
+    }
+
+    /** One of the STATE_ constants: what it does, or why it holds fire. Synced, for the lasers tab. */
+    public int state() {
+        return state;
     }
 
     public boolean regulated() {
@@ -503,6 +530,10 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
         tag.putBoolean("firing", firing);
         tag.putInt("intensity", intensity);
         tag.putBoolean("regulated", effects().regulator());
+        tag.putInt("state", state);
+        ListTag carried = new ListTag();
+        for (ResourceLocation lens : lenses()) carried.add(StringTag.valueOf(lens.toString()));
+        tag.put("lenses", carried);
         if (beam != null) tag.putString("beam", beam.toString());
     }
 
@@ -511,6 +542,12 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
         firing = tag.getBoolean("firing");
         intensity = Mth.clamp(tag.getInt("intensity"), 1, MAX_INTENSITY);
         regulatedOnClient = tag.getBoolean("regulated");
+        state = tag.getInt("state");
+        lensesOnClient.clear();
+        for (Tag lens : tag.getList("lenses", Tag.TAG_STRING)) {
+            ResourceLocation parsed = ResourceLocation.tryParse(lens.getAsString());
+            if (parsed != null) lensesOnClient.add(parsed);
+        }
         beam = tag.contains("beam") ? ResourceLocation.tryParse(tag.getString("beam")) : null;
     }
 

@@ -66,7 +66,7 @@
   "laserassembly.tab.lasers.all": "Tous",
   "laserassembly.tab.lasers.none": "Aucun laser ne vise ici",
   "laserassembly.tab.lasers.distance": "%s m",
-  "laserassembly.tab.lasers.auto": "auto",
+  "laserassembly.tab.lasers.auto": "Auto · %s",
   "laserassembly.tab.lasers.position": "En %s, %s, %s",
   "laserassembly.tab.faces": "Faces",
   "laserassembly.tab.control": "Contrôle",

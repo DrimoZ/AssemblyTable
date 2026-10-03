@@ -1,11 +1,11 @@
 package dev.drimoz.laserassembly.client.table;
 
 import dev.drimoz.laserassembly.LaserAssembly;
+import dev.drimoz.laserassembly.client.BeamColors;
 import dev.drimoz.laserassembly.client.gui.GuiSprites;
 import dev.drimoz.laserassembly.client.gui.GuiTheme;
 import dev.drimoz.laserassembly.client.gui.SideTab;
 import dev.drimoz.laserassembly.content.beam.BeamType;
-import dev.drimoz.laserassembly.content.beam.LensItem;
 import dev.drimoz.laserassembly.content.laser.LaserBlockEntity;
 import dev.drimoz.laserassembly.content.table.AssemblyTableMenu;
 import dev.drimoz.laserassembly.registry.ModBlocks;
@@ -13,11 +13,11 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.IntConsumer;
 
@@ -28,7 +28,7 @@ import java.util.function.IntConsumer;
  */
 final class LasersTab extends SideTab {
 
-    private static final int WIDTH = 112;
+    private static final int WIDTH = 132;
     private static final int ROW = 18;
     private static final int MAX_ROWS = 6;
     private static final int BUTTON = 11;
@@ -77,13 +77,24 @@ final class LasersTab extends SideTab {
             int rowY = y + (i + 1) * ROW;
             LaserBlockEntity laser = laser(lasers.get(i));
             if (laser == null) continue;
-            graphics.renderItem(lensStack(laser.beam()), x, rowY + 1);
-            graphics.drawString(font, Integer.toString(laser.intensity()), x + 20, rowY + 5, GuiTheme.TAB_VALUE, true);
+            graphics.renderItem(new ItemStack(ModBlocks.LASER_ITEM.get()), x, rowY + 1);
+            GuiSprites.statusLight(graphics, light(laser.state()), x + 19, rowY + 1);
+            // A dot per lens it carries, in its beam's colour; the one firing ringed in white.
+            List<ResourceLocation> lenses = laser.lenses();
+            for (int l = 0; l < lenses.size(); l++) {
+                int dotX = x + 19 + l * 6, dotY = rowY + 11;
+                if (laser.firing() && lenses.get(l).equals(laser.beam())) graphics.fill(dotX - 1, dotY - 1, dotX + 5, dotY + 5, 0xFFFFFFFF);
+                graphics.fill(dotX, dotY, dotX + 4, dotY + 4, 0xFF000000 | BeamColors.rgb(lenses.get(l)));
+            }
+            // A Regulator sets the intensity itself: buttons here would fight it, so it reads as a value.
+            if (laser.regulated()) {
+                graphics.drawString(font, text("tab.lasers.auto", laser.intensity()), x + 44, rowY + 5, GuiTheme.TAB_MUTED, true);
+            } else {
+                graphics.drawString(font, Integer.toString(laser.intensity()), x + 44, rowY + 5, GuiTheme.TAB_VALUE, true);
+                buttons(graphics, font, x, rowY, mouseX, mouseY);
+            }
             int distance = (int) Math.round(Math.sqrt(laser.getBlockPos().distSqr(menu.table().getBlockPos())));
-            graphics.drawString(font, text("tab.lasers.distance", distance), x + 32, rowY + 5, GuiTheme.TAB_MUTED, true);
-            // A Regulator sets the intensity itself: buttons here would fight it.
-            if (laser.regulated()) graphics.drawString(font, text("tab.lasers.auto"), x + MINUS_X, rowY + 5, GuiTheme.TAB_LABEL, true);
-            else buttons(graphics, font, x, rowY, mouseX, mouseY);
+            graphics.drawString(font, text("tab.lasers.distance", distance), x + 84, rowY + 5, GuiTheme.TAB_MUTED, true);
         }
         if (lasers.size() > MAX_ROWS) {
             graphics.drawString(font, "+" + (lasers.size() - MAX_ROWS), x + WIDTH - 12, y + ROW * MAX_ROWS + 5, GuiTheme.TAB_MUTED, true);
@@ -122,15 +133,39 @@ final class LasersTab extends SideTab {
     protected List<Component> contentTooltip(int x, int y, int mouseX, int mouseY) {
         List<BlockPos> lasers = lasers();
         int row = (mouseY - y) / ROW - 1;
-        if (mouseX >= x && mouseX < x + 18 && row >= 0 && row < Math.min(lasers.size(), MAX_ROWS)) {
+        if (mouseX >= x && mouseX < x + 44 && row >= 0 && row < Math.min(lasers.size(), MAX_ROWS)) {
             LaserBlockEntity laser = laser(lasers.get(row));
             if (laser != null) {
                 BlockPos pos = laser.getBlockPos();
-                Component beam = laser.beam() == null ? text("beam.raw") : BeamType.name(laser.beam());
-                return List.of(beam, text("tab.lasers.position", pos.getX(), pos.getY(), pos.getZ()));
+                List<Component> lines = new ArrayList<>(List.of(text("laser." + stateKey(laser.state()))));
+                for (ResourceLocation lens : laser.lenses()) lines.add(Component.literal("25A0 ").withColor(0xFF000000 | BeamColors.rgb(lens)).append(BeamType.name(lens)));
+                if (laser.lenses().isEmpty()) lines.add(text("beam.raw"));
+                lines.add(text("tab.lasers.position", pos.getX(), pos.getY(), pos.getZ()));
+                return lines;
             }
         }
         return List.of();
+    }
+
+    private static GuiTheme.Status light(int state) {
+        return switch (state) {
+            case LaserBlockEntity.STATE_FIRING -> GuiTheme.Status.WORKING;
+            case LaserBlockEntity.STATE_HOLDING -> GuiTheme.Status.WAITING;
+            case LaserBlockEntity.STATE_TOO_WEAK, LaserBlockEntity.STATE_TOO_STRONG, LaserBlockEntity.STATE_WRONG_BEAM -> GuiTheme.Status.BLOCKED;
+            default -> GuiTheme.Status.PROBLEM;
+        };
+    }
+
+    private static String stateKey(int state) {
+        return switch (state) {
+            case LaserBlockEntity.STATE_FIRING -> "firing";
+            case LaserBlockEntity.STATE_HOLDING -> "holding";
+            case LaserBlockEntity.STATE_NO_POWER -> "no_power";
+            case LaserBlockEntity.STATE_TOO_WEAK -> "too_weak";
+            case LaserBlockEntity.STATE_TOO_STRONG -> "too_strong";
+            case LaserBlockEntity.STATE_WRONG_BEAM -> "wrong_beam";
+            default -> "no_target";
+        };
     }
 
     private List<BlockPos> lasers() {
@@ -139,11 +174,6 @@ final class LasersTab extends SideTab {
 
     private @Nullable LaserBlockEntity laser(BlockPos pos) {
         return menu.table().getLevel().getBlockEntity(pos) instanceof LaserBlockEntity laser ? laser : null;
-    }
-
-    /** The lens it fires, or the laser itself for a raw beam: something to recognise it by. */
-    private static ItemStack lensStack(@Nullable ResourceLocation beam) {
-        return beam == null ? new ItemStack(ModBlocks.LASER_ITEM.get()) : LensItem.of(ResourceKey.create(BeamType.REGISTRY, beam));
     }
 
     private static boolean inside(double mouseX, double mouseY, int x, int y) {
