@@ -66,6 +66,11 @@ public abstract class SideTab {
         return List.of();
     }
 
+    /** A click in the open content, at {@code x, y} its origin. True if a control of the tab took it. */
+    protected boolean contentClicked(int x, int y, double mouseX, double mouseY) {
+        return false;
+    }
+
     /** Called every frame, for a tab that shows or hides slots of its own. */
     protected void onOpennessChanged(boolean fullyOpen) {}
 

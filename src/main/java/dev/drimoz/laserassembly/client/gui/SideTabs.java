@@ -100,7 +100,7 @@ public final class SideTabs {
                 toggle(tab);
                 return true;
             }
-            return false;
+            return tab.contentClicked(tab.contentX(), tab.contentY(), mouseX, mouseY);
         }
         return false;
     }

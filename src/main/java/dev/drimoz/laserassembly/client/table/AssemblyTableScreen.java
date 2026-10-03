@@ -95,11 +95,16 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
         super.init();
         picker = new RecipePicker(font, imageHeight, menu.recipes(), () -> menu.table().selected(), this::toggle);
         addWidget(picker.search());
-        tabs = new SideTabs(List.of(new InfoTab(menu, () -> status().text)), imageWidth);
+        tabs = new SideTabs(List.of(new InfoTab(menu, () -> status().text), new FacesTab(menu, this::click)), imageWidth);
     }
 
     private void toggle(RecipeHolder<AssemblyRecipe> recipe) {
-        minecraft.gameMode.handleInventoryButtonClick(menu.containerId, menu.recipes().indexOf(recipe));
+        click(menu.recipes().indexOf(recipe));
+    }
+
+    /** A menu button, validated by the server in {@link AssemblyTableMenu#clickMenuButton}. */
+    private void click(int button) {
+        minecraft.gameMode.handleInventoryButtonClick(menu.containerId, button);
         minecraft.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
     }
 

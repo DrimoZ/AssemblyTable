@@ -4,6 +4,7 @@ import dev.drimoz.laserassembly.gui.GuiMetrics;
 import dev.drimoz.laserassembly.recipe.AssemblyRecipe;
 import dev.drimoz.laserassembly.registry.ModBlocks;
 import dev.drimoz.laserassembly.registry.ModRecipes;
+import net.minecraft.core.Direction;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -32,6 +33,11 @@ public class AssemblyTableMenu extends AbstractContainerMenu {
     public static final int OUTPUT_COLUMN = 7;
     public static final int OUTPUT_TOP = WORK_TOP + GuiMetrics.SLOT / 2;
     public static final int CONTENT_BOTTOM = WORK_TOP + 3 * GuiMetrics.SLOT;
+
+    // Button ids past the recipes, which take 0 to their count: the faces tab's controls.
+    public static final int BUTTON_FACE = 1_000_000;
+    public static final int BUTTON_AUTO_IMPORT = 2_000_000;
+    public static final int BUTTON_AUTO_EXPORT = 2_000_001;
 
     private static final int TABLE_SLOTS = AssemblyTableBlockEntity.INPUTS + AssemblyTableBlockEntity.OUTPUTS;
 
@@ -100,8 +106,14 @@ public class AssemblyTableMenu extends AbstractContainerMenu {
 
     @Override
     public boolean clickMenuButton(Player player, int id) {
-        if (id < 0 || id >= recipes.size()) return false;
-        table.toggle(recipes.get(id).id());
+        if (id >= BUTTON_FACE && id < BUTTON_FACE + Direction.values().length) {
+            table.cycleFace(Direction.values()[id - BUTTON_FACE]);
+            return true;
+        }
+        if (id == BUTTON_AUTO_IMPORT) table.toggleAutoImport();
+        else if (id == BUTTON_AUTO_EXPORT) table.toggleAutoExport();
+        else if (id >= 0 && id < recipes.size()) table.toggle(recipes.get(id).id());
+        else return false;
         return true;
     }
 

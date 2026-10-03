@@ -20,6 +20,8 @@ public final class GuiSprites {
     private static final ResourceLocation GAUGE_EMPTY = id("gauge_empty");
     private static final ResourceLocation SOCKET = id("socket");
     private static final ResourceLocation TAB = id("tab");
+    private static final ResourceLocation SWITCH_ON = id("switch_on");
+    private static final ResourceLocation SWITCH_OFF = id("switch_off");
     private static final ResourceLocation ARROW = id("arrow");
     private static final ResourceLocation ARROW_LIT = id("arrow_lit");
     private static final ResourceLocation FIELD = id("field");
@@ -81,6 +83,14 @@ public final class GuiSprites {
         graphics.setColor((argb >> 16 & 0xFF) / 255f, (argb >> 8 & 0xFF) / 255f, (argb & 0xFF) / 255f, (argb >>> 24) / 255f);
         graphics.blitSprite(TAB, x, y, width, height);
         graphics.setColor(1f, 1f, 1f, 1f);
+    }
+
+    public static final int SWITCH_W = 14;
+    public static final int SWITCH_H = 8;
+
+    /** A slide switch: green, knob right, when on. */
+    public static void toggle(GuiGraphics graphics, int x, int y, boolean on) {
+        graphics.blitSprite(on ? SWITCH_ON : SWITCH_OFF, x, y, SWITCH_W, SWITCH_H);
     }
 
     public static final int ICON_SIZE = 12;

@@ -19,6 +19,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.ItemHandlerHelper;
 import net.neoforged.neoforge.gametest.GameTestHolder;
@@ -132,6 +133,29 @@ public final class TableGameTests {
         laser.lens().insertItem(0, LensItem.of(ResourceKey.create(BeamType.REGISTRY,
                 ResourceLocation.fromNamespaceAndPath(LaserAssembly.MOD_ID, beam))), false);
         return laser;
+    }
+
+    /** A closed face shows pipes nothing; auto export pushes the outputs into the inventory beside it. */
+    @GameTest(template = "platform", timeoutTicks = 60)
+    public static void facesCloseAndAutoExportPushes(GameTestHelper helper) {
+        BlockPos tablePos = new BlockPos(2, 2, 2);
+        helper.setBlock(tablePos, ModBlocks.ASSEMBLY_TABLE.get());
+        helper.setBlock(tablePos.north(), Blocks.CHEST);
+        AssemblyTableBlockEntity table = helper.getBlockEntity(tablePos);
+        BlockPos absolute = helper.absolutePos(tablePos);
+
+        // Both, the default, and one click on: closed.
+        table.cycleFace(Direction.SOUTH);
+        helper.assertTrue(helper.getLevel().getCapability(Capabilities.ItemHandler.BLOCK, absolute, Direction.SOUTH) == null,
+                "a closed face still shows an inventory");
+
+        table.outputs().setStackInSlot(0, new ItemStack(Items.SADDLE));
+        table.toggleAutoExport();
+        IItemHandler chest = helper.getLevel().getCapability(Capabilities.ItemHandler.BLOCK, absolute.north(), Direction.SOUTH);
+        helper.succeedWhen(() -> {
+            helper.assertTrue(count(chest, Items.SADDLE) == 1, "the saddle is still in the table");
+            helper.assertTrue(table.outputs().getStackInSlot(0).isEmpty(), "the saddle is in both places");
+        });
     }
 
     @GameTest(template = "platform", timeoutTicks = 60)

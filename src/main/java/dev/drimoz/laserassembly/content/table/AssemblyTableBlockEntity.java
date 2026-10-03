@@ -39,6 +39,8 @@ import net.minecraft.world.entity.player.StackedContents;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.capabilities.BlockCapabilityCache;
+import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import net.neoforged.neoforge.items.ItemHandlerHelper;
@@ -57,6 +59,7 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
 
     public static final int INPUTS = 12;
     public static final int OUTPUTS = 4;
+    private static final int AUTO_TICKS = 10;
 
     // What the screen reads, through ContainerData: synced while the menu is open, and only then.
     // Values travel as shorts, hence permille rather than raw heat and progress.
@@ -68,7 +71,11 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
     public static final int DATA_BEAMS = 5;
     /** Tenths of heat per tick, from the blocks around the table. */
     public static final int DATA_COOLING = 6;
-    public static final int DATA_COUNT = 7;
+    /** Each face's mode, two bits per direction, by ordinal. */
+    public static final int DATA_FACES = 7;
+    /** Bit 0 auto import, bit 1 auto export. */
+    public static final int DATA_AUTO = 8;
+    public static final int DATA_COUNT = 9;
 
     private final ContainerData data = new ContainerData() {
         @Override
@@ -81,6 +88,8 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
                 case DATA_STATUS -> status.ordinal();
                 case DATA_BEAMS -> beamsLastTick;
                 case DATA_COOLING -> (int) Math.round(cooling * 10);
+                case DATA_FACES -> packedFaces();
+                case DATA_AUTO -> (autoImport ? 1 : 0) | (autoExport ? 2 : 0);
                 default -> 0;
             };
         }
@@ -125,7 +134,17 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
     };
 
     /** What pipes and hoppers see: inputs take, outputs give, nothing else. */
-    private final IItemHandler automation = new CombinedInvWrapper(new OneWay(inputs, true), new OneWay(outputs, false));
+    private final OneWay inputView = new OneWay(inputs, true);
+    private final OneWay outputView = new OneWay(outputs, false);
+    /** What pipes and hoppers see on a face set to both: inputs take, outputs give, nothing else. */
+    private final IItemHandler automation = new CombinedInvWrapper(inputView, outputView);
+
+    /** What each face lets automation do, by direction ordinal. The top is not configurable: see {@link #handler}. */
+    private final FaceMode[] faces = {FaceMode.BOTH, FaceMode.BOTH, FaceMode.BOTH, FaceMode.BOTH, FaceMode.BOTH, FaceMode.BOTH};
+    private boolean autoImport;
+    private boolean autoExport;
+    /** Neighbours' item handlers, one cache per face, built on first use on the server. */
+    private final BlockCapabilityCache<IItemHandler, @Nullable Direction>[] neighbours = newCaches();
 
     private final List<ResourceLocation> selected = new ArrayList<>();
     private @Nullable ResourceLocation current;
@@ -155,6 +174,8 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
 
     void serverTick() {
         Tuning tuning = ServerConfig.tuning();
+        // Batches every 10 ticks, staggered by position so a wall of tables does not move all at once.
+        if ((autoImport || autoExport) && Math.floorMod(level.getGameTime() + worldPosition.hashCode(), AUTO_TICKS) == 0) autoTransfer();
         if (coolingDirty) {
             coolingDirty = false;
             cooling = measureCooling();
@@ -454,6 +475,97 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
 
     // Capabilities
 
+    // Faces and automatic transfer
+
+    public void cycleFace(Direction side) {
+        if (side == Direction.UP) return;
+        faces[side.ordinal()] = faces[side.ordinal()].next();
+        setChanged();
+        // Pipes asked for a handler on this face; it may be another now, or none.
+        level.invalidateCapabilities(worldPosition);
+    }
+
+    public void toggleAutoImport() {
+        autoImport = !autoImport;
+        setChanged();
+    }
+
+    public void toggleAutoExport() {
+        autoExport = !autoExport;
+        setChanged();
+    }
+
+    /**
+     * One stack each way per face per batch, through the same filtered inputs a pipe uses: the table
+     * pulls only what its ticked recipes take, and pushes only its outputs.
+     */
+    private void autoTransfer() {
+        for (Direction side : Direction.values()) {
+            FaceMode mode = faces[side.ordinal()];
+            if (side == Direction.UP || mode == FaceMode.NONE) continue;
+            IItemHandler other = neighbour(side);
+            if (other == null) continue;
+            if (autoImport && mode.takes()) move(other, inputView);
+            // From the outputs themselves, not their extract-only view, so a remainder can go back in.
+            if (autoExport && mode.gives()) move(outputs, other);
+        }
+    }
+
+    /**
+     * Simulate, compute what moves, then extract: what does not fit after all goes straight back, and
+     * if a neighbour will not take its own items back, they drop by the table rather than vanish.
+     */
+    private void move(IItemHandler from, IItemHandler to) {
+        for (int slot = 0; slot < from.getSlots(); slot++) {
+            ItemStack offered = from.extractItem(slot, 64, true);
+            if (offered.isEmpty()) continue;
+            int fits = offered.getCount() - ItemHandlerHelper.insertItemStacked(to, offered, true).getCount();
+            if (fits <= 0) continue;
+            ItemStack taken = from.extractItem(slot, fits, false);
+            ItemStack left = ItemHandlerHelper.insertItemStacked(to, taken, false);
+            if (!left.isEmpty()) left = from.insertItem(slot, left, false);
+            if (!left.isEmpty()) Containers.dropItemStack(level, worldPosition.getX(), worldPosition.getY() + 1, worldPosition.getZ(), left);
+            return;
+        }
+    }
+
+    private @Nullable IItemHandler neighbour(Direction side) {
+        if (neighbours[side.ordinal()] == null) {
+            neighbours[side.ordinal()] = BlockCapabilityCache.create(Capabilities.ItemHandler.BLOCK, (ServerLevel) level,
+                    worldPosition.relative(side), side.getOpposite());
+        }
+        return neighbours[side.ordinal()].getCapability();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static BlockCapabilityCache<IItemHandler, @Nullable Direction>[] newCaches() {
+        return new BlockCapabilityCache[Direction.values().length];
+    }
+
+    private int packedFaces() {
+        int packed = 0;
+        for (int i = 0; i < faces.length; i++) packed |= faces[i].ordinal() << (2 * i);
+        return packed;
+    }
+
+    private void unpackFaces(int packed) {
+        for (int i = 0; i < faces.length; i++) faces[i] = FaceMode.values()[(packed >> (2 * i)) & 3];
+    }
+
+    /**
+     * What automation sees on {@code side}, by its mode. The top always takes and gives: it is the
+     * face of the assembly on display, so it is never set to anything, nor pushed or pulled from.
+     */
+    public @Nullable IItemHandler handler(@Nullable Direction side) {
+        if (side == null || side == Direction.UP) return automation;
+        return switch (faces[side.ordinal()]) {
+            case NONE -> null;
+            case INPUT -> inputView;
+            case OUTPUT -> outputView;
+            case BOTH -> automation;
+        };
+    }
+
     public IItemHandler automation() {
         return automation;
     }
@@ -474,6 +586,9 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
         tag.putDouble("progress", assembly.progress());
         tag.putDouble("heat", assembly.heat());
         tag.putBoolean("overheated", assembly.overheated());
+        tag.putInt("faces", packedFaces());
+        tag.putBoolean("auto_import", autoImport);
+        tag.putBoolean("auto_export", autoExport);
     }
 
     @Override
@@ -483,6 +598,9 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
         outputs.deserializeNBT(registries, tag.getCompound("outputs"));
         readSelection(tag);
         assembly.restore(tag.getInt("step"), tag.getDouble("progress"), tag.getDouble("heat"), tag.getBoolean("overheated"));
+        if (tag.contains("faces")) unpackFaces(tag.getInt("faces"));
+        autoImport = tag.getBoolean("auto_import");
+        autoExport = tag.getBoolean("auto_export");
     }
 
     // Handlers
