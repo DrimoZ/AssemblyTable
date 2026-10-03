@@ -183,6 +183,34 @@ public final class GenerateGuiSprites {
                 "...bbbbbb...",
                 "............"}, PALETTE));
 
+        // Tab icons: a laser firing, for the lasers tab; a block and its faces, for the faces tab.
+        write("icon_lasers", ascii(new String[]{
+                "............",
+                "..........r.",
+                ".........r..",
+                "........r...",
+                ".......r....",
+                "......r.....",
+                "..kkkr......",
+                ".kmmmk......",
+                ".kmmmk......",
+                ".kmmmk......",
+                "..kkk.......",
+                "............"}, PALETTE));
+        write("icon_faces", ascii(new String[]{
+                "............",
+                "....kkkk....",
+                "..kkwwwwkk..",
+                ".kwwwwwwwwk.",
+                ".kkkwwwwkkk.",
+                ".kbbkkkkddk.",
+                ".kbbbbddddk.",
+                ".kbbbbddddk.",
+                ".kbbbbddddk.",
+                "..kkbbddkk..",
+                "....kkkk....",
+                "............"}, PALETTE));
+
         // Control icons, dark on the button face, the way FactoryIO draws its own.
         write("icon_plus", ascii(new String[]{
                 "............", "............", ".....kk.....", ".....kk.....", ".....kk.....",

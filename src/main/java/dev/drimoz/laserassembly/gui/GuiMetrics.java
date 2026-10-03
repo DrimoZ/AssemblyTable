@@ -57,5 +57,14 @@ public final class GuiMetrics {
         return hotbarY(contentBottom) + SLOT + 6;
     }
 
+    // Side tabs
+
+    /** Top of the first tab, on either side. */
+    public static final int TAB_TOP = 4;
+    /** Side of a closed tab, and height of an open one's header. */
+    public static final int TAB_HEADER = 22;
+    public static final int TAB_PADDING = 6;
+    public static final int TAB_GAP = 2;
+
     private GuiMetrics() {}
 }

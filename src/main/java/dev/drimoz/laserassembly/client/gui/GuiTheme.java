@@ -11,6 +11,20 @@ public final class GuiTheme {
     public static final int TEXT = 0xFF404040;
     public static final int TEXT_MUTED = 0xFF6E6E6E;
 
+    // Inside a tab (a saturated tint): light text, shadowed.
+
+    public static final int TAB_LABEL = 0xFFD8D8D8;
+    public static final int TAB_VALUE = 0xFFFFFFFF;
+    public static final int TAB_MUTED = 0xFFB0B0B0;
+    /** Line height inside tabs. */
+    public static final int LINE = 10;
+
+    // Tab colour is function: on the left what informs, on the right what is set.
+
+    public static final int TAB_INFO = 0xFFC89420;
+    public static final int TAB_LASERS = 0xFFB8423A;
+    public static final int TAB_FACES = 0xFF3C6FC8;
+
     /** The green of a current choice: the step in progress. FactoryIO's selected-slot rim. */
     public static final int SELECTED = 0xFF3FBF3F;
 

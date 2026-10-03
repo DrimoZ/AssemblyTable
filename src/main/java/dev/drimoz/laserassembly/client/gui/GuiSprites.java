@@ -19,6 +19,7 @@ public final class GuiSprites {
     private static final ResourceLocation SLOT_DISABLED = id("slot_disabled");
     private static final ResourceLocation GAUGE_EMPTY = id("gauge_empty");
     private static final ResourceLocation SOCKET = id("socket");
+    private static final ResourceLocation TAB = id("tab");
     private static final ResourceLocation ARROW = id("arrow");
     private static final ResourceLocation ARROW_LIT = id("arrow_lit");
     private static final ResourceLocation FIELD = id("field");
@@ -73,6 +74,29 @@ public final class GuiSprites {
         graphics.enableScissor(x, y, x + lit, y + 13);
         graphics.blitSprite(ARROW_LIT, x, y, 20, 13);
         graphics.disableScissor();
+    }
+
+    /** A side tab, tinted the colour of its function through the shader colour, which is put back. */
+    public static void tab(GuiGraphics graphics, int x, int y, int width, int height, int argb) {
+        graphics.setColor((argb >> 16 & 0xFF) / 255f, (argb >> 8 & 0xFF) / 255f, (argb & 0xFF) / 255f, (argb >>> 24) / 255f);
+        graphics.blitSprite(TAB, x, y, width, height);
+        graphics.setColor(1f, 1f, 1f, 1f);
+    }
+
+    public static final int ICON_SIZE = 12;
+
+    public enum Icon {
+        INFO("icon_info"), LASERS("icon_lasers"), FACES("icon_faces");
+
+        final ResourceLocation sprite;
+
+        Icon(String name) {
+            this.sprite = id(name);
+        }
+    }
+
+    public static void icon(GuiGraphics graphics, Icon icon, int x, int y) {
+        graphics.blitSprite(icon.sprite, x, y, ICON_SIZE, ICON_SIZE);
     }
 
     /** A one-pixel recess: gauges, a scrollbar's track, the step bar. */

@@ -5,6 +5,7 @@ import dev.drimoz.laserassembly.ServerConfig;
 import dev.drimoz.laserassembly.client.BeamColors;
 import dev.drimoz.laserassembly.client.gui.GuiSprites;
 import dev.drimoz.laserassembly.client.gui.GuiTheme;
+import dev.drimoz.laserassembly.client.gui.SideTabs;
 import dev.drimoz.laserassembly.content.beam.BeamType;
 import dev.drimoz.laserassembly.content.table.AssemblyTableBlock;
 import dev.drimoz.laserassembly.content.table.AssemblyTableBlockEntity;
@@ -76,6 +77,7 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
 
     private final Map<ResourceLocation, RecipeHolder<AssemblyRecipe>> byId = new HashMap<>();
     private RecipePicker picker;
+    private SideTabs tabs;
 
     public AssemblyTableScreen(AssemblyTableMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
@@ -93,6 +95,7 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
         super.init();
         picker = new RecipePicker(font, imageHeight, menu.recipes(), () -> menu.table().selected(), this::toggle);
         addWidget(picker.search());
+        tabs = new SideTabs(List.of(new InfoTab(menu, () -> status().text)), imageWidth);
     }
 
     private void toggle(RecipeHolder<AssemblyRecipe> recipe) {
@@ -112,14 +115,18 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
             return;
         }
         super.render(graphics, mouseX, mouseY, partialTick);
+        tabs.renderForegrounds(graphics, font, mouseX, mouseY);
         renderTooltip(graphics, mouseX, mouseY);
         List<Component> tooltip = tooltipAt(mouseX, mouseY);
+        if (tooltip.isEmpty()) tooltip = tabs.tooltipAt(mouseX, mouseY);
         if (!tooltip.isEmpty()) graphics.renderComponentTooltip(font, tooltip, mouseX, mouseY);
     }
 
     @Override
     protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
         int x = leftPos, y = topPos;
+        // Before the window, which covers their inner edge: the tabs come out of it.
+        tabs.renderBackgrounds(graphics, x, y);
         GuiSprites.panel(graphics, x, y, imageWidth, imageHeight);
         for (Slot slot : menu.slots) GuiSprites.slot(graphics, x + slot.x - 1, y + slot.y - 1, false);
         GuiSprites.gauge(graphics, GuiSprites.GAUGE_HEAT, x + HEAT_X, y + WORK_TOP, HEAT_WIDTH, HEAT_HEIGHT,
@@ -301,11 +308,18 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (picker.isOpen()) return picker.mouseClicked(leftPos, topPos, mouseX, mouseY, button);
+        if (tabs.mouseClicked(mouseX, mouseY)) return true;
         if (overSocket(mouseX, mouseY)) {
             picker.open();
             return true;
         }
         return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    /** A click on a tab is not a click outside the window: it must not drop the carried item. */
+    @Override
+    protected boolean hasClickedOutside(double mouseX, double mouseY, int left, int top, int button) {
+        return super.hasClickedOutside(mouseX, mouseY, left, top, button) && !tabs.contains(mouseX, mouseY);
     }
 
     @Override

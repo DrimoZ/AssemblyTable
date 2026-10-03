@@ -65,7 +65,10 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
     public static final int DATA_STEP = 2;
     public static final int DATA_STEPS = 3;
     public static final int DATA_STATUS = 4;
-    public static final int DATA_COUNT = 5;
+    public static final int DATA_BEAMS = 5;
+    /** Tenths of heat per tick, from the blocks around the table. */
+    public static final int DATA_COOLING = 6;
+    public static final int DATA_COUNT = 7;
 
     private final ContainerData data = new ContainerData() {
         @Override
@@ -76,6 +79,8 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
                 case DATA_STEP -> assembly.step();
                 case DATA_STEPS -> steps.size();
                 case DATA_STATUS -> status.ordinal();
+                case DATA_BEAMS -> beamsLastTick;
+                case DATA_COOLING -> (int) Math.round(cooling * 10);
                 default -> 0;
             };
         }
@@ -139,6 +144,8 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
     private boolean contentsDirty = true;
     private boolean coolingDirty = true;
     private double cooling;
+    /** For the info tab: how many beams reached the table on its last working tick. */
+    private int beamsLastTick;
 
     public AssemblyTableBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlocks.ASSEMBLY_TABLE_ENTITY.get(), pos, state);
@@ -164,6 +171,7 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
 
         if (recipe == null || getBlockState().getValue(AssemblyTableBlock.POWERED)) {
             pending.clear();
+            beamsLastTick = 0;
             status = Assembly.Status.IDLE;
             setWorking(false);
             if (assembly.heat() > 0) {
@@ -174,6 +182,7 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
         }
 
         status = assembly.tick(steps, pending, cooling, tuning);
+        beamsLastTick = pending.size();
         pending.clear();
         setWorking(status == Assembly.Status.WORKING || status == Assembly.Status.SLOWED || status == Assembly.Status.DONE);
         if (status == Assembly.Status.DONE) {
