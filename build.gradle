@@ -89,6 +89,11 @@ dependencies {
     devMods "maven.modrinth:jade:${jade_version}"
     devMods "maven.modrinth:mekanism:${mekanism_version}"
 
+    // JEI and Jade integrations compile against them; both stay optional, each behind a plugin class
+    // only that mod ever loads.
+    compileOnly "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
+    compileOnly "maven.modrinth:jade:${jade_version}"
+
     // Pure-logic classes under core/ are plain Java and unit-testable.
     testImplementation platform('org.junit:junit-bom:5.10.2')
     testImplementation 'org.junit.jupiter:junit-jupiter'

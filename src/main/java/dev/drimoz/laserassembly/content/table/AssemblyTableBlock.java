@@ -69,6 +69,17 @@ public class AssemblyTableBlock extends BaseEntityBlock {
         return InteractionResult.sidedSuccess(level.isClientSide);
     }
 
+    /** A comparator reads the recipe's progress: 0 at rest, then 1 to 15 as the craft goes. */
+    @Override
+    protected boolean hasAnalogOutputSignal(BlockState state) {
+        return true;
+    }
+
+    @Override
+    protected int getAnalogOutputSignal(BlockState state, Level level, BlockPos pos) {
+        return level.getBlockEntity(pos) instanceof AssemblyTableBlockEntity table ? table.comparatorSignal() : 0;
+    }
+
     @Override
     protected RenderShape getRenderShape(BlockState state) {
         return RenderShape.MODEL;

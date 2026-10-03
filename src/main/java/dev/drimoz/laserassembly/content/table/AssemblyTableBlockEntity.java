@@ -82,8 +82,8 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
         @Override
         public int get(int index) {
             return switch (index) {
-                case DATA_HEAT -> (int) (1000 * assembly.heat() / ServerConfig.tuning().maxHeat());
-                case DATA_PROGRESS -> steps.isEmpty() ? 0 : (int) (1000 * assembly.progress() / steps.get(assembly.step()).energy());
+                case DATA_HEAT -> (int) (1000 * heatFraction());
+                case DATA_PROGRESS -> (int) (1000 * stepProgress());
                 case DATA_STEP -> assembly.step();
                 case DATA_STEPS -> steps.size();
                 case DATA_STATUS -> status.ordinal();
@@ -168,6 +168,7 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
     private double cooling;
     /** For the info tab: how many beams reached the table on its last working tick. */
     private int beamsLastTick;
+    private int lastSignal;
 
     public AssemblyTableBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlocks.ASSEMBLY_TABLE_ENTITY.get(), pos, state);
@@ -198,6 +199,7 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
             beamsLastTick = 0;
             status = Assembly.Status.IDLE;
             setWorking(false);
+            updateComparator();
             if (assembly.heat() > 0) {
                 assembly.cool(cooling, tuning);
                 setChanged();
@@ -209,6 +211,7 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
         beamsLastTick = pending.size();
         pending.clear();
         setWorking(status == Assembly.Status.WORKING || status == Assembly.Status.SLOWED || status == Assembly.Status.DONE);
+        updateComparator();
         if (status == Assembly.Status.DONE) {
             Craft craft = plan(recipe);
             if (craft != null) {
@@ -234,6 +237,48 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
         double x = worldPosition.getX() + 0.5, y = worldPosition.getY() + 1.3, z = worldPosition.getZ() + 0.5;
         server.sendParticles(ParticleTypes.END_ROD, x, y, z, 12, 0.15, 0.1, 0.15, 0.04);
         server.playSound(null, worldPosition, SoundEvents.AMETHYST_CLUSTER_PLACE, SoundSource.BLOCKS, 0.7f, 1.4f);
+    }
+
+    // Progress, for the screen, the comparator and Jade
+
+    public float heatFraction() {
+        return (float) (assembly.heat() / ServerConfig.tuning().maxHeat());
+    }
+
+    public int stepIndex() {
+        return assembly.step();
+    }
+
+    public int stepCount() {
+        return steps.size();
+    }
+
+    public float stepProgress() {
+        return steps.isEmpty() ? 0 : (float) (assembly.progress() / steps.get(assembly.step()).energy());
+    }
+
+    /** How far through the whole recipe, every step weighed by its energy. */
+    public float recipeProgress() {
+        if (steps.isEmpty()) return 0;
+        long total = 0, done = 0;
+        for (int i = 0; i < steps.size(); i++) {
+            total += steps.get(i).energy();
+            if (i < assembly.step()) done += steps.get(i).energy();
+        }
+        return (float) ((done + assembly.progress()) / total);
+    }
+
+    /** 0 while the table does not work, else 1 to 15 with the recipe's progress. */
+    public int comparatorSignal() {
+        return working ? Math.max(1, Math.round(15 * recipeProgress())) : 0;
+    }
+
+    /** Neighbours hear of the signal only when it changes level, not every tick. */
+    private void updateComparator() {
+        int signal = comparatorSignal();
+        if (signal == lastSignal) return;
+        lastSignal = signal;
+        level.updateNeighbourForOutputSignal(worldPosition, getBlockState().getBlock());
     }
 
     public boolean working() {
