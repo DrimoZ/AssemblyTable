@@ -8,6 +8,8 @@ intensity too hard and the table heats up, slows down, then stops — build cool
 
 The spirit of BuildCraft's Assembly Table, redesigned rather than copied.
 
+**Download:** [CurseForge](https://www.curseforge.com/minecraft/mc-mods/laserassembly)
+
 ## How it plays
 
 - **The table takes no power.** Lasers bring it: point one or more at the table, within range and

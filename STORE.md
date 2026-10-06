@@ -142,6 +142,7 @@ freely, but do not lift them into another project.
 
 ### Links
 
+[CurseForge](https://www.curseforge.com/minecraft/mc-mods/laserassembly) ·
 [Source](https://github.com/DrimoZ/AssemblyTable) ·
 [Report a bug](https://github.com/DrimoZ/AssemblyTable/issues)
 
