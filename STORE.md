@@ -7,9 +7,10 @@ the data files and `CHANGELOG.md` before changing a number.
 No game version is named on purpose: the page stays true across ports, and each uploaded file
 carries its own versions.
 
-Screenshots are not committed. Take them in a dev client, upload each one through the description
-editor's image button (CurseForge refuses anything wider than 850 px), and replace its `UPLOAD:`
-placeholder below with the URL the site gives it.
+Images are generated, not committed: `java tools/Banners.java run/screenshots/store run/store-art`
+(see the tool's header for the captures it wants). Upload each one through the description editor's
+image button, which refuses anything wider than 850 px, then replace its `UPLOAD:` placeholder below
+with the URL the site gives it.
 
 
 ## Summary
@@ -31,20 +32,23 @@ artwork with redistribution granted.
 
 <!-- Everything below this line is pasted into the site's Markdown editor as-is. -->
 
-![The table at work](UPLOAD: a table with three lasers firing, focus lit)
+![Laser Assembly](UPLOAD: banner.png)
 
 ### A workshop of lasers.
 
 Build an Assembly Table, aim lasers at it, and it makes what no crafting grid can: saddles,
 tridents, chainmail, horse armour, and the lenses and augments that make the lasers better. The
-table takes no power of its own; every bit of work is a beam arriving at it.
+table takes no power of its own; every bit of work is a beam arriving at it. The lasers run on Forge
+Energy: play it with a mod that makes some.
 
 It is BuildCraft's Assembly Table, redesigned rather than copied: lasers carry lenses, recipes come
 in steps, beams have an intensity, and pushing them too hard heats the table.
 
-### Lenses and steps
+![Lenses and steps](UPLOAD: header_lenses.png)
 
-![Lenses](UPLOAD: the three lenses and a laser screen)
+![Lenses](UPLOAD: items_lenses.png)
+
+![The laser](UPLOAD: screen_laser.png)
 
 - **Three lenses: cutting, welding, engraving.** A lens gives its laser's beam a type.
 - **Most recipes take any beam.** Some go through up to three steps in order, a trident is cut,
@@ -53,7 +57,7 @@ in steps, beams have an intensity, and pushing them too hard heats the table.
   lenses mandatory.
 - **A Barrel augment** lets one laser carry three more lenses and fire whichever the step needs.
 
-### Intensity and heat
+![Intensity and heat](UPLOAD: header_heat.png)
 
 - **Each laser has an intensity**, judged on its own against the step: too weak does nothing, above
   the threshold heats the table, above the maximum overloads.
@@ -64,24 +68,28 @@ in steps, beams have an intensity, and pushing them too hard heats the table.
 - **A Regulator augment** sets its laser's intensity by itself: as high as the step allows without
   heating.
 
-### One screen
+![One screen](UPLOAD: header_screen.png)
 
-![The table screen](UPLOAD: the table screen with its tabs open)
+![The table and its lasers](UPLOAD: screen_lasers.png)
 
 - **Tick the recipes the table may run**; it takes them in turn.
 - **See the step, its progress and the heat** at a glance, with a status light.
 - **Side tabs**: every linked laser and its intensity, set one by one or all at once; each face's
   input and output with auto import and export; a switch and redstone control.
-- **The item being made turns over the table** while it works, and the lasers turn to face it.
+- **The item being made turns over the table** while it works, and each laser turns its head to it.
 
-### Automation
+![Augments](UPLOAD: items_augments.png)
+
+![Automation](UPLOAD: header_automation.png)
+
+![Faces](UPLOAD: screen_faces.png)
 
 - **Per-face input and output**, auto import and export.
 - **Only what the ticked recipes use goes in**: a pipe fills at most one stack of each ingredient,
   so it never clogs the table.
 - **A comparator** reads the craft's progress.
 
-### For pack makers
+![For pack makers](UPLOAD: header_data.png)
 
 Recipes, beam types, augments and coolants are datapack files. Each lens and augment is its own
 item, so tags, KubeJS, CraftTweaker and JEI see plain item ids. The vanilla recipes sit in a
@@ -93,6 +101,7 @@ and range.
 | | |
 |---|---|
 | Loader | NeoForge |
+| An energy mod *(required)* | anything that makes Forge Energy: the lasers run on it |
 | [JEI](https://www.curseforge.com/minecraft/mc-mods/jei) *(optional)* | every recipe, with the lens each step needs |
 | [Jade](https://www.curseforge.com/minecraft/mc-mods/jade) *(optional)* | what a table makes, its step and its heat |
 
@@ -100,7 +109,8 @@ Needed on both the client and the server.
 
 ### FAQ
 
-**Does the table need power?** No. Power the lasers; they bring the work.
+**Does the table need power?** No. Power the lasers with Forge Energy from any mod; they bring the
+work.
 
 **Can I add recipes, beams or augments?** Yes, with datapack files. A new beam or augment needs an
 item to stand for it, from KubeJS or another mod.
@@ -133,7 +143,9 @@ freely, but do not lift them into another project.
 ## Release checklist: 1.0.0
 
 - [ ] Project avatar: `src/main/resources/logo.png`.
-- [ ] Take the screenshots and replace every `UPLOAD:` above.
+- [ ] Generate the art (`tools/Banners.java`), upload every image and replace each `UPLOAD:` above.
+- [ ] Gallery: `world.png` (the table at work), `screen_lasers.png`, `screen_faces.png`,
+      `screen_control.png`, `screen_laser.png`, a JEI recipe in steps.
 - [ ] Paste the summary and the description.
 - [ ] Upload the jar from `gradlew build`, release type **Release**, loader NeoForge, with
       the `## 1.0.0` section of `CHANGELOG.md`.

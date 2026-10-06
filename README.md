@@ -11,7 +11,7 @@ The spirit of BuildCraft's Assembly Table, redesigned rather than copied.
 ## How it plays
 
 - **The table takes no power.** Lasers bring it: point one or more at the table, within range and
-  line of sight, and feed them Forge Energy.
+  line of sight, and feed them Forge Energy from any mod that makes it.
 - **Lenses give the beam its type**: cutting, welding, engraving. A laser with no lens fires a raw
   beam, which works on any step at a tenth of the speed, or not at all if the server says so.
 - **Recipes in steps.** Most recipes take any beam. Some go through up to three steps in order, a
