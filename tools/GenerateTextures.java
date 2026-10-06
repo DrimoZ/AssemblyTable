@@ -22,12 +22,21 @@ public final class GenerateTextures {
 
     private static final String ROOT = "src/main/resources/assets/laserassembly/textures/";
 
-    private static final int RIM = 0x23262B;
+    private static final int RIM = 0x2C3038;
     private static final int BEVEL = 0x8A939E;
+    private static final int BEVEL_LIGHT = 0x9AA3AE;
     private static final int SHADOW = 0x3A4048;
     private static final int PLATE = 0x5E6670;
+    private static final int PLATE_LIGHT = 0x666E79;
+    private static final int PLATE_DARK = 0x4A515A;
+    private static final int PANEL_LIGHT = 0x464C55;
     private static final int DARK = 0x1A1C20;
-    private static final int BOLT = 0xA9B2BC;
+    private static final int SLIT = 0x16181C;
+    private static final int FOOT = 0x23262B;
+    private static final int BOLT = 0xC6CED6;
+    /** The copper band every block of the mod wears: the table, the laser's base and its head. */
+    private static final int COPPER = 0xB87333;
+    private static final int COPPER_DARK = 0x7A4A22;
 
     public static void main(String[] args) throws IOException {
         new File(ROOT + "block").mkdirs();
@@ -49,10 +58,15 @@ public final class GenerateTextures {
 
     // ------------------------------------------------------------------ blocks
 
+    /** Steel with a light bevel top-left and a shadow bottom-right, faintly mottled like metal. */
     private static BufferedImage panel() {
         BufferedImage image = blank();
-        fill(image, 0, 0, 16, 16, RIM);
-        fill(image, 1, 1, 14, 14, PLATE);
+        for (int y = 0; y < 16; y++)
+            for (int x = 0; x < 16; x++) set(image, x, y, (x * 7 + y * 13) % 5 == 0 ? PLATE_LIGHT : PLATE);
+        fill(image, 0, 0, 16, 1, RIM);
+        fill(image, 0, 15, 16, 1, RIM);
+        fill(image, 0, 0, 1, 16, RIM);
+        fill(image, 15, 0, 1, 16, RIM);
         fill(image, 1, 1, 14, 1, BEVEL);
         fill(image, 1, 1, 1, 14, BEVEL);
         fill(image, 1, 14, 14, 1, SHADOW);
@@ -61,66 +75,79 @@ public final class GenerateTextures {
     }
 
     private static BufferedImage bolted(BufferedImage image) {
-        for (int x : new int[]{3, 12}) {
-            for (int y : new int[]{3, 12}) {
-                set(image, x, y, BOLT);
-                set(image, x + 1, y + 1, SHADOW);
-            }
+        for (int x : new int[]{2, 13}) {
+            for (int y : new int[]{2, 13}) set(image, x, y, BOLT);
         }
         return image;
     }
 
-    /** The focus at the centre, where every beam meets, framed by a recessed ring. Dim: it lights up through the glow. */
+    /** The focus at the centre, where every beam meets, in a dark ring. Dim: it lights up through the glow. */
     private static BufferedImage tableTop() {
         BufferedImage image = bolted(panel());
-        disc(image, 6.0, SHADOW);
         disc(image, 5.0, DARK);
         disc(image, 4.0, 0x3A2A1C);
-        disc(image, 2.6, 0x4A3420);
-        disc(image, 1.5, 0x5A3E22);
+        disc(image, 2.9, 0x4A3420);
+        disc(image, 1.8, 0x5A3E22);
         return image;
     }
 
     /** The focus lit, drawn over the top at full brightness while the table works; clear elsewhere. */
     private static BufferedImage tableGlow() {
         BufferedImage image = blank();
-        disc(image, 4.0, 0xB06A20);
-        disc(image, 2.6, 0xE89A40);
-        disc(image, 1.5, 0xFFC870);
-        disc(image, 0.8, 0xFFF0C0);
+        disc(image, 4.0, 0x7A4416);
+        disc(image, 2.9, 0xE8862A);
+        disc(image, 1.8, 0xFFD27A);
+        disc(image, 0.9, 0xFFF4D6);
         return image;
     }
 
-    /** A workbench's apron: a plate over a vented band, on a darker foot. */
+    /**
+     * A workbench's apron, top to bottom: a lit edge, a bolted plate, the copper band the laser shares,
+     * a dark vented panel, a foot.
+     */
     private static BufferedImage tableSide() {
-        BufferedImage image = panel();
-        for (int y = 5; y <= 9; y += 2) {
-            fill(image, 3, y, 10, 1, DARK);
-            fill(image, 3, y + 1, 10, 1, BEVEL);
+        BufferedImage image = blank();
+        fill(image, 0, 0, 16, 16, SHADOW);
+        fill(image, 0, 0, 16, 1, BEVEL_LIGHT);
+        for (int y = 1; y <= 3; y++)
+            for (int x = 0; x < 16; x++) set(image, x, y, (x * 7 + y * 13) % 5 == 0 ? PLATE_LIGHT : PLATE);
+        set(image, 2, 2, BOLT);
+        set(image, 13, 2, BOLT);
+        fill(image, 0, 4, 16, 1, COPPER);
+        fill(image, 0, 5, 16, 1, COPPER_DARK);
+        for (int y = 7; y <= 11; y += 2) {
+            fill(image, 3, y, 10, 1, SLIT);
+            fill(image, 3, y + 1, 10, 1, PANEL_LIGHT);
         }
-        fill(image, 1, 12, 14, 2, SHADOW);
-        fill(image, 1, 12, 14, 1, PLATE);
-        set(image, 3, 3, BOLT);
-        set(image, 12, 3, BOLT);
+        fill(image, 0, 13, 16, 1, PLATE_DARK);
+        fill(image, 0, 14, 16, 1, RIM);
+        fill(image, 0, 15, 16, 1, FOOT);
+        fill(image, 0, 0, 1, 16, RIM);
+        fill(image, 15, 0, 1, 16, RIM);
         return image;
     }
 
     /** The base's top: the socket the head turns in. */
     private static BufferedImage laserTop() {
         BufferedImage image = bolted(panel());
-        disc(image, 5.5, SHADOW);
-        disc(image, 4.5, DARK);
+        disc(image, 5.0, SHADOW);
+        disc(image, 4.0, DARK);
         return image;
     }
 
-    /** The base is 7 high: its sides read rows 9 to 15 - a bevel, vents for the heat, the rim. */
+    /** The base is 7 high: its sides read rows 9 to 15 - the lit edge, the copper band, vents, the foot. */
     private static BufferedImage laserSide() {
         BufferedImage image = blank();
-        fill(image, 0, 0, 16, 16, RIM);
-        fill(image, 1, 9, 14, 1, BEVEL);
-        fill(image, 1, 10, 14, 4, PLATE);
-        fill(image, 1, 14, 14, 1, SHADOW);
-        for (int x = 3; x <= 12; x += 2) fill(image, x, 11, 1, 2, DARK);
+        fill(image, 0, 0, 16, 16, SHADOW);
+        fill(image, 0, 9, 16, 1, BEVEL_LIGHT);
+        fill(image, 0, 10, 16, 1, PLATE);
+        fill(image, 0, 11, 16, 1, COPPER);
+        fill(image, 0, 12, 16, 1, COPPER_DARK);
+        for (int x = 3; x <= 12; x += 2) fill(image, x, 13, 1, 1, SLIT);
+        fill(image, 0, 14, 16, 1, RIM);
+        fill(image, 0, 15, 16, 1, FOOT);
+        fill(image, 0, 0, 1, 16, RIM);
+        fill(image, 15, 0, 1, 16, RIM);
         return image;
     }
 
@@ -130,14 +157,15 @@ public final class GenerateTextures {
      */
     private static BufferedImage laserHead() {
         BufferedImage image = blank();
-        fill(image, 0, 0, 6, 6, PLATE);
-        fill(image, 0, 0, 6, 1, BEVEL);
-        fill(image, 0, 0, 1, 6, BEVEL);
-        fill(image, 0, 5, 6, 1, SHADOW);
-        fill(image, 5, 0, 1, 6, SHADOW);
-        fill(image, 1, 3, 4, 1, 0xB87333);
-        fill(image, 6, 0, 6, 6, SHADOW);
+        fill(image, 0, 0, 6, 6, SHADOW);
+        fill(image, 0, 0, 6, 1, BEVEL_LIGHT);
+        fill(image, 0, 1, 6, 1, PLATE);
+        fill(image, 0, 2, 6, 1, COPPER);
+        fill(image, 0, 3, 6, 1, COPPER_DARK);
+        fill(image, 0, 5, 6, 1, RIM);
+        fill(image, 6, 0, 6, 6, RIM);
         fill(image, 7, 1, 4, 4, PLATE);
+        fill(image, 7, 1, 4, 1, BEVEL);
         fill(image, 8, 2, 2, 2, DARK);
         fill(image, 0, 6, 4, 2, DARK);
         fill(image, 0, 6, 4, 1, SHADOW);
