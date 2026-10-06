@@ -14,14 +14,14 @@ import java.util.zip.ZipFile;
  * image: the art stays true across ports.
  *
  * <pre>
- *   java tools/Banners.java run/screenshots/store run/store-art
+ *   LASER_GUI_PREVIEW=1 ./gradlew runClient    (the captures, see client/GuiPreview.java)
+ *   java tools/Banners.java run/screenshots/preview run/store-art
  * </pre>
  *
- * The captures are named by what they show - {@code table}, {@code faces}, {@code control},
- * {@code lasers_tooltip}, {@code laser}, and {@code world} for the table at work in the world when
- * there is one - taken at 2560x1369, GUI scale 2: the crops below are in those pixels, and at scale 2
- * they are kept 1:1, so no pixel blurs. The font comes from the game jar ModDevGradle already built:
- * it is not committed. CurseForge's description editor refuses any image wider than 850 px.
+ * Each screen is cut where {@code crops.txt}, written by the preview beside its captures, says the
+ * window and its tabs are; JEI's window is found by its grey. Captures are at GUI scale 2 and kept
+ * 1:1, so no pixel blurs. The font comes from the game jar ModDevGradle already built: it is not
+ * committed. CurseForge's description editor refuses any image wider than 850 px.
  */
 public class Banners {
 
@@ -39,27 +39,32 @@ public class Banners {
         File shots = new File(args[0]), out = new File(args[1]);
         out.mkdirs();
         loadFont();
-        // The world shot is the best backdrop; until there is one, the table's screen stands in.
-        String backdrop = new File(shots, "world.png").exists() ? "world" : "table";
+        String backdrop = "world";
 
         banner(shots, out, backdrop);
-        header(shots, out, "header_lenses", backdrop, 0.5, "Lenses and steps", "Cut, weld, engrave - one step at a time");
+        header(shots, out, "header_lenses", backdrop, 0.45, "Lenses and steps", "Cut, weld, engrave - one step at a time");
         header(shots, out, "header_heat", backdrop, 0.3, "Intensity and heat", "Every beam judged on its own");
-        header(shots, out, "header_screen", "table", 0.4, "One screen", "Recipes, lasers, faces and redstone");
-        header(shots, out, "header_automation", "faces", 0.5, "Automation", "Faces, auto import and export, comparator");
+        header(shots, out, "header_screen", "table_lasers", 0.4, "One screen", "Recipes, lasers, faces and redstone");
+        header(shots, out, "header_automation", "table_faces", 0.5, "Automation", "Faces, auto import and export, comparator");
         header(shots, out, "header_data", "laser", 0.5, "For pack makers", "Recipes, beams, augments and coolants in JSON");
 
         itemSheet(out, "items_lenses", "Lenses", 3, "cut_lens", "weld_lens", "engrave_lens");
         itemSheet(out, "items_augments", "Augments", 3, "regulator_augment", "barrel_augment",
                 "range_augment_1", "range_augment_2", "efficiency_augment_1", "efficiency_augment_2");
 
-        // The window with the tab worth showing beside it; at most 850 wide.
-        gui(shots, out, "screen_lasers", "table", 1104, 468, 1750, 900);
-        gui(shots, out, "screen_info", "table", 836, 468, 1462, 900);
-        gui(shots, out, "screen_faces", "faces", 1104, 468, 1730, 900);
-        gui(shots, out, "screen_control", "control", 1104, 468, 1730, 900);
-        gui(shots, out, "screen_lasers_tooltip", "lasers_tooltip", 1104, 468, 1830, 900);
-        gui(shots, out, "screen_laser", "laser", 1100, 492, 1462, 878);
+        // The table at work, scaled to the page: a scene, not pixel art, so smoothing only helps it.
+        BufferedImage world = ImageIO.read(new File(shots, "world.png"));
+        ImageIO.write(cover(world, W, W * world.getHeight() / world.getWidth(), 0.5), "png", new File(out, "world.png"));
+
+        // Each screen cut to its window and tabs, as the preview measured them.
+        for (String line : Files.readAllLines(new File(shots, "crops.txt").toPath())) {
+            String[] f = line.trim().split(" ");
+            if (f.length != 5) continue;
+            int x = Integer.parseInt(f[1]), y = Integer.parseInt(f[2]), w = Integer.parseInt(f[3]), h = Integer.parseInt(f[4]);
+            BufferedImage capture = ImageIO.read(new File(shots, f[0] + ".png"));
+            int[] box = f[0].equals("jei") ? greyBox(capture) : new int[]{x, y, x + w, y + h};
+            gui(capture, out, "screen_" + f[0], box);
+        }
     }
 
     /** The top banner: the title large, the logo beside it, on a capture. */
@@ -131,13 +136,28 @@ public class Banners {
         return m.find() ? m.group(1) : id;
     }
 
-    /** One capture, cut to the window and its tab, 1:1. */
-    static void gui(File shots, File out, String name, String shot, int x0, int y0, int x1, int y1) throws Exception {
-        File in = new File(shots, shot + ".png");
-        if (!in.exists()) return;
-        BufferedImage capture = ImageIO.read(in);
-        BufferedImage cut = capture.getSubimage(x0, y0, Math.min(x1, capture.getWidth()) - x0, Math.min(y1, capture.getHeight()) - y0);
+    /** One capture cut to {@code box} (x0, y0, x1, y1), 1:1. */
+    static void gui(BufferedImage capture, File out, String name, int[] box) throws Exception {
+        int x0 = Math.max(0, box[0]), y0 = Math.max(0, box[1]);
+        int x1 = Math.min(capture.getWidth(), box[2]), y1 = Math.min(capture.getHeight(), box[3]);
+        if (x1 - x0 > W) System.out.println(name + " is " + (x1 - x0) + " px wide: over CurseForge's " + W);
+        BufferedImage cut = capture.getSubimage(x0, y0, x1 - x0, y1 - y0);
         ImageIO.write(cut, "png", new File(out, name + ".png"));
+    }
+
+    /** Where a screen's window is, by the vanilla panel's grey: JEI does not say where it draws. */
+    static int[] greyBox(BufferedImage capture) {
+        int x0 = capture.getWidth(), y0 = capture.getHeight(), x1 = 0, y1 = 0;
+        for (int y = 0; y < capture.getHeight(); y++)
+            for (int x = 0; x < capture.getWidth(); x++)
+                if ((capture.getRGB(x, y) & 0xFFFFFF) == 0xC6C6C6) {
+                    x0 = Math.min(x0, x);
+                    y0 = Math.min(y0, y);
+                    x1 = Math.max(x1, x);
+                    y1 = Math.max(y1, y);
+                }
+        int pad = 12;
+        return new int[]{x0 - pad, y0 - pad, x1 + pad, y1 + pad};
     }
 
     static int width(String s) {

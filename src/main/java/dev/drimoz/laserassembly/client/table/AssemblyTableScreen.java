@@ -33,6 +33,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import net.minecraft.client.renderer.Rect2i;
 import java.util.Map;
 
 import static dev.drimoz.laserassembly.content.table.AssemblyTableBlockEntity.*;
@@ -78,6 +79,11 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
     private final Map<ResourceLocation, RecipeHolder<AssemblyRecipe>> byId = new HashMap<>();
     private RecipePicker picker;
     private SideTabs tabs;
+
+    /** Where the side tabs are, open or shut: kept clear by JEI, and cropped into the store captures. */
+    public List<Rect2i> tabAreas() {
+        return tabs.areas();
+    }
 
     public AssemblyTableScreen(AssemblyTableMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);

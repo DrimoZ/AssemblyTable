@@ -7,8 +7,8 @@ the data files and `CHANGELOG.md` before changing a number.
 No game version is named on purpose: the page stays true across ports, and each uploaded file
 carries its own versions.
 
-Images are generated, not committed: `java tools/Banners.java run/screenshots/store run/store-art`
-(see the tool's header for the captures it wants). Upload each one through the description editor's
+Images are generated, not committed: `LASER_GUI_PREVIEW=1 ./gradlew runClient` takes the captures by
+itself, then `java tools/Banners.java run/screenshots/preview run/store-art` makes the images. Upload each one through the description editor's
 image button, which refuses anything wider than 850 px, then replace its `UPLOAD:` placeholder below
 with the URL the site gives it.
 
@@ -33,6 +33,8 @@ artwork with redistribution granted.
 <!-- Everything below this line is pasted into the site's Markdown editor as-is. -->
 
 ![Laser Assembly](UPLOAD: banner.png)
+
+![The table at work](UPLOAD: world.png)
 
 ### A workshop of lasers.
 
@@ -68,9 +70,11 @@ in steps, beams have an intensity, and pushing them too hard heats the table.
 - **A Regulator augment** sets its laser's intensity by itself: as high as the step allows without
   heating.
 
+![The information tab](UPLOAD: screen_table_info.png)
+
 ![One screen](UPLOAD: header_screen.png)
 
-![The table and its lasers](UPLOAD: screen_lasers.png)
+![The table and its lasers](UPLOAD: screen_table_lasers.png)
 
 - **Tick the recipes the table may run**; it takes them in turn.
 - **See the step, its progress and the heat** at a glance, with a status light.
@@ -82,12 +86,14 @@ in steps, beams have an intensity, and pushing them too hard heats the table.
 
 ![Automation](UPLOAD: header_automation.png)
 
-![Faces](UPLOAD: screen_faces.png)
+![Faces](UPLOAD: screen_table_faces.png)
 
 - **Per-face input and output**, auto import and export.
 - **Only what the ticked recipes use goes in**: a pipe fills at most one stack of each ingredient,
   so it never clogs the table.
 - **A comparator** reads the craft's progress.
+
+![Redstone control](UPLOAD: screen_table_control.png)
 
 ![For pack makers](UPLOAD: header_data.png)
 
@@ -104,6 +110,8 @@ and range.
 | An energy mod *(required)* | anything that makes Forge Energy: the lasers run on it |
 | [JEI](https://www.curseforge.com/minecraft/mc-mods/jei) *(optional)* | every recipe, with the lens each step needs |
 | [Jade](https://www.curseforge.com/minecraft/mc-mods/jade) *(optional)* | what a table makes, its step and its heat |
+
+![JEI](UPLOAD: screen_jei.png)
 
 Needed on both the client and the server.
 
@@ -143,9 +151,9 @@ freely, but do not lift them into another project.
 ## Release checklist: 1.0.0
 
 - [ ] Project avatar: `src/main/resources/logo.png`.
-- [ ] Generate the art (`tools/Banners.java`), upload every image and replace each `UPLOAD:` above.
-- [ ] Gallery: `world.png` (the table at work), `screen_lasers.png`, `screen_faces.png`,
-      `screen_control.png`, `screen_laser.png`, a JEI recipe in steps.
+- [ ] Generate the art (see the top of this file), upload every image and replace each `UPLOAD:`.
+- [ ] Gallery: `world.png`, `screen_table_lasers.png`, `screen_table_info.png`, `screen_table_faces.png`,
+      `screen_laser.png`, `screen_jei.png`.
 - [ ] Paste the summary and the description.
 - [ ] Upload the jar from `gradlew build`, release type **Release**, loader NeoForge, with
       the `## 1.0.0` section of `CHANGELOG.md`.
