@@ -29,6 +29,9 @@ public final class GenerateTextures {
     private static final int PLATE = 0x5E6670;
     private static final int PLATE_LIGHT = 0x666E79;
     private static final int PLATE_DARK = 0x4A515A;
+    private static final int PLATE_MID = 0x58606A;
+    /** The lower and right lip of a recess, catching the light. */
+    private static final int GROOVE_LIGHT = 0x78818C;
     private static final int PANEL_LIGHT = 0x464C55;
     private static final int DARK = 0x1A1C20;
     private static final int SLIT = 0x16181C;
@@ -58,11 +61,15 @@ public final class GenerateTextures {
 
     // ------------------------------------------------------------------ blocks
 
-    /** Steel with a light bevel top-left and a shadow bottom-right, faintly mottled like metal. */
+    /**
+     * Steel with a light bevel top-left and a shadow bottom-right, and an inner plate set into it: a
+     * groove dark on its lit sides and light on the others, so the face has a frame and a depth
+     * rather than one flat sheet.
+     */
     private static BufferedImage panel() {
         BufferedImage image = blank();
         for (int y = 0; y < 16; y++)
-            for (int x = 0; x < 16; x++) set(image, x, y, (x * 7 + y * 13) % 5 == 0 ? PLATE_LIGHT : PLATE);
+            for (int x = 0; x < 16; x++) set(image, x, y, metal(x, y));
         fill(image, 0, 0, 16, 1, RIM);
         fill(image, 0, 15, 16, 1, RIM);
         fill(image, 0, 0, 1, 16, RIM);
@@ -71,7 +78,36 @@ public final class GenerateTextures {
         fill(image, 1, 1, 1, 14, BEVEL);
         fill(image, 1, 14, 14, 1, SHADOW);
         fill(image, 14, 1, 1, 14, SHADOW);
+        fill(image, 3, 3, 10, 1, PLATE_DARK);
+        fill(image, 3, 3, 1, 10, PLATE_DARK);
+        fill(image, 3, 12, 10, 1, GROOVE_LIGHT);
+        fill(image, 12, 4, 1, 9, GROOVE_LIGHT);
         return image;
+    }
+
+    /**
+     * Brushed steel: the plate's colour, here and there a shade lighter or darker, scattered by a
+     * hash. The regular dot pattern it replaced read as a printed grid, not as metal.
+     */
+    private static int metal(int x, int y) {
+        int h = x * 374761393 + y * 668265263;
+        h = (h ^ (h >>> 13)) * 1274126177;
+        h ^= h >>> 16;
+        return switch (Math.floorMod(h, 9)) {
+            case 0, 1 -> PLATE_LIGHT;
+            case 2 -> PLATE_MID;
+            default -> PLATE;
+        };
+    }
+
+    /** A ring between two radii, lit top-left and shaded bottom-right, like every bevel of the mod. */
+    private static void ring(BufferedImage image, double outer, double inner, int lit, int shaded) {
+        for (int y = 0; y < 16; y++) {
+            for (int x = 0; x < 16; x++) {
+                double d = distance(x, y);
+                if (d <= outer && d > inner) set(image, x, y, x + y < 15 ? lit : shaded);
+            }
+        }
     }
 
     private static BufferedImage bolted(BufferedImage image) {
@@ -81,23 +117,31 @@ public final class GenerateTextures {
         return image;
     }
 
-    /** The focus at the centre, where every beam meets, in a dark ring. Dim: it lights up through the glow. */
+    /**
+     * The focus at the centre, where every beam meets: a steel bezel with four copper marks, one per
+     * side a laser fires from, round a dark well. Dim: it lights up through the glow.
+     */
     private static BufferedImage tableTop() {
         BufferedImage image = bolted(panel());
-        disc(image, 5.0, DARK);
-        disc(image, 4.0, 0x3A2A1C);
-        disc(image, 2.9, 0x4A3420);
-        disc(image, 1.8, 0x5A3E22);
+        disc(image, 5.0, RIM);
+        ring(image, 4.6, 3.9, BEVEL_LIGHT, SHADOW);
+        for (int[] p : new int[][]{{7, 3}, {8, 3}, {3, 7}, {3, 8}, {12, 7}, {12, 8}, {7, 12}, {8, 12}}) {
+            set(image, p[0], p[1], p[0] + p[1] < 15 ? COPPER : COPPER_DARK);
+        }
+        disc(image, 3.9, DARK);
+        disc(image, 3.3, 0x3A2A1C);
+        disc(image, 2.4, 0x4A3420);
+        disc(image, 1.5, 0x5A3E22);
         return image;
     }
 
     /** The focus lit, drawn over the top at full brightness while the table works; clear elsewhere. */
     private static BufferedImage tableGlow() {
         BufferedImage image = blank();
-        disc(image, 4.0, 0x7A4416);
-        disc(image, 2.9, 0xE8862A);
-        disc(image, 1.8, 0xFFD27A);
-        disc(image, 0.9, 0xFFF4D6);
+        disc(image, 3.3, 0x7A4416);
+        disc(image, 2.4, 0xE8862A);
+        disc(image, 1.5, 0xFFD27A);
+        disc(image, 0.8, 0xFFF4D6);
         return image;
     }
 
@@ -110,7 +154,7 @@ public final class GenerateTextures {
         fill(image, 0, 0, 16, 16, SHADOW);
         fill(image, 0, 0, 16, 1, BEVEL_LIGHT);
         for (int y = 1; y <= 3; y++)
-            for (int x = 0; x < 16; x++) set(image, x, y, (x * 7 + y * 13) % 5 == 0 ? PLATE_LIGHT : PLATE);
+            for (int x = 0; x < 16; x++) set(image, x, y, metal(x, y));
         set(image, 2, 2, BOLT);
         set(image, 13, 2, BOLT);
         fill(image, 0, 4, 16, 1, COPPER);
@@ -127,11 +171,13 @@ public final class GenerateTextures {
         return image;
     }
 
-    /** The base's top: the socket the head turns in. */
+    /** The base's top: the socket the head turns in, a copper race inside a steel bezel. */
     private static BufferedImage laserTop() {
         BufferedImage image = bolted(panel());
-        disc(image, 5.0, SHADOW);
-        disc(image, 4.0, DARK);
+        disc(image, 5.0, RIM);
+        ring(image, 4.6, 3.9, BEVEL_LIGHT, SHADOW);
+        ring(image, 3.9, 3.2, COPPER, COPPER_DARK);
+        disc(image, 3.2, DARK);
         return image;
     }
 
