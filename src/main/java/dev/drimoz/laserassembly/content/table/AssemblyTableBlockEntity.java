@@ -280,7 +280,10 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
         return working ? Math.max(1, Math.round(15 * recipeProgress())) : 0;
     }
 
-    /** Neighbours hear of the signal only when it changes level, not every tick. */
+    /**
+     * Tells comparators when the signal changes level. A working tick already tells them through
+     * {@link #setChanged()}; this covers the ticks that skip it, such as stopping with no heat left.
+     */
     private void updateComparator() {
         int signal = comparatorSignal();
         if (signal == lastSignal) return;
