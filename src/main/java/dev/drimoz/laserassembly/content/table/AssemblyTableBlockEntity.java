@@ -313,6 +313,9 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
         currentRecipe = next == null ? null : lookup(next);
         stepsTuning = ServerConfig.tuning();
         steps = currentRecipe == null ? List.of() : currentRecipe.steps(stepsTuning);
+        // A /reload or a save can bring the same id back with fewer steps: past its end, the next
+        // tick read a step that is not there and crashed the server.
+        if (!steps.isEmpty() && assembly.step() >= steps.size()) assembly.reset();
     }
 
     // Recipes
