@@ -3,7 +3,7 @@
 All notable changes to this project are documented here, newest first.
 Versions follow `{mod version}+{game version}`.
 
-## Unreleased
+## 1.1.0
 
 ### Fixed
 - Opening a table or a laser before the client had received its chunk (lag after a teleport, a

@@ -149,13 +149,14 @@ freely, but do not lift them into another project.
 <!-- End of the pasted description. -->
 
 
-## Release checklist: 1.0.0
+## Release checklist
 
-- [ ] Project avatar: `src/main/resources/logo.png`.
-- [x] Generate the art (see the top of this file) and upload every image: the URLs are in place.
-- [ ] Gallery: `world.png`, `screen_table_lasers.png`, `screen_table_info.png`, `screen_table_faces.png`,
-      `screen_laser.png`, `screen_jei.png`.
-- [ ] Paste the summary and the description.
-- [ ] Upload the jar from `gradlew build`, release type **Release**, loader NeoForge, with
-      the `## 1.0.0` section of `CHANGELOG.md`.
+For each release, with `X` the version in `gradle.properties`:
+
+- [ ] `## X` in `CHANGELOG.md`, the art regenerated and pushed (`docs/store-art/`).
+- [ ] Tag `vX+<minecraft>` on the version's branch and push it.
+- [ ] Upload the jar from `gradlew build`, release type **Release**, Minecraft 1.21.1, loader
+      NeoForge, Java 21, with the `## X` section of `CHANGELOG.md`.
 - [ ] Optional dependencies: JEI and Jade.
+- [ ] Paste the description when it changed; set the project avatar to `src/main/resources/logo.png`
+      when the logo did.
