@@ -58,7 +58,7 @@ Every field and setting is in the [datapack reference](docs/DATAPACKS.md).
 
 **Optional companions:** [JEI](https://www.curseforge.com/minecraft/mc-mods/jei) shows every recipe
 with the lens each step needs; [Jade](https://www.curseforge.com/minecraft/mc-mods/jade) shows what
-a table is making, its step and its heat.
+a table is making, its step and its heat, and whether a laser fires and why not.
 
 ## Building
 

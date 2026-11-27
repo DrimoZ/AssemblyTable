@@ -109,7 +109,7 @@ and range.
 | Loader | NeoForge |
 | An energy mod *(required)* | anything that makes Forge Energy: the lasers run on it |
 | [JEI](https://www.curseforge.com/minecraft/mc-mods/jei) *(optional)* | every recipe, with the lens each step needs |
-| [Jade](https://www.curseforge.com/minecraft/mc-mods/jade) *(optional)* | what a table makes, its step and its heat |
+| [Jade](https://www.curseforge.com/minecraft/mc-mods/jade) *(optional)* | what a table makes, its step and its heat; whether a laser fires, and why not |
 
 ![JEI](https://raw.githubusercontent.com/DrimoZ/AssemblyTable/1.21.1/docs/store-art/screen_jei.png)
 
