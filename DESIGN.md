@@ -182,6 +182,16 @@ posé dessus cacherait l'assemblage.
   trident et armures de cheval en fer et en or (découpe → soudure), armure en diamant (découpe →
   soudure → gravure). L'éperon n'existe pas en 1.21.1 : l'armure en diamant prend sa place.
 
+## 8 bis. L'apparence
+
+Esprit AE2 : acier bleuté, un seul accent cyan, le cristal fluix. La table est une machine basse
+(12 px, comme une table d'enchantement) : plinthe, corps en retrait parcouru d'une fente d'énergie,
+couronne en saillie, plateau encastré et cristal au centre, où arrivent les faisceaux. Le laser :
+plinthe, tourelle, collier lumineux, tête à bague et canon. Textures des blocs et des augments
+peintes à la main (les PNG font foi, projets Blockbench dans `art/`) ; seules les lentilles et la
+lueur du laser sont générées. Écarté, après essais : les textures calculées (grain, disques,
+dégradés) et la table en cage, plates ou confuses en jeu.
+
 ## 9. L'écran
 
 Charte de Factor'IO (`docs/09-CONVENTIONS.md` §9) : `GuiMetrics`, `GuiTheme`, `GuiSprites` repris
