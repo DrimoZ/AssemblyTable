@@ -284,6 +284,10 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
 
     /** Changes the table this laser feeds, telling both: the table lists the lasers aiming at it. */
     private void retarget(@Nullable AssemblyTableBlockEntity next) {
+        // An idle table is searched again every second and found again: relinking it sent two
+        // updates per laser each time and moved the laser to the end of the lasers tab, under the
+        // player's cursor.
+        if (next == table) return;
         if (table != null && !table.isRemoved()) table.unlink(worldPosition);
         table = next;
         if (table != null) table.link(worldPosition);
