@@ -7,10 +7,10 @@ the data files and `CHANGELOG.md` before changing a number.
 No game version is named on purpose: the page stays true across ports, and each uploaded file
 carries its own versions.
 
-Images are generated, not committed: `LASER_GUI_PREVIEW=1 ./gradlew runClient` takes the captures by
-itself, then `java tools/Banners.java run/screenshots/preview run/store-art` makes the images. The
-URLs below are the 1.0.0 uploads; after regenerating, upload the new images (850 px wide at most) and
-replace the URLs that changed.
+The images are `docs/store-art/`, linked from GitHub on the `1.21.1` branch, as for the other mods:
+`LASER_GUI_PREVIEW=1 ./gradlew runClient` takes the captures by itself, then
+`java tools/Banners.java run/screenshots/preview docs/store-art` makes the images (850 px wide at
+most). Commit and push them; the page follows without being edited.
 
 
 ## Summary
@@ -32,9 +32,9 @@ artwork with redistribution granted.
 
 <!-- Everything below this line is pasted into the site's Markdown editor as-is. -->
 
-![Laser Assembly](https://media.forgecdn.net/attachments/2018/676/banner-png.png)
+![Laser Assembly](https://raw.githubusercontent.com/DrimoZ/AssemblyTable/1.21.1/docs/store-art/banner.png)
 
-![The table at work](https://media.forgecdn.net/attachments/2018/675/world-png.png)
+![The table at work](https://raw.githubusercontent.com/DrimoZ/AssemblyTable/1.21.1/docs/store-art/world.png)
 
 ### A workshop of lasers.
 
@@ -46,11 +46,11 @@ Energy: play it with a mod that makes some.
 It is BuildCraft's Assembly Table, redesigned rather than copied: lasers carry lenses, recipes come
 in steps, beams have an intensity, and pushing them too hard heats the table.
 
-![Lenses and steps](https://media.forgecdn.net/attachments/2018/680/header_lenses-png.png)
+![Lenses and steps](https://raw.githubusercontent.com/DrimoZ/AssemblyTable/1.21.1/docs/store-art/header_lenses.png)
 
-![Lenses](https://media.forgecdn.net/attachments/2018/683/items_lenses-png.png)
+![Lenses](https://raw.githubusercontent.com/DrimoZ/AssemblyTable/1.21.1/docs/store-art/items_lenses.png)
 
-![The laser](https://media.forgecdn.net/attachments/2018/669/screen_laser-png.png)
+![The laser](https://raw.githubusercontent.com/DrimoZ/AssemblyTable/1.21.1/docs/store-art/screen_laser.png)
 
 - **Three lenses: cutting, welding, engraving.** A lens gives its laser's beam a type.
 - **Most recipes take any beam.** Some go through up to three steps in order, a trident is cut,
@@ -59,7 +59,7 @@ in steps, beams have an intensity, and pushing them too hard heats the table.
   lenses mandatory.
 - **A Barrel augment** lets one laser carry three more lenses and fire whichever the step needs.
 
-![Intensity and heat](https://media.forgecdn.net/attachments/2018/679/header_heat-png.png)
+![Intensity and heat](https://raw.githubusercontent.com/DrimoZ/AssemblyTable/1.21.1/docs/store-art/header_heat.png)
 
 - **Each laser has an intensity**, judged on its own against the step: too weak does nothing, above
   the threshold heats the table, above the maximum overloads.
@@ -70,11 +70,11 @@ in steps, beams have an intensity, and pushing them too hard heats the table.
 - **A Regulator augment** sets its laser's intensity by itself: as high as the step allows without
   heating.
 
-![The information tab](https://media.forgecdn.net/attachments/2018/673/screen_table_info-png.png)
+![The information tab](https://raw.githubusercontent.com/DrimoZ/AssemblyTable/1.21.1/docs/store-art/screen_table_info.png)
 
-![One screen](https://media.forgecdn.net/attachments/2018/681/header_screen-png.png)
+![One screen](https://raw.githubusercontent.com/DrimoZ/AssemblyTable/1.21.1/docs/store-art/header_screen.png)
 
-![The table and its lasers](https://media.forgecdn.net/attachments/2018/674/screen_table_lasers-png.png)
+![The table and its lasers](https://raw.githubusercontent.com/DrimoZ/AssemblyTable/1.21.1/docs/store-art/screen_table_lasers.png)
 
 - **Tick the recipes the table may run**; it takes them in turn.
 - **See the step, its progress and the heat** at a glance, with a status light.
@@ -82,20 +82,20 @@ in steps, beams have an intensity, and pushing them too hard heats the table.
   input and output with auto import and export; a switch and redstone control.
 - **The item being made turns over the table** while it works, and each laser turns its head to it.
 
-![Augments](https://media.forgecdn.net/attachments/2018/682/items_augments-png.png)
+![Augments](https://raw.githubusercontent.com/DrimoZ/AssemblyTable/1.21.1/docs/store-art/items_augments.png)
 
-![Automation](https://media.forgecdn.net/attachments/2018/677/header_automation-png.png)
+![Automation](https://raw.githubusercontent.com/DrimoZ/AssemblyTable/1.21.1/docs/store-art/header_automation.png)
 
-![Faces](https://media.forgecdn.net/attachments/2018/672/screen_table_faces-png.png)
+![Faces](https://raw.githubusercontent.com/DrimoZ/AssemblyTable/1.21.1/docs/store-art/screen_table_faces.png)
 
 - **Per-face input and output**, auto import and export.
 - **Only what the ticked recipes use goes in**: a pipe fills at most one stack of each ingredient,
   so it never clogs the table.
 - **A comparator** reads the craft's progress.
 
-![Redstone control](https://media.forgecdn.net/attachments/2018/671/screen_table_control-png.png)
+![Redstone control](https://raw.githubusercontent.com/DrimoZ/AssemblyTable/1.21.1/docs/store-art/screen_table_control.png)
 
-![For pack makers](https://media.forgecdn.net/attachments/2018/678/header_data-png.png)
+![For pack makers](https://raw.githubusercontent.com/DrimoZ/AssemblyTable/1.21.1/docs/store-art/header_data.png)
 
 Recipes, beam types, augments and coolants are datapack files. Each lens and augment is its own
 item, so tags, KubeJS, CraftTweaker and JEI see plain item ids. The vanilla recipes sit in a
@@ -111,7 +111,7 @@ and range.
 | [JEI](https://www.curseforge.com/minecraft/mc-mods/jei) *(optional)* | every recipe, with the lens each step needs |
 | [Jade](https://www.curseforge.com/minecraft/mc-mods/jade) *(optional)* | what a table makes, its step and its heat |
 
-![JEI](https://media.forgecdn.net/attachments/2018/668/screen_jei-png.png)
+![JEI](https://raw.githubusercontent.com/DrimoZ/AssemblyTable/1.21.1/docs/store-art/screen_jei.png)
 
 Needed on both the client and the server.
 

@@ -15,7 +15,7 @@ import java.util.zip.ZipFile;
  *
  * <pre>
  *   LASER_GUI_PREVIEW=1 ./gradlew runClient    (the captures, see client/GuiPreview.java)
- *   java tools/Banners.java run/screenshots/preview run/store-art
+ *   java tools/Banners.java run/screenshots/preview docs/store-art
  * </pre>
  *
  * Each screen is cut where {@code crops.txt}, written by the preview beside its captures, says the

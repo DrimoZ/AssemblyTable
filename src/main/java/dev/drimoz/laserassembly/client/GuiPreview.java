@@ -50,7 +50,7 @@ import java.util.stream.Stream;
  * environment says so:
  * <pre>
  *   LASER_GUI_PREVIEW=1 ./gradlew runClient
- *   java tools/Banners.java run/screenshots/preview run/store-art
+ *   java tools/Banners.java run/screenshots/preview docs/store-art
  * </pre>
  * The client loads a <b>copy</b> of the {@code New World} dev world (never the original), builds the
  * scene far from anything there, writes {@code run/screenshots/preview/*.png} with the crop of each
