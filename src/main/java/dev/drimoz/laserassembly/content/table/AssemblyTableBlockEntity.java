@@ -52,7 +52,9 @@ import java.util.function.ToIntFunction;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * The table. Ingredients stay in their slots until a craft completes, so breaking the table or
@@ -63,6 +65,8 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
     public static final int INPUTS = 12;
     public static final int OUTPUTS = 4;
     private static final int AUTO_TICKS = 10;
+    /** Config contradictions already logged, as "recipe: message". Server thread only. */
+    private static final Set<String> UNUSABLE = new HashSet<>();
 
     // What the screen reads, through ContainerData: synced while the menu is open, and only then.
     // Values travel as shorts, hence permille rather than raw heat and progress.
@@ -194,7 +198,7 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
         if (recipe != currentRecipe || tuning != stepsTuning) contentsDirty = true;
         if (contentsDirty) {
             contentsDirty = false;
-            choose(canRun(recipe) ? current : Rotation.next(selected, current, id -> canRun(lookup(id))));
+            choose(canRun(current) ? current : Rotation.next(selected, current, this::canRun));
             recipe = currentRecipe;
         }
 
@@ -222,7 +226,7 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
                 finished();
             }
             // BuildCraft's turn-taking: after each craft, the next ticked recipe that can run.
-            choose(Rotation.next(selected, current, id -> canRun(lookup(id))));
+            choose(Rotation.next(selected, current, this::canRun));
         }
         setChanged();
     }
@@ -327,13 +331,18 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
                 .orElse(null);
     }
 
-    private boolean canRun(@Nullable AssemblyRecipe recipe) {
+    private boolean canRun(@Nullable ResourceLocation id) {
+        AssemblyRecipe recipe = id == null ? null : lookup(id);
         if (recipe == null) return false;
         try {
             recipe.steps(ServerConfig.tuning());
         } catch (IllegalArgumentException e) {
-            // The server config moved a default under a value this recipe sets explicitly.
-            LaserAssembly.LOGGER.warn("Recipe unusable with the current server config: {}", e.getMessage());
+            // The server config moved a default under a value this recipe sets explicitly. Said once
+            // per recipe and message: logged on every inventory change, it buried the log, and
+            // without the id nobody could tell which recipe it meant.
+            if (UNUSABLE.add(id + ": " + e.getMessage())) {
+                LaserAssembly.LOGGER.warn("Recipe {} unusable with the current server config: {}", id, e.getMessage());
+            }
             return false;
         }
         return plan(recipe) != null;

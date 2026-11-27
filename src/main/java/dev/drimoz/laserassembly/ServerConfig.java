@@ -67,6 +67,12 @@ public final class ServerConfig {
 
     static void onLoad(ModConfigEvent event) {
         if (event.getConfig().getSpec() != SPEC) return;
+        // Not coerced: the owner must see it. Kept as written, every recipe that sets neither
+        // threshold refuses to run, and the tables name each one in the log once.
+        if (MAX_MULTIPLIER.get() < HEAT_MULTIPLIER.get()) {
+            LaserAssembly.LOGGER.error("Server config: intensity.max_multiplier {} is below intensity.heat_multiplier {}; "
+                    + "recipes that set neither max_intensity nor heat_above will not run", MAX_MULTIPLIER.get(), HEAT_MULTIPLIER.get());
+        }
         tuning = new Tuning(DEFAULT_INTENSITY.get(), HEAT_MULTIPLIER.get(), MAX_MULTIPLIER.get(),
                 RAW_FACTOR.get(), FE_PER_INTENSITY.get(), HEAT_PER_INTENSITY.get(), DISSIPATION.get(), MAX_HEAT.get(), STACKING_FACTOR.get());
     }
