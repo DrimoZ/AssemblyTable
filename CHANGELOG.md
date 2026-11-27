@@ -16,6 +16,8 @@ Versions follow `{mod version}+{game version}`.
   and each recipe it disables is named once, instead of a warning on every inventory change.
 
 ### Changed
+- Redrawn lens and augment icons: lenses look like glass in a ring, the Regulator shows sliders,
+  the Barrel its three lenses, Efficiency a lightning bolt, and the tier lights are easier to see.
 - The table no longer has a `powered` block state: it read its own signal already.
 
 ### Added
