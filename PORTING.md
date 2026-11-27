@@ -135,7 +135,7 @@ branches from `26.1` once it builds and runs, not before.
 
 ## 7. What actually happened
 
-The port is done: 429 errors to zero, 7 unit tests and 11 GameTests green, every screen, both
+The port is done: 429 errors to zero, 7 unit tests and 12 GameTests green (one loads a save in the 1.21.1 format), every screen, both
 renderers, JEI and Jade checked in a client through `GuiPreview`. Items and energy were migrated to
 the transfer API, as recommended in §3.
 

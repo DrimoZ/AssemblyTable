@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:function",
+  "function": "laserassembly:a_save_from_1_21_1_loads_whole",
+  "environment": "minecraft:default",
+  "structure": "laserassembly:platform",
+  "max_ticks": 20
+}

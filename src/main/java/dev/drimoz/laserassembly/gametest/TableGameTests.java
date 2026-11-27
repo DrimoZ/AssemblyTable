@@ -15,6 +15,8 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.ProblemReporter;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import net.minecraft.nbt.TagParser;
 import com.google.gson.JsonParser;
 import com.mojang.serialization.JsonOps;
 import dev.drimoz.laserassembly.recipe.AssemblyRecipe;
@@ -66,6 +68,7 @@ public final class TableGameTests {
             helper.register(LaserAssembly.id("a_recipe_that_shrank_starts_over"), (Consumer<GameTestHelper>) TableGameTests::aRecipeThatShrankStartsOver);
             helper.register(LaserAssembly.id("overheating_stops_without_destroying"), (Consumer<GameTestHelper>) TableGameTests::overheatingStopsWithoutDestroying);
             helper.register(LaserAssembly.id("an_item_fitting_two_ingredients_goes_where_it_is_needed"), (Consumer<GameTestHelper>) TableGameTests::anItemFittingTwoIngredientsGoesWhereItIsNeeded);
+            helper.register(LaserAssembly.id("a_save_from_1_21_1_loads_whole"), (Consumer<GameTestHelper>) TableGameTests::aSaveFrom1211LoadsWhole);
         });
     }
 
@@ -300,6 +303,49 @@ public final class TableGameTests {
             assertSaddleIngredients(helper, table);
             helper.assertTrue(helper.getEntities(EntityType.ITEM).isEmpty(), "the table threw items out");
         });
+    }
+
+    /**
+     * A table and a laser exactly as 1.21.1 saved them - NeoForge's old item handler layout, the energy
+     * as a bare int - which is what a world carried over to 26.1 hands them: nothing they held may go.
+     */
+    public static void aSaveFrom1211LoadsWhole(GameTestHelper helper) {
+        HolderLookup.Provider registries = helper.getLevel().registryAccess();
+        BlockPos tablePos = new BlockPos(2, 2, 3);
+        helper.setBlock(tablePos, ModBlocks.ASSEMBLY_TABLE.get());
+        AssemblyTableBlockEntity table = helper.getBlockEntity(tablePos, AssemblyTableBlockEntity.class);
+        table.loadWithComponents(TagValueInput.create(ProblemReporter.DISCARDING, registries, snbt("""
+                {inputs: {Items: [{Slot: 0, id: "minecraft:leather", count: 3}], Size: 12},
+                 outputs: {Items: [{Slot: 1, id: "minecraft:saddle", count: 1}], Size: 4},
+                 selected: ["laserassembly:saddle"], current: "laserassembly:saddle", working: 0b, lasers: [L; 0L],
+                 step: 0, progress: 120.0d, heat: 3.0d, overheated: 0b, faces: 1, auto_import: 1b, auto_export: 0b,
+                 switched_on: 1b, redstone_mode: 2, threshold: 7}""")));
+        helper.assertTrue(count(table.inputs(), Items.LEATHER) == 3, "the inputs came back empty");
+        helper.assertTrue(table.outputs().stack(1).is(Items.SADDLE), "the output moved or went");
+        helper.assertTrue(table.selected().contains(SADDLE) && SADDLE.equals(table.current()), "the recipe was forgotten");
+        CompoundTag saved = table.saveWithoutMetadata(registries);
+        helper.assertTrue(saved.getDoubleOr("progress", 0) == 120 && saved.getDoubleOr("heat", 0) == 3, "the work was lost: " + saved);
+        helper.assertTrue(saved.getIntOr("threshold", 0) == 7 && saved.getIntOr("redstone_mode", 0) == 2 && saved.getIntOr("faces", 0) == 1
+                && saved.getBooleanOr("auto_import", false), "the settings were lost: " + saved);
+
+        BlockPos laserPos = new BlockPos(2, 2, 1);
+        helper.setBlock(laserPos, ModBlocks.LASER.get().defaultBlockState().setValue(LaserBlock.FACING, Direction.SOUTH));
+        LaserBlockEntity laser = helper.getBlockEntity(laserPos, LaserBlockEntity.class);
+        laser.loadWithComponents(TagValueInput.create(ProblemReporter.DISCARDING, registries, snbt("""
+                {energy: 4000, intensity: 3, lens: {Items: [{Slot: 0, id: "laserassembly:cut_lens", count: 1}], Size: 1},
+                 augments: {Items: [], Size: 2}, barrel: {Items: [], Size: 3}}""")));
+        helper.assertTrue(laser.energy().getAmountAsInt() == 4000, "the laser lost its energy");
+        helper.assertTrue(laser.intensity() == 3, "the laser lost its intensity");
+        helper.assertTrue(ItemStack.isSameItem(laser.lens().stack(0), lens("cut")), "the laser lost its lens");
+        helper.succeed();
+    }
+
+    private static CompoundTag snbt(String text) {
+        try {
+            return TagParser.parseCompoundFully(text);
+        } catch (CommandSyntaxException e) {
+            throw new IllegalArgumentException(e);
+        }
     }
 
     /**

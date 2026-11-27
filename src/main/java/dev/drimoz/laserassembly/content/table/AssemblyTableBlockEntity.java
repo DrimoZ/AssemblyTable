@@ -424,7 +424,8 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
         output.store("selected", Identifier.CODEC.listOf(), selected);
         output.storeNullable("current", Identifier.CODEC, current);
         output.putBoolean("working", working);
-        output.store("lasers", BlockPos.CODEC.listOf(), lasers);
+        // Packed longs, as 1.21.1 wrote them.
+        output.store("lasers", Codec.LONG_STREAM, lasers.stream().mapToLong(BlockPos::asLong));
     }
 
     private void readSelection(ValueInput input) {
@@ -434,7 +435,7 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
         current = input.read("current", Identifier.CODEC).orElse(null);
         working = input.getBooleanOr("working", false);
         lasers.clear();
-        lasers.addAll(input.read("lasers", BlockPos.CODEC.listOf()).orElse(List.of()));
+        input.read("lasers", Codec.LONG_STREAM).ifPresent(packed -> packed.forEach(pos -> lasers.add(BlockPos.of(pos))));
     }
 
     /**

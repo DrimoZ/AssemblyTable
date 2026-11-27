@@ -155,8 +155,9 @@ For each release, with `X` the version in `gradle.properties`:
 
 - [ ] `## X` in `CHANGELOG.md`, the art regenerated and pushed (`docs/store-art/`).
 - [ ] Tag `vX+<minecraft>` on the version's branch and push it.
-- [ ] Upload the jar from `gradlew build`, release type **Release**, Minecraft 1.21.1, loader
-      NeoForge, Java 21, with the `## X` section of `CHANGELOG.md`.
+- [ ] Upload the jar from `gradlew build`, release type **Release**, loader NeoForge, the branch's
+      game version and Java (1.21.1: Java 21; 26.1.2: Java 25), with the `## X` section of
+      `CHANGELOG.md` (`## X+26.1.2` on the 26.1 branch).
 - [ ] Optional dependencies: JEI and Jade.
 - [ ] Paste the description when it changed; set the project avatar to `src/main/resources/logo.png`
       when the logo did.

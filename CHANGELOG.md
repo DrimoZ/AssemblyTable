@@ -3,6 +3,21 @@
 All notable changes to this project are documented here, newest first.
 Versions follow `{mod version}+{game version}`.
 
+## 1.1.0+26.1.2
+
+The same mod as 1.1.0, ported to Minecraft 26.1.2 (NeoForge 26.1.2.112, Java 25).
+
+### Changed
+- **For pack makers:** recipe ingredients take the vanilla form since 1.21.2 - an item id, a
+  `#tag` or a list of ids, such as `{ "ingredient": "minecraft:iron_ingot", "count": 3 }`. The
+  1.21.1 `{ "item": ... }` form is refused. See the [datapack reference](docs/DATAPACKS.md).
+- Items and energy go through NeoForge's new transfer API: a craft or an automatic transfer
+  happens whole or not at all.
+
+### Worlds
+- Tables and lasers carried over from a 1.21.1 world keep their items, energy, recipe, progress
+  and settings.
+
 ## 1.1.0
 
 ### Fixed
