@@ -92,10 +92,10 @@ public class AssemblyTableMenu extends AbstractContainerMenu {
 
     /**
      * Every assembling recipe, sorted by id: the same list on both sides, which is what lets a click
-     * travel as a plain index through {@link #clickMenuButton}.
+     * travel as a plain index through {@link #clickMenuButton}. Each side takes it once, when the menu
+     * opens, and the screen only reads that copy, so a /reload while it is open cannot shift an index:
+     * the server's recipe update reaches the client after the open packet, or before it, never between.
      */
-    // ponytail: a /reload landing between a click and its arrival can shift the index by one; a
-    // payload carrying the recipe id if that ever bites.
     public static List<RecipeHolder<AssemblyRecipe>> recipes(Level level) {
         return level.getRecipeManager().getAllRecipesFor(ModRecipes.ASSEMBLING.get()).stream()
                 .sorted(Comparator.comparing(holder -> holder.id().toString()))
