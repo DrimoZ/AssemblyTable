@@ -7,7 +7,15 @@ import dev.drimoz.laserassembly.content.laser.LaserBlock;
 import dev.drimoz.laserassembly.content.laser.LaserBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import dev.drimoz.laserassembly.core.Assembly;
+import dev.drimoz.laserassembly.core.Tuning;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.StringTag;
+import net.minecraft.world.entity.EntityType;
+import java.util.function.Consumer;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.HopperBlock;
 import net.minecraft.world.level.block.entity.HopperBlockEntity;
@@ -189,6 +197,113 @@ public final class TableGameTests {
             helper.assertTrue(laser.target() == null, "laser aims through stone at " + laser.target());
             helper.succeed();
         });
+    }
+
+    /** Everything a table holds and is set to comes back from a save as it was: items, selection, work, settings. */
+    @GameTest(template = "platform", timeoutTicks = 100)
+    public static void aSaveKeepsEverything(GameTestHelper helper) {
+        AssemblyTableBlockEntity table = saddleTable(helper);
+        laser(helper, new BlockPos(2, 2, 1), Direction.SOUTH, "cut");
+        table.outputs().setStackInSlot(0, new ItemStack(Items.SADDLE));
+        table.cycleFace(Direction.WEST);
+        table.toggleAutoImport();
+
+        // Halfway through the 40-tick saddle, at intensity 5: progress and heat are both under way.
+        helper.runAfterDelay(20, () -> {
+            HolderLookup.Provider registries = helper.getLevel().registryAccess();
+            CompoundTag saved = table.saveWithoutMetadata(registries);
+            helper.assertTrue(saved.getDouble("progress") > 0 && saved.getDouble("heat") > 0, "nothing under way to save: " + saved);
+            AssemblyTableBlockEntity copy = new AssemblyTableBlockEntity(table.getBlockPos(), table.getBlockState());
+            copy.loadWithComponents(saved, registries);
+            CompoundTag reloaded = copy.saveWithoutMetadata(registries);
+            helper.assertTrue(reloaded.equals(saved), "lost in the round trip:\n" + saved + "\n" + reloaded);
+            helper.succeed();
+        });
+    }
+
+    /**
+     * A recipe gone after a datapack change: the table keeps its id, stops, and gives nothing out -
+     * the ingredients stay where they are, and the laser holds fire.
+     */
+    @GameTest(template = "platform", timeoutTicks = 100)
+    public static void aVanishedRecipeStopsTheTableAndKeepsItsItems(GameTestHelper helper) {
+        AssemblyTableBlockEntity table = saddleTable(helper);
+        ResourceLocation gone = LaserAssembly.id("gone");
+        reload(helper, table, tag -> {
+            ListTag selected = new ListTag();
+            selected.add(StringTag.valueOf(gone.toString()));
+            tag.put("selected", selected);
+            tag.putString("current", gone.toString());
+        });
+        LaserBlockEntity laser = laser(helper, new BlockPos(2, 2, 1), Direction.SOUTH, "cut");
+
+        // Twice the saddle's 40 ticks: long enough to have crafted it, had the table run.
+        helper.runAfterDelay(80, () -> {
+            helper.assertTrue(table.selected().contains(gone), "the table forgot the recipe");
+            helper.assertTrue(!laser.firing(), "the laser fires at a table with nothing to make");
+            assertSaddleIngredients(helper, table);
+            helper.assertTrue(count(table.outputs(), Items.SADDLE) == 0, "crafted without a recipe");
+            helper.assertTrue(helper.getEntities(EntityType.ITEM).isEmpty(), "the table threw items out");
+            helper.succeed();
+        });
+    }
+
+    /** The same id back with fewer steps than the table had reached: it starts over, where it once crashed the server. */
+    @GameTest(template = "platform", timeoutTicks = 100)
+    public static void aRecipeThatShrankStartsOver(GameTestHelper helper) {
+        AssemblyTableBlockEntity table = saddleTable(helper);
+        reload(helper, table, tag -> {
+            tag.putString("current", SADDLE.toString());
+            tag.putInt("step", 2);
+        });
+        laser(helper, new BlockPos(2, 2, 1), Direction.SOUTH, "cut");
+        helper.succeedWhen(() -> helper.assertTrue(count(table.outputs(), Items.SADDLE) == 1, "no saddle yet"));
+    }
+
+    /** At max heat the table stops, the laser holds fire, and nothing is lost: not an item, not the progress. */
+    @GameTest(template = "platform", timeoutTicks = 60)
+    public static void overheatingStopsWithoutDestroying(GameTestHelper helper) {
+        AssemblyTableBlockEntity table = saddleTable(helper);
+        // One tick short of the maximum: intensity 5 on an intensity-1 step heats 2 a tick, less 1 dissipated.
+        reload(helper, table, tag -> {
+            tag.putDouble("heat", Tuning.DEFAULTS.maxHeat() - 1);
+            tag.putDouble("progress", 1000);
+        });
+        LaserBlockEntity laser = laser(helper, new BlockPos(2, 2, 1), Direction.SOUTH, "cut");
+
+        helper.succeedWhen(() -> {
+            helper.assertTrue(table.status() == Assembly.Status.OVERHEATED, "not overheated: " + table.status());
+            helper.assertTrue(!laser.firing(), "the laser fires at an overheated table");
+            helper.assertTrue(table.stepProgress() > 0, "the progress was lost");
+            helper.assertTrue(helper.getBlockState(new BlockPos(2, 2, 3)).is(ModBlocks.ASSEMBLY_TABLE.get()), "the table is gone");
+            assertSaddleIngredients(helper, table);
+            helper.assertTrue(helper.getEntities(EntityType.ITEM).isEmpty(), "the table threw items out");
+        });
+    }
+
+    /** A table at (2, 2, 3) with the saddle ticked and one craft's ingredients in it. */
+    private static AssemblyTableBlockEntity saddleTable(GameTestHelper helper) {
+        BlockPos tablePos = new BlockPos(2, 2, 3);
+        helper.setBlock(tablePos, ModBlocks.ASSEMBLY_TABLE.get());
+        AssemblyTableBlockEntity table = helper.getBlockEntity(tablePos);
+        table.toggle(SADDLE);
+        insert(table.inputs(), Items.LEATHER, 3);
+        insert(table.inputs(), Items.IRON_INGOT, 1);
+        insert(table.inputs(), Items.STRING, 2);
+        return table;
+    }
+
+    private static void assertSaddleIngredients(GameTestHelper helper, AssemblyTableBlockEntity table) {
+        helper.assertTrue(count(table.inputs(), Items.LEATHER) == 3 && count(table.inputs(), Items.IRON_INGOT) == 1
+                && count(table.inputs(), Items.STRING) == 2, "the ingredients moved");
+    }
+
+    /** What a save edited by a datapack change, or a world left in that state, loads as. */
+    private static void reload(GameTestHelper helper, AssemblyTableBlockEntity table, Consumer<CompoundTag> edit) {
+        HolderLookup.Provider registries = helper.getLevel().registryAccess();
+        CompoundTag tag = table.saveWithoutMetadata(registries);
+        edit.accept(tag);
+        table.loadWithComponents(tag, registries);
     }
 
     /** Returns what did not go in. */
