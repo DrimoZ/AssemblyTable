@@ -200,29 +200,40 @@ public final class GenerateTextures {
         lens("engrave_lens", 0x3CE05A);
 
         augment("regulator_augment", 0xE8D44A, 0, "regulator");
-        augment("barrel_augment", 0xB0B0C8, 0, "barrel");
+        // Darker than the others: the three lens colours sit on it, and a pale screen washed them out.
+        augment("barrel_augment", 0x6E6E8C, 0, "barrel");
         augment("range_augment_1", 0x4AC8E8, 1, "range");
         augment("range_augment_2", 0x2A8CD8, 2, "range");
         augment("efficiency_augment_1", 0x6AD86A, 1, "efficiency");
         augment("efficiency_augment_2", 0x2EA84A, 2, "efficiency");
     }
 
-    /** Glass in the beam's colour, lit from the top-left, in a steel rim. */
+    /**
+     * Glass in the beam's colour set in a steel ring: the ring lit top-left like the blocks' bevel,
+     * the glass darker at its edge and brighter towards its heart, a curved glint along its upper
+     * left and a small one opposite. A flat disc with a white dot read as a marble, not a lens.
+     */
     private static void lens(String name, int colour) throws IOException {
         BufferedImage image = blank();
         for (int y = 0; y < 16; y++) {
             for (int x = 0; x < 16; x++) {
                 double d = distance(x, y);
-                if (d <= 5.2) {
-                    set(image, x, y, shade(colour, 1.15 - 0.045 * (x + y - 8)));
-                } else if (d <= 7.0) {
-                    set(image, x, y, x + y < 15 ? BEVEL : SHADOW);
+                boolean lit = x + y < 15;
+                if (d <= 4.9) {
+                    // Brighter towards the centre and the top-left, never washed out to white.
+                    set(image, x, y, shade(colour, 1.2 - 0.06 * d - 0.025 * (x + y - 15)));
+                } else if (d <= 5.8) {
+                    set(image, x, y, shade(colour, lit ? 0.55 : 0.4));
+                } else if (d <= 6.8) {
+                    set(image, x, y, lit ? BEVEL_LIGHT : PLATE_DARK);
+                } else if (d <= 7.6) {
+                    set(image, x, y, RIM);
                 }
             }
         }
-        set(image, 5, 5, 0xFFFFFF);
-        set(image, 6, 5, 0xFFFFFF);
-        set(image, 5, 6, 0xFFFFFF);
+        for (int[] p : new int[][]{{4, 7}, {4, 6}, {5, 5}, {6, 4}, {7, 4}}) set(image, p[0], p[1], shade(0xFFFFFF, 0.97));
+        set(image, 5, 6, shade(colour, 1.6));
+        set(image, 10, 10, shade(colour, 1.5));
         write("item/" + name, image);
     }
 
@@ -239,21 +250,29 @@ public final class GenerateTextures {
             ".kLK........KDk.",
             ".kLKKKKKKKKKKDk.",
             ".kDDDDDDDDDDDDk.",
-            ".kDDD1DDDD2DDDk.",
+            ".kDD11DDDD22DDk.",
             ".kSSSSSSSSSSSSk.",
             "..kkkkkkkkkkkk..",
             "................"};
 
-    /** 8x6 white glyphs on the screen: shape carries the meaning, so two close colours stay apart. */
+    /**
+     * 8x6 glyphs on the screen: shape carries the meaning, so two close colours stay apart. {@code w}
+     * is white; {@code o}, {@code b}, {@code g} are the three lenses' own colours; see {@link #GLYPH_COLOURS}.
+     */
     private static final Map<String, String[]> GLYPHS = Map.of(
-            // A gauge with its needle: sets its own intensity.
-            "regulator", new String[]{"..wwww..", ".w....w.", "w...w..w", "w..w...w", "w.ww...w", "........"},
-            // Three chambers: more lenses.
-            "barrel", new String[]{"...ww...", "...ww...", "........", "ww....ww", "ww....ww", "........"},
+            // Two mixer sliders at different settings: it sets its own intensity. The gauge it
+            // replaced read as a scribble at 16 pixels.
+            "regulator", new String[]{".d....d.", "www...d.", "www...d.", ".d...www", ".d...www", ".d....d."},
+            // The three lenses, in their colours, as a revolver's chambers: it carries more lenses.
+            "barrel", new String[]{"...oo...", "...oo...", "........", ".bb..gg.", ".bb..gg.", "........"},
             // Double chevron: reaches further.
             "range", new String[]{"ww..ww..", ".ww..ww.", "..ww..ww", ".ww..ww.", "ww..ww..", "........"},
-            // Arrow down: draws less.
-            "efficiency", new String[]{"...ww...", "...ww...", "...ww...", ".wwwwww.", "..wwww..", "...ww..."});
+            // A lightning bolt: the energy it saves. The arrow down it replaced said "less" of nothing.
+            "efficiency", new String[]{"...ww...", "..ww....", ".wwwwww.", "....ww..", "...ww...", "..w....."});
+
+    /** {@code d} is a slider's dark track, under its white knob. */
+    private static final Map<Character, Integer> GLYPH_COLOURS = Map.of(
+            'w', 0xFFFFFF, 'd', 0x2A2614, 'o', 0xFF8C1A, 'b', 0x3C8CFF, 'g', 0x3CE05A);
 
     /**
      * FactoryIO's module: a dark casing round a screen in the augment's colour, lit from the top,
@@ -281,7 +300,8 @@ public final class GenerateTextures {
         String[] art = GLYPHS.get(glyph);
         for (int y = 0; y < rows.length; y++) {
             for (int x = 0; x < 8; x++) {
-                set(image, 4 + x, 4 + y, art[y].charAt(x) == 'w' ? 0xFFFFFF : shade(colour, rows[y] * 1.4));
+                Integer ink = GLYPH_COLOURS.get(art[y].charAt(x));
+                set(image, 4 + x, 4 + y, ink != null ? ink : shade(colour, rows[y] * 1.4));
             }
         }
         write("item/" + name, image);
