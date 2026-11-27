@@ -54,6 +54,7 @@ plain item ids. A recipe:
 ```
 
 The server config sets the rest: intensity thresholds, raw beam factor, stacking, heat, range.
+Every field and setting is in the [datapack reference](docs/DATAPACKS.md).
 
 **Optional companions:** [JEI](https://www.curseforge.com/minecraft/mc-mods/jei) shows every recipe
 with the lens each step needs; [Jade](https://www.curseforge.com/minecraft/mc-mods/jade) shows what

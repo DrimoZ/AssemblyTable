@@ -3,6 +3,23 @@
 All notable changes to this project are documented here, newest first.
 Versions follow `{mod version}+{game version}`.
 
+## Unreleased
+
+### Fixed
+- A table could crash the server when a datapack change brought its recipe back with fewer steps
+  than it had reached. It now starts the recipe over.
+- Lasers near an idle table no longer relink to it every second, which sent needless updates and
+  reordered the lasers tab under the cursor.
+- A server config with `max_multiplier` below `heat_multiplier` is reported once when it loads,
+  and each recipe it disables is named once, instead of a warning on every inventory change.
+
+### Changed
+- The table no longer has a `powered` block state: it read its own signal already.
+
+### Added
+- A [datapack reference](docs/DATAPACKS.md): every field of recipes, beam types, augments and
+  coolants, and every server setting.
+
 ## 1.0.0
 
 The first release.
