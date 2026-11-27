@@ -6,6 +6,8 @@ Versions follow `{mod version}+{game version}`.
 ## Unreleased
 
 ### Fixed
+- Opening a table or a laser before the client had received its chunk (lag after a teleport, a
+  remote opener) disconnected the player. The screen now opens.
 - A table could crash the server when a datapack change brought its recipe back with fewer steps
   than it had reached. It now starts the recipe over.
 - Lasers near an idle table no longer relink to it every second, which sent needless updates and

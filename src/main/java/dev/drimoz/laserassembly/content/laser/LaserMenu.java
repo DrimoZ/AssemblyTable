@@ -2,7 +2,9 @@ package dev.drimoz.laserassembly.content.laser;
 
 import dev.drimoz.laserassembly.gui.GuiMetrics;
 import dev.drimoz.laserassembly.registry.ModBlocks;
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -33,8 +35,18 @@ public class LaserMenu extends AbstractContainerMenu {
     private final ContainerLevelAccess access;
 
     public LaserMenu(int id, Inventory inventory, RegistryFriendlyByteBuf buf) {
-        this(id, inventory, (LaserBlockEntity) inventory.player.level().getBlockEntity(buf.readBlockPos()),
-                new SimpleContainerData(LaserBlockEntity.DATA_COUNT));
+        this(id, inventory, onClient(inventory.player.level(), buf.readBlockPos()), new SimpleContainerData(LaserBlockEntity.DATA_COUNT));
+    }
+
+    /**
+     * The client's laser at {@code pos}, or a stand-in when it has none there: a missing one made the
+     * menu throw and disconnected the player. The slots are filled by the server's sync either way.
+     */
+    private static LaserBlockEntity onClient(Level level, BlockPos pos) {
+        if (level.getBlockEntity(pos) instanceof LaserBlockEntity laser) return laser;
+        LaserBlockEntity standIn = new LaserBlockEntity(pos, ModBlocks.LASER.get().defaultBlockState());
+        standIn.setLevel(level);
+        return standIn;
     }
 
     public LaserMenu(int id, Inventory inventory, LaserBlockEntity laser, ContainerData data) {

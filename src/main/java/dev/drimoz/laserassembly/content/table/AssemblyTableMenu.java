@@ -4,6 +4,7 @@ import dev.drimoz.laserassembly.gui.GuiMetrics;
 import dev.drimoz.laserassembly.recipe.AssemblyRecipe;
 import dev.drimoz.laserassembly.registry.ModBlocks;
 import dev.drimoz.laserassembly.registry.ModRecipes;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.entity.player.Inventory;
@@ -55,8 +56,18 @@ public class AssemblyTableMenu extends AbstractContainerMenu {
 
     /** Client side: the table is the one the client already has at that position. */
     public AssemblyTableMenu(int id, Inventory inventory, RegistryFriendlyByteBuf buf) {
-        this(id, inventory, (AssemblyTableBlockEntity) inventory.player.level().getBlockEntity(buf.readBlockPos()),
-                new SimpleContainerData(AssemblyTableBlockEntity.DATA_COUNT));
+        this(id, inventory, onClient(inventory.player.level(), buf.readBlockPos()), new SimpleContainerData(AssemblyTableBlockEntity.DATA_COUNT));
+    }
+
+    /**
+     * The client's table at {@code pos}, or a stand-in when it has none there: a missing one made the
+     * menu throw and disconnected the player. The slots are filled by the server's sync either way.
+     */
+    private static AssemblyTableBlockEntity onClient(Level level, BlockPos pos) {
+        if (level.getBlockEntity(pos) instanceof AssemblyTableBlockEntity table) return table;
+        AssemblyTableBlockEntity standIn = new AssemblyTableBlockEntity(pos, ModBlocks.ASSEMBLY_TABLE.get().defaultBlockState());
+        standIn.setLevel(level);
+        return standIn;
     }
 
     public AssemblyTableMenu(int id, Inventory inventory, AssemblyTableBlockEntity table, ContainerData data) {
