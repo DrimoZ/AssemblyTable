@@ -9,19 +9,20 @@ decision in it was settled one by one with the maintainer; do not reopen one in 
 
 ## Branches
 
-One branch per Minecraft version. `1.21.1` (NeoForge) is the only one so far; `master` still holds
-the abandoned Forge 1.20.1 prototype. Ports are decided once 1.21.1 has been played. Changes go on
-the oldest branch they apply to and are merged forward, as in Ore Vein Tweaker.
+One branch per Minecraft version: `1.21.1` (NeoForge, released) and `26.1` (NeoForge 26.1.2, the
+port in progress, sized in `PORTING.md`); `master` still holds the abandoned Forge 1.20.1 prototype.
+Changes go on the oldest branch they apply to and are merged forward, as in Ore Vein Tweaker.
 
 ## Build and run
 
 | Task | What it does |
 |---|---|
-| `gradlew build` | jar + JUnit, `build/libs/laserassembly-<version>+1.21.1.jar` |
+| `gradlew build` | jar + JUnit, `build/libs/laserassembly-<version>+26.1.2.jar` |
 | `gradlew test` | JUnit over the pure-logic classes in `core/` |
-| `gradlew runGameTestServer` | every `@GameTest` headlessly, non-zero exit on failure |
+| `gradlew runGameTestServer` | every GameTest headlessly, non-zero exit on failure |
 | `gradlew runClient` / `runServer` | dev client / dedicated server, game directory `run/` |
-| `gradlew runData` | datagen into `src/generated/resources`, which is committed |
+
+No datagen: every JSON under `src/main/resources` is written by hand.
 
 `org.gradle.daemon=false`: every invocation pays a full JVM start, so keep Gradle out of anything
 that runs per-edit. Each run owns its game directory on purpose (see `build.gradle`).

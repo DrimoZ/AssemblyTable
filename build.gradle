@@ -7,15 +7,13 @@ version = "${mod_version}+${minecraft_version}"
 group = mod_group_id
 base { archivesName = mod_id }
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+// 26.1 runs on Java 25.
+java.toolchain.languageVersion = JavaLanguageVersion.of(25)
 
 neoForge {
     version = project.neo_version
 
-    parchment {
-        minecraftVersion = '1.21.1'
-        mappingsVersion = '2024.11.17'
-    }
+    // No parchment: Mojang stopped obfuscating in 26.1, the real parameter names ship with the game.
 
     runs {
         client {
@@ -36,14 +34,6 @@ neoForge {
             type = 'gameTestServer'
             systemProperty 'neoforge.enabledGameTestNamespaces', mod_id
             gameDirectory = project.file('run-gametest')
-        }
-        // 1.21.1 has a single datagen run; clientData()/serverData() only exist from 1.21.4 on.
-        data {
-            data()
-            gameDirectory = project.file('run-data')
-            programArguments.addAll '--mod', mod_id, '--all',
-                    '--output', file('src/generated/resources/').absolutePath,
-                    '--existing', file('src/main/resources/').absolutePath
         }
         configureEach {
             // gameDirectory is set per run, not here: configureEach would overwrite the game test
@@ -83,15 +73,14 @@ configurations {
 }
 
 dependencies {
-    // For testing by hand only - JEI to read recipes, Jade to read a table at a glance, Mekanism for
-    // FE (its creative energy cube) and cables. None is required to play.
-    devMods "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
+    // For testing by hand only - JEI to read recipes, Jade to read a table at a glance. Neither is
+    // required to play.
+    devMods "mezz.jei:jei-${jei_minecraft_version}-neoforge:${jei_version}"
     devMods "maven.modrinth:jade:${jade_version}"
-    devMods "maven.modrinth:mekanism:${mekanism_version}"
 
     // JEI and Jade integrations compile against them; both stay optional, each behind a plugin class
     // only that mod ever loads.
-    compileOnly "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
+    compileOnly "mezz.jei:jei-${jei_minecraft_version}-neoforge:${jei_version}"
     compileOnly "maven.modrinth:jade:${jade_version}"
 
     // Pure-logic classes under core/ are plain Java and unit-testable.
@@ -131,7 +120,6 @@ var generateModMetadata = tasks.register('generateModMetadata', ProcessResources
             minecraft_version_range: minecraft_version_range,
             neo_version            : neo_version,
             neo_version_range      : neo_version_range,
-            loader_version_range   : loader_version_range,
             mod_id                 : mod_id,
             mod_name               : mod_name,
             mod_license            : mod_license,
@@ -158,6 +146,6 @@ tasks.named('jar', Jar) {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
-    options.release = 21
+    options.release = 25
     options.compilerArgs << '-Xlint:deprecation'
 }
