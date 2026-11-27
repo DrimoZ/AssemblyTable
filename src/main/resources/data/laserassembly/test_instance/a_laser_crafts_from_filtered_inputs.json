@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:function",
+  "function": "laserassembly:a_laser_crafts_from_filtered_inputs",
+  "environment": "minecraft:default",
+  "structure": "laserassembly:platform",
+  "max_ticks": 200
+}

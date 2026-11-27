@@ -11,13 +11,13 @@ import dev.drimoz.laserassembly.core.Tuning;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.ExtraCodecs;
 
 import java.util.Optional;
 
 /** One step as a datapack writes it: its thresholds stay unresolved until the config is known. */
-public record RecipeStep(Optional<ResourceLocation> beam, int energy, Overrides intensity, boolean strict) {
+public record RecipeStep(Optional<Identifier> beam, int energy, Overrides intensity, boolean strict) {
 
     private static final Codec<Double> POSITIVE = Codec.DOUBLE.validate(value -> value > 0
             ? DataResult.success(value) : DataResult.error(() -> "must be above 0, got " + value));
@@ -38,14 +38,14 @@ public record RecipeStep(Optional<ResourceLocation> beam, int energy, Overrides 
             Overrides::new);
 
     static final Codec<RecipeStep> CODEC = RecordCodecBuilder.create(i -> i.group(
-            ResourceLocation.CODEC.optionalFieldOf("beam").forGetter(RecipeStep::beam),
+            Identifier.CODEC.optionalFieldOf("beam").forGetter(RecipeStep::beam),
             ExtraCodecs.POSITIVE_INT.fieldOf("energy").forGetter(RecipeStep::energy),
             OVERRIDES.forGetter(RecipeStep::intensity),
             Codec.BOOL.optionalFieldOf("strict", false).forGetter(RecipeStep::strict)
     ).apply(i, RecipeStep::new));
 
     static final StreamCodec<ByteBuf, RecipeStep> STREAM_CODEC = StreamCodec.composite(
-            ResourceLocation.STREAM_CODEC.apply(ByteBufCodecs::optional), RecipeStep::beam,
+            Identifier.STREAM_CODEC.apply(ByteBufCodecs::optional), RecipeStep::beam,
             ByteBufCodecs.VAR_INT, RecipeStep::energy,
             OVERRIDES_STREAM, RecipeStep::intensity,
             ByteBufCodecs.BOOL, RecipeStep::strict,

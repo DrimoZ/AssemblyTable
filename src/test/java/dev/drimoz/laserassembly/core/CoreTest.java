@@ -3,7 +3,7 @@ package dev.drimoz.laserassembly.core;
 import dev.drimoz.laserassembly.core.Assembly.Status;
 import dev.drimoz.laserassembly.core.Step.Fit;
 import dev.drimoz.laserassembly.core.Thresholds.Overrides;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -14,25 +14,25 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class CoreTest {
 
-    static final ResourceLocation CUT = ResourceLocation.fromNamespaceAndPath("laserassembly", "cut");
-    static final ResourceLocation WELD = ResourceLocation.fromNamespaceAndPath("laserassembly", "weld");
+    static final Identifier CUT = Identifier.fromNamespaceAndPath("laserassembly", "cut");
+    static final Identifier WELD = Identifier.fromNamespaceAndPath("laserassembly", "weld");
 
     // min 2 -> a beam heats above 4 and is too strong above 8. 10 FE of progress per point of power,
     // and each extra beam counts half the one before, so sums stay exact.
     static final Tuning TUNING = new Tuning(2, 2, 4, 0.25, 10, 50, 10, 100, 0.5);
 
-    static Step step(ResourceLocation beam, int energy) {
+    static Step step(Identifier beam, int energy) {
         return new Step(Optional.ofNullable(beam), energy, Thresholds.resolve(Overrides.NONE, Overrides.NONE, TUNING), false);
     }
 
     /** {@code count} beams of one type and intensity. */
-    static Beams beams(ResourceLocation beam, double intensity, int count) {
+    static Beams beams(Identifier beam, double intensity, int count) {
         Beams beams = new Beams();
         for (int i = 0; i < count; i++) beams.add(beam, intensity);
         return beams;
     }
 
-    static Beams beams(ResourceLocation beam, double intensity) {
+    static Beams beams(Identifier beam, double intensity) {
         return beams(beam, intensity, 1);
     }
 

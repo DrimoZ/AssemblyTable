@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:function",
+  "function": "laserassembly:an_item_fitting_two_ingredients_goes_where_it_is_needed",
+  "environment": "minecraft:default",
+  "structure": "laserassembly:platform",
+  "max_ticks": 20
+}

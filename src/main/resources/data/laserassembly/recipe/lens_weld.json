@@ -1,8 +1,8 @@
 {
   "type": "laserassembly:assembling",
   "ingredients": [
-    { "ingredient": { "item": "minecraft:glass_pane" }, "count": 2 },
-    { "ingredient": { "item": "minecraft:blaze_powder" }, "count": 1 }
+    { "ingredient": "minecraft:glass_pane", "count": 2 },
+    { "ingredient": "minecraft:blaze_powder", "count": 1 }
   ],
   "result": { "id": "laserassembly:weld_lens" },
   "energy": 2000

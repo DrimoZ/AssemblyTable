@@ -13,16 +13,15 @@ import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
 import mezz.jei.api.helpers.IGuiHelper;
 import mezz.jei.api.recipe.IFocusGroup;
 import mezz.jei.api.recipe.RecipeIngredientRole;
-import mezz.jei.api.recipe.RecipeType;
+import mezz.jei.api.recipe.types.IRecipeHolderType;
 import mezz.jei.api.recipe.category.IRecipeCategory;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.neoforged.neoforge.common.crafting.SizedIngredient;
 
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -33,8 +32,8 @@ import java.util.List;
  */
 final class AssemblyCategory implements IRecipeCategory<RecipeHolder<AssemblyRecipe>> {
 
-    static final RecipeType<RecipeHolder<AssemblyRecipe>> TYPE =
-            RecipeType.createRecipeHolderType(LaserAssembly.id("assembling"));
+    static final IRecipeHolderType<AssemblyRecipe> TYPE =
+            IRecipeHolderType.create(LaserAssembly.id("assembling"));
 
     private static final int COLUMNS = 6;
     private static final int SLOT = 18;
@@ -52,7 +51,7 @@ final class AssemblyCategory implements IRecipeCategory<RecipeHolder<AssemblyRec
     }
 
     @Override
-    public RecipeType<RecipeHolder<AssemblyRecipe>> getRecipeType() {
+    public IRecipeHolderType<AssemblyRecipe> getRecipeType() {
         return TYPE;
     }
 
@@ -81,7 +80,7 @@ final class AssemblyCategory implements IRecipeCategory<RecipeHolder<AssemblyRec
         List<SizedIngredient> ingredients = holder.value().ingredients();
         for (int i = 0; i < ingredients.size(); i++) {
             builder.addSlot(RecipeIngredientRole.INPUT, inputX(i) + 1, inputY(i, ingredients.size()) + 1)
-                    .addItemStacks(Arrays.asList(ingredients.get(i).getItems()));
+                    .addItemStacks(stacks(ingredients.get(i)));
         }
         List<Step> steps = steps(holder);
         for (int i = 0; i < steps.size(); i++) {
@@ -89,22 +88,27 @@ final class AssemblyCategory implements IRecipeCategory<RecipeHolder<AssemblyRec
             Component line = Component.translatable(LaserAssembly.MOD_ID + ".gui.recipe.step",
                     step.beam().map(BeamType::name).orElse(Component.translatable(LaserAssembly.MOD_ID + ".beam.raw")),
                     step.energy(), (int) step.thresholds().min());
-            builder.addSlot(RecipeIngredientRole.CATALYST, stepX(i, steps.size()) + 1, SLOT + 1)
-                    .addItemStack(tool(step))
+            builder.addSlot(RecipeIngredientRole.CRAFTING_STATION, stepX(i, steps.size()) + 1, SLOT + 1)
+                    .add(tool(step))
                     .addRichTooltipCallback((view, tooltip) -> tooltip.add(line));
         }
         builder.addSlot(RecipeIngredientRole.OUTPUT, RESULT_X + 1, SLOT / 2 + 1)
-                .addItemStack(holder.value().getResultItem(Minecraft.getInstance().level.registryAccess()));
+                .add(holder.value().result());
     }
 
     @Override
-    public void draw(RecipeHolder<AssemblyRecipe> holder, IRecipeSlotsView slots, GuiGraphics graphics, double mouseX, double mouseY) {
+    public void draw(RecipeHolder<AssemblyRecipe> holder, IRecipeSlotsView slots, GuiGraphicsExtractor graphics, double mouseX, double mouseY) {
         int count = holder.value().ingredients().size();
         for (int i = 0; i < count; i++) GuiSprites.slot(graphics, inputX(i), inputY(i, count), false);
         int steps = steps(holder).size();
         for (int i = 0; i < steps; i++) GuiSprites.slot(graphics, stepX(i, steps), SLOT, false);
         GuiSprites.slot(graphics, RESULT_X, SLOT / 2, false);
         GuiSprites.arrow(graphics, MIDDLE_X + (MIDDLE_WIDTH - 20) / 2, 2, 0);
+    }
+
+    /** Every item the ingredient takes, at its count: the bare ingredient would show one of each. */
+    private static List<ItemStack> stacks(SizedIngredient sized) {
+        return sized.ingredient().getValues().stream().map(item -> new ItemStack(item, sized.count())).toList();
     }
 
     private static int inputX(int i) {
@@ -123,7 +127,7 @@ final class AssemblyCategory implements IRecipeCategory<RecipeHolder<AssemblyRec
     /** What a step asks for: its beam's lens, or any laser for a raw beam. */
     private static ItemStack tool(Step step) {
         return step.beam()
-                .flatMap(beam -> Minecraft.getInstance().level.registryAccess().registry(BeamType.REGISTRY).map(beams -> beams.get(beam)))
+                .flatMap(beam -> Minecraft.getInstance().level.registryAccess().lookup(BeamType.REGISTRY).map(beams -> beams.getValue(beam)))
                 .map(type -> new ItemStack(type.item()))
                 .orElseGet(() -> new ItemStack(ModBlocks.LASER_ITEM.get()));
     }

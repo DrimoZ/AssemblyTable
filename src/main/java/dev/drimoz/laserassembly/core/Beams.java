@@ -1,7 +1,7 @@
 package dev.drimoz.laserassembly.core;
 
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -15,7 +15,7 @@ import java.util.List;
 public final class Beams {
 
     /** Null for a raw beam: a laser without a lens. */
-    private final List<@Nullable ResourceLocation> types = new ArrayList<>();
+    private final List<@Nullable Identifier> types = new ArrayList<>();
     private final DoubleArrayList intensities = new DoubleArrayList();
 
     public void clear() {
@@ -23,7 +23,7 @@ public final class Beams {
         intensities.clear();
     }
 
-    public void add(@Nullable ResourceLocation beam, double intensity) {
+    public void add(@Nullable Identifier beam, double intensity) {
         types.add(beam);
         intensities.add(intensity);
     }
@@ -32,7 +32,7 @@ public final class Beams {
         return types.size();
     }
 
-    public @Nullable ResourceLocation type(int index) {
+    public @Nullable Identifier type(int index) {
         return types.get(index);
     }
 

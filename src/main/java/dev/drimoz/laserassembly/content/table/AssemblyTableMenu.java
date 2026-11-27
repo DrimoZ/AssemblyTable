@@ -17,9 +17,8 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.level.Level;
-import net.neoforged.neoforge.items.SlotItemHandler;
+import net.neoforged.neoforge.transfer.item.ResourceHandlerSlot;
 
-import java.util.Comparator;
 import java.util.List;
 
 public class AssemblyTableMenu extends AbstractContainerMenu {
@@ -78,11 +77,11 @@ public class AssemblyTableMenu extends AbstractContainerMenu {
         this.recipes = recipes(table.getLevel());
 
         for (int i = 0; i < AssemblyTableBlockEntity.INPUTS; i++) {
-            addSlot(new SlotItemHandler(table.inputs(), i,
+            addSlot(new ResourceHandlerSlot(table.inputs(), table.inputs()::set, i,
                     GuiMetrics.column(1 + i % INPUT_COLUMNS) + 1, WORK_TOP + (i / INPUT_COLUMNS) * GuiMetrics.SLOT + 1));
         }
         for (int i = 0; i < AssemblyTableBlockEntity.OUTPUTS; i++) {
-            addSlot(new SlotItemHandler(table.outputs(), i, GuiMetrics.column(OUTPUT_COLUMN + i % 2) + 1, OUTPUT_TOP + (i / 2) * GuiMetrics.SLOT + 1) {
+            addSlot(new ResourceHandlerSlot(table.outputs(), table.outputs()::set, i, GuiMetrics.column(OUTPUT_COLUMN + i % 2) + 1, OUTPUT_TOP + (i / 2) * GuiMetrics.SLOT + 1) {
                 @Override
                 public boolean mayPlace(ItemStack stack) {
                     return false;
@@ -108,9 +107,7 @@ public class AssemblyTableMenu extends AbstractContainerMenu {
      * the server's recipe update reaches the client after the open packet, or before it, never between.
      */
     public static List<RecipeHolder<AssemblyRecipe>> recipes(Level level) {
-        return level.getRecipeManager().getAllRecipesFor(ModRecipes.ASSEMBLING.get()).stream()
-                .sorted(Comparator.comparing(holder -> holder.id().toString()))
-                .toList();
+        return ModRecipes.all(level);
     }
 
     @Override
@@ -127,7 +124,7 @@ public class AssemblyTableMenu extends AbstractContainerMenu {
         else if (id >= BUTTON_LASER && id < BUTTON_LASERS_ALL) table.stepLaser((id - BUTTON_LASER) / 2, (id - BUTTON_LASER) % 2 == 0 ? -1 : 1);
         else if (id == BUTTON_AUTO_IMPORT) table.toggleAutoImport();
         else if (id == BUTTON_AUTO_EXPORT) table.toggleAutoExport();
-        else if (id >= 0 && id < recipes.size()) table.toggle(recipes.get(id).id());
+        else if (id >= 0 && id < recipes.size()) table.toggle(recipes.get(id).id().identifier());
         else return false;
         return true;
     }

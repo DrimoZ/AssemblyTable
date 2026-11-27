@@ -7,10 +7,10 @@
     "III"
   ],
   "key": {
-    "I": { "item": "minecraft:iron_ingot" },
-    "G": { "item": "minecraft:glass" },
-    "R": { "item": "minecraft:redstone" },
-    "C": { "item": "minecraft:crafting_table" }
+    "I": "minecraft:iron_ingot",
+    "G": "minecraft:glass",
+    "R": "minecraft:redstone",
+    "C": "minecraft:crafting_table"
   },
   "result": { "id": "laserassembly:assembly_table", "count": 1 }
 }

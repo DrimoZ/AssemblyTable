@@ -10,22 +10,21 @@ import dev.drimoz.laserassembly.core.Step;
 import dev.drimoz.laserassembly.core.Tuning;
 import dev.drimoz.laserassembly.recipe.AssemblyRecipe;
 import dev.drimoz.laserassembly.registry.ModBlocks;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntList;
+import dev.drimoz.laserassembly.content.ItemSlots;
+import dev.drimoz.laserassembly.registry.ModRecipes;
+import com.mojang.serialization.Codec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.StringTag;
-import net.minecraft.nbt.Tag;
 import net.minecraft.network.Connection;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -36,17 +35,24 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerData;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.entity.player.StackedContents;
+import net.minecraft.world.entity.player.StackedItemContents;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemStackTemplate;
+import net.minecraft.util.ProblemReporter;
+import net.minecraft.world.level.storage.TagValueOutput;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.capabilities.BlockCapabilityCache;
 import net.neoforged.neoforge.capabilities.Capabilities;
-import net.neoforged.neoforge.items.IItemHandler;
-import net.neoforged.neoforge.items.IItemHandlerModifiable;
-import net.neoforged.neoforge.items.ItemHandlerHelper;
-import net.neoforged.neoforge.items.ItemStackHandler;
-import net.neoforged.neoforge.items.wrapper.CombinedInvWrapper;
+import net.neoforged.neoforge.transfer.CombinedResourceHandler;
+import net.neoforged.neoforge.transfer.ResourceHandler;
+import net.neoforged.neoforge.transfer.ResourceHandlerUtil;
+import net.neoforged.neoforge.transfer.item.ItemResource;
+import net.neoforged.neoforge.transfer.transaction.Transaction;
+import net.neoforged.neoforge.transfer.transaction.TransactionContext;
 
 import java.util.function.ToIntFunction;
 import org.jetbrains.annotations.Nullable;
@@ -117,31 +123,31 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
         }
     };
 
-    private final ItemStackHandler inputs = new ItemStackHandler(INPUTS) {
+    private final ItemSlots inputs = new ItemSlots(INPUTS) {
         @Override
-        protected void onContentsChanged(int slot) {
+        protected void onContentsChanged(int slot, ItemStack previous) {
             contentsChanged();
         }
 
         /** Only what a ticked recipe uses; a player may put in whole stacks of it, automation less (see {@link #room}). */
         @Override
-        public boolean isItemValid(int slot, ItemStack stack) {
-            return uses(stack) > 0;
+        public boolean isValid(int slot, ItemResource resource) {
+            return uses(resource) > 0;
         }
     };
 
-    private final ItemStackHandler outputs = new ItemStackHandler(OUTPUTS) {
+    private final ItemSlots outputs = new ItemSlots(OUTPUTS) {
         @Override
-        protected void onContentsChanged(int slot) {
+        protected void onContentsChanged(int slot, ItemStack previous) {
             contentsChanged();
         }
     };
 
     /** What pipes and hoppers see: inputs take, outputs give, nothing else. */
     private final OneWay inputView = new OneWay(inputs, true, this::room);
-    private final OneWay outputView = new OneWay(outputs, false, stack -> 0);
+    private final OneWay outputView = new OneWay(outputs, false, resource -> 0);
     /** What pipes and hoppers see on a face set to both: inputs take, outputs give, nothing else. */
-    private final IItemHandler automation = new CombinedInvWrapper(inputView, outputView);
+    private final ResourceHandler<ItemResource> automation = new CombinedResourceHandler<>(inputView, outputView);
 
     /** What each face lets automation do, by direction ordinal. The top is not configurable: see {@link #handler}. */
     private final FaceMode[] faces = {FaceMode.BOTH, FaceMode.BOTH, FaceMode.BOTH, FaceMode.BOTH, FaceMode.BOTH, FaceMode.BOTH};
@@ -152,10 +158,10 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
     private int threshold = 1;
     private int signal;
     /** Neighbours' item handlers, one cache per face, built on first use on the server. */
-    private final BlockCapabilityCache<IItemHandler, @Nullable Direction>[] neighbours = newCaches();
+    private final BlockCapabilityCache<ResourceHandler<ItemResource>, @Nullable Direction>[] neighbours = newCaches();
 
-    private final List<ResourceLocation> selected = new ArrayList<>();
-    private @Nullable ResourceLocation current;
+    private final List<Identifier> selected = new ArrayList<>();
+    private @Nullable Identifier current;
     /** Synced, for the assembly on display. */
     private boolean working;
     /** Lasers aiming here, which register and leave themselves. Synced, for the lasers tab; not saved: they come back within a second. */
@@ -296,7 +302,7 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
     }
 
     /** Lasers and other beam sources call this during their own tick. */
-    public void receiveBeam(@Nullable ResourceLocation beam, double intensity) {
+    public void receiveBeam(@Nullable Identifier beam, double intensity) {
         pending.add(beam, intensity);
     }
 
@@ -311,7 +317,7 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
     }
 
     /** Also how the caches catch up with a reload or a config change: the same id keeps its progress. */
-    private void choose(@Nullable ResourceLocation next) {
+    private void choose(@Nullable Identifier next) {
         if (next == null || !next.equals(current)) {
             assembly.reset();
             current = next;
@@ -327,14 +333,12 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
 
     // Recipes
 
-    private @Nullable AssemblyRecipe lookup(ResourceLocation id) {
+    private @Nullable AssemblyRecipe lookup(Identifier id) {
         if (level == null) return null;
-        return level.getRecipeManager().byKey(id)
-                .map(holder -> holder.value() instanceof AssemblyRecipe recipe ? recipe : null)
-                .orElse(null);
+        return ModRecipes.byId(level, id);
     }
 
-    private boolean canRun(@Nullable ResourceLocation id) {
+    private boolean canRun(@Nullable Identifier id) {
         AssemblyRecipe recipe = id == null ? null : lookup(id);
         if (recipe == null) return false;
         try {
@@ -352,18 +356,18 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
     }
 
     /** Tick or untick a recipe. The inputs keep what they hold; they only stop taking more of it. */
-    public void toggle(ResourceLocation id) {
+    public void toggle(Identifier id) {
         if (!selected.remove(id)) selected.add(id);
         contentsDirty = true;
         setChanged();
         sync();
     }
 
-    public List<ResourceLocation> selected() {
+    public List<Identifier> selected() {
         return selected;
     }
 
-    public @Nullable ResourceLocation current() {
+    public @Nullable Identifier current() {
         return current;
     }
 
@@ -379,25 +383,25 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
         return new AssemblyTableMenu(id, inventory, this, data);
     }
 
-    public ItemStackHandler inputs() {
+    public ItemSlots inputs() {
         return inputs;
     }
 
-    public ItemStackHandler outputs() {
+    public ItemSlots outputs() {
         return outputs;
     }
 
     // Client sync: what is ticked and what is running, sent when it changes - never on a timer.
 
     private void sync() {
-        if (level != null && !level.isClientSide) level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
+        if (level != null && !level.isClientSide()) level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
     }
 
     @Override
     public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
-        CompoundTag tag = new CompoundTag();
-        writeSelection(tag);
-        return tag;
+        TagValueOutput output = TagValueOutput.createWithContext(ProblemReporter.DISCARDING, registries);
+        writeSelection(output);
+        return output.buildResult();
     }
 
     @Override
@@ -407,35 +411,30 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
 
     /** Only the selection: the default would run loadAdditional and empty the client's inventories. */
     @Override
-    public void handleUpdateTag(CompoundTag tag, HolderLookup.Provider registries) {
-        readSelection(tag);
+    public void handleUpdateTag(ValueInput input) {
+        readSelection(input);
     }
 
     @Override
-    public void onDataPacket(Connection connection, ClientboundBlockEntityDataPacket packet, HolderLookup.Provider registries) {
-        readSelection(packet.getTag());
+    public void onDataPacket(Connection connection, ValueInput input) {
+        readSelection(input);
     }
 
-    private void writeSelection(CompoundTag tag) {
-        ListTag ids = new ListTag();
-        for (ResourceLocation id : selected) ids.add(StringTag.valueOf(id.toString()));
-        tag.put("selected", ids);
-        if (current != null) tag.putString("current", current.toString());
-        tag.putBoolean("working", working);
-        tag.putLongArray("lasers", lasers.stream().mapToLong(BlockPos::asLong).toArray());
+    private void writeSelection(ValueOutput output) {
+        output.store("selected", Identifier.CODEC.listOf(), selected);
+        output.storeNullable("current", Identifier.CODEC, current);
+        output.putBoolean("working", working);
+        output.store("lasers", BlockPos.CODEC.listOf(), lasers);
     }
 
-    private void readSelection(CompoundTag tag) {
+    private void readSelection(ValueInput input) {
         selected.clear();
-        for (Tag id : tag.getList("selected", Tag.TAG_STRING)) {
-            ResourceLocation parsed = ResourceLocation.tryParse(id.getAsString());
-            if (parsed != null) selected.add(parsed);
-        }
+        selected.addAll(input.read("selected", Identifier.CODEC.listOf()).orElse(List.of()));
         // Kept even if the recipe is gone after a datapack change: the table waits for it to come back.
-        current = tag.contains("current") ? ResourceLocation.tryParse(tag.getString("current")) : null;
-        working = tag.getBoolean("working");
+        current = input.read("current", Identifier.CODEC).orElse(null);
+        working = input.getBooleanOr("working", false);
         lasers.clear();
-        for (long pos : tag.getLongArray("lasers")) lasers.add(BlockPos.of(pos));
+        lasers.addAll(input.read("lasers", BlockPos.CODEC.listOf()).orElse(List.of()));
     }
 
     /**
@@ -443,25 +442,25 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
      * inputs, so a pipe or the auto import cannot fill every slot with one ingredient. A player, who
      * sees what they put in, is not held to it.
      */
-    private int room(ItemStack stack) {
+    private int room(ItemResource resource) {
         int held = 0;
         for (int i = 0; i < INPUTS; i++) {
-            ItemStack slot = inputs.getStackInSlot(i);
-            if (ItemStack.isSameItemSameComponents(slot, stack)) held += slot.getCount();
+            ItemStack slot = inputs.stack(i);
+            if (resource.matches(slot)) held += slot.getCount();
         }
-        return uses(stack) > 0 ? stack.getMaxStackSize() - held : 0;
+        return uses(resource) > 0 ? resource.getMaxStackSize() - held : 0;
     }
 
     /** How many of {@code stack} one craft takes, in the ticked recipe that takes the most. */
-    private int uses(ItemStack stack) {
+    private int uses(ItemResource resource) {
         int perCraft = 0;
-        for (ResourceLocation id : selected) {
+        for (Identifier id : selected) {
             AssemblyRecipe recipe = lookup(id);
             if (recipe == null) continue;
             int uses = 0;
             // The ingredient, not the SizedIngredient: its test also wants a stack of the full count,
             // and a hopper hands over one item at a time.
-            for (var sized : recipe.ingredients()) if (sized.ingredient().test(stack)) uses += sized.count();
+            for (var sized : recipe.ingredients()) if (resource.test(sized.ingredient())) uses += sized.count();
             perCraft = Math.max(perCraft, uses);
         }
         return perCraft;
@@ -471,11 +470,15 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
 
     /** One craft: how many to take from each input slot, and what comes out. */
     private record Craft(AssemblyTableBlockEntity table, int[] take, List<ItemStack> out) {
+        /** In one transaction: {@link #plan} reserved the room, and a craft happens whole or not at all. */
         void apply() {
-            for (int i = 0; i < INPUTS; i++) {
-                if (take[i] > 0) table.inputs.extractItem(i, take[i], false);
+            try (Transaction transaction = Transaction.openRoot()) {
+                for (int i = 0; i < INPUTS; i++) {
+                    if (take[i] > 0) table.inputs.extract(i, table.inputs.getResource(i), take[i], transaction);
+                }
+                for (ItemStack stack : out) ResourceHandlerUtil.insertStacking(table.outputs, ItemResource.of(stack), stack.getCount(), transaction);
+                transaction.commit();
             }
-            for (ItemStack stack : out) ItemHandlerHelper.insertItemStacked(table.outputs, stack, false);
         }
     }
 
@@ -484,35 +487,36 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
      * of a milk bucket) would not all fit in the outputs: room is reserved before work starts.
      */
     private @Nullable Craft plan(AssemblyRecipe recipe) {
-        StackedContents contents = new StackedContents();
+        StackedItemContents contents = new StackedItemContents();
         List<ItemStack> items = new ArrayList<>(INPUTS);
         for (int i = 0; i < INPUTS; i++) {
-            ItemStack stack = inputs.getStackInSlot(i);
+            ItemStack stack = inputs.stack(i);
             items.add(stack);
             contents.accountStack(stack);
         }
-        IntList picked = new IntArrayList();
-        if (!contents.canCraft(recipe, picked)) return null;
+        List<Holder<Item>> picked = new ArrayList<>();
+        if (!contents.canCraft(recipe, picked::add)) return null;
 
         int[] take = new int[INPUTS];
         List<ItemStack> out = new ArrayList<>();
-        out.add(recipe.assemble(new AssemblyRecipe.Input(items), level.registryAccess()));
-        for (int item : picked) {
+        out.add(recipe.assemble(new AssemblyRecipe.Input(items)));
+        for (Holder<Item> item : picked) {
             for (int i = 0; i < INPUTS; i++) {
                 ItemStack stack = items.get(i);
-                if (take[i] < stack.getCount() && StackedContents.getStackingIndex(stack) == item) {
+                if (take[i] < stack.getCount() && stack.is(item)) {
                     take[i]++;
-                    ItemStack leftover = stack.getCraftingRemainingItem();
-                    if (!leftover.isEmpty()) out.add(leftover);
+                    ItemStackTemplate leftover = stack.getItem().getCraftingRemainder(stack);
+                    if (leftover != null) out.add(leftover.create());
                     break;
                 }
             }
         }
 
-        ItemStackHandler trial = new ItemStackHandler(OUTPUTS);
-        for (int i = 0; i < OUTPUTS; i++) trial.setStackInSlot(i, outputs.getStackInSlot(i).copy());
-        for (ItemStack stack : out) {
-            if (!ItemHandlerHelper.insertItemStacked(trial, stack.copy(), false).isEmpty()) return null;
+        // Tried for real in a transaction that is never committed: the outputs come out of it as they were.
+        try (Transaction trial = Transaction.openRoot()) {
+            for (ItemStack stack : out) {
+                if (ResourceHandlerUtil.insertStacking(outputs, ItemResource.of(stack), stack.getCount(), trial) < stack.getCount()) return null;
+            }
         }
         return new Craft(this, take, out);
     }
@@ -526,11 +530,11 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
 
     /** Every face but the top, which belongs to the assembly on display. Each block counts its best coolant. */
     private double measureCooling() {
-        var coolants = level.registryAccess().registryOrThrow(Coolant.REGISTRY);
+        var coolants = level.registryAccess().lookupOrThrow(Coolant.REGISTRY);
         double total = 0;
         for (Direction side : Direction.values()) {
             if (side == Direction.UP) continue;
-            var block = level.getBlockState(worldPosition.relative(side)).getBlockHolder();
+            var block = level.getBlockState(worldPosition.relative(side)).typeHolder();
             double best = 0;
             for (Coolant coolant : coolants) if (coolant.blocks().contains(block)) best = Math.max(best, coolant.cooling());
             total += best;
@@ -543,10 +547,12 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
         setChanged();
     }
 
-    void dropContents() {
-        for (ItemStackHandler handler : new ItemStackHandler[]{inputs, outputs}) {
-            for (int i = 0; i < handler.getSlots(); i++) {
-                Containers.dropItemStack(level, worldPosition.getX(), worldPosition.getY(), worldPosition.getZ(), handler.getStackInSlot(i));
+    /** Everything it holds, when it is broken. */
+    @Override
+    public void preRemoveSideEffects(BlockPos pos, BlockState state) {
+        for (ItemSlots handler : new ItemSlots[]{inputs, outputs}) {
+            for (int i = 0; i < handler.size(); i++) {
+                Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), handler.stack(i).copy());
             }
         }
     }
@@ -646,7 +652,7 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
         for (Direction side : Direction.values()) {
             FaceMode mode = faces[side.ordinal()];
             if (side == Direction.UP || mode == FaceMode.NONE) continue;
-            IItemHandler other = neighbour(side);
+            ResourceHandler<ItemResource> other = neighbour(side);
             if (other == null) continue;
             if (autoImport && mode.takes()) move(other, inputView);
             // From the outputs themselves, not their extract-only view, so a remainder can go back in.
@@ -655,33 +661,24 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
     }
 
     /**
-     * Simulate, compute what moves, then extract: what does not fit after all goes straight back, and
-     * if a neighbour will not take its own items back, they drop by the table rather than vanish.
+     * The first stack that moves at all, as far as it fits. In one transaction, which is the house
+     * rule "simulate, compute what moves, then extract" done by the API: nothing leaves {@code from}
+     * that {@code to} did not take, so there is nothing to put back or drop.
      */
-    private void move(IItemHandler from, IItemHandler to) {
-        for (int slot = 0; slot < from.getSlots(); slot++) {
-            ItemStack offered = from.extractItem(slot, 64, true);
-            if (offered.isEmpty()) continue;
-            int fits = offered.getCount() - ItemHandlerHelper.insertItemStacked(to, offered, true).getCount();
-            if (fits <= 0) continue;
-            ItemStack taken = from.extractItem(slot, fits, false);
-            ItemStack left = ItemHandlerHelper.insertItemStacked(to, taken, false);
-            if (!left.isEmpty()) left = from.insertItem(slot, left, false);
-            if (!left.isEmpty()) Containers.dropItemStack(level, worldPosition.getX(), worldPosition.getY() + 1, worldPosition.getZ(), left);
-            return;
-        }
+    private static void move(ResourceHandler<ItemResource> from, ResourceHandler<ItemResource> to) {
+        ResourceHandlerUtil.moveFirstStacking(from, to, resource -> true, Item.ABSOLUTE_MAX_STACK_SIZE, null);
     }
 
-    private @Nullable IItemHandler neighbour(Direction side) {
+    private @Nullable ResourceHandler<ItemResource> neighbour(Direction side) {
         if (neighbours[side.ordinal()] == null) {
-            neighbours[side.ordinal()] = BlockCapabilityCache.create(Capabilities.ItemHandler.BLOCK, (ServerLevel) level,
+            neighbours[side.ordinal()] = BlockCapabilityCache.create(Capabilities.Item.BLOCK, (ServerLevel) level,
                     worldPosition.relative(side), side.getOpposite());
         }
         return neighbours[side.ordinal()].getCapability();
     }
 
     @SuppressWarnings("unchecked")
-    private static BlockCapabilityCache<IItemHandler, @Nullable Direction>[] newCaches() {
+    private static BlockCapabilityCache<ResourceHandler<ItemResource>, @Nullable Direction>[] newCaches() {
         return new BlockCapabilityCache[Direction.values().length];
     }
 
@@ -699,7 +696,7 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
      * What automation sees on {@code side}, by its mode. The top always takes and gives: it is the
      * face of the assembly on display, so it is never set to anything, nor pushed or pulled from.
      */
-    public @Nullable IItemHandler handler(@Nullable Direction side) {
+    public @Nullable ResourceHandler<ItemResource> handler(@Nullable Direction side) {
         if (side == null || side == Direction.UP) return automation;
         return switch (faces[side.ordinal()]) {
             case NONE -> null;
@@ -709,7 +706,7 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
         };
     }
 
-    public IItemHandler automation() {
+    public ResourceHandler<ItemResource> automation() {
         return automation;
     }
 
@@ -720,10 +717,11 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
     // Persistence
 
     @Override
-    protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
-        super.saveAdditional(tag, registries);
-        tag.put("inputs", inputs.serializeNBT(registries));
-        tag.put("outputs", outputs.serializeNBT(registries));
+    protected void saveAdditional(ValueOutput tag) {
+        super.saveAdditional(tag);
+        // The keys and layouts 1.21.1 wrote, so a table carried over keeps its items and its recipe.
+        inputs.save(tag, "inputs");
+        outputs.save(tag, "outputs");
         writeSelection(tag);
         tag.putInt("step", assembly.step());
         tag.putDouble("progress", assembly.progress());
@@ -738,61 +736,59 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
     }
 
     @Override
-    protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
-        super.loadAdditional(tag, registries);
-        inputs.deserializeNBT(registries, tag.getCompound("inputs"));
-        outputs.deserializeNBT(registries, tag.getCompound("outputs"));
+    protected void loadAdditional(ValueInput tag) {
+        super.loadAdditional(tag);
+        inputs.load(tag, "inputs");
+        outputs.load(tag, "outputs");
         readSelection(tag);
-        assembly.restore(tag.getInt("step"), tag.getDouble("progress"), tag.getDouble("heat"), tag.getBoolean("overheated"));
-        if (tag.contains("faces")) unpackFaces(tag.getInt("faces"));
-        autoImport = tag.getBoolean("auto_import");
-        autoExport = tag.getBoolean("auto_export");
-        if (tag.contains("switched_on")) switchedOn = tag.getBoolean("switched_on");
-        if (tag.contains("redstone_mode")) redstoneMode = RedstoneMode.values()[Math.clamp(tag.getInt("redstone_mode"), 0, 2)];
-        if (tag.contains("threshold")) threshold = Math.clamp(tag.getInt("threshold"), 0, 15);
+        assembly.restore(tag.getIntOr("step", 0), tag.getDoubleOr("progress", 0), tag.getDoubleOr("heat", 0), tag.getBooleanOr("overheated", false));
+        tag.getInt("faces").ifPresent(this::unpackFaces);
+        autoImport = tag.getBooleanOr("auto_import", false);
+        autoExport = tag.getBooleanOr("auto_export", false);
+        switchedOn = tag.getBooleanOr("switched_on", true);
+        redstoneMode = RedstoneMode.values()[Math.clamp(tag.getIntOr("redstone_mode", RedstoneMode.BELOW.ordinal()), 0, 2)];
+        threshold = Math.clamp(tag.getIntOr("threshold", 1), 0, 15);
     }
 
     // Handlers
 
     /** A handler seen from outside: insert-only, within {@code room}, or extract-only. */
-    private record OneWay(IItemHandlerModifiable inner, boolean insert, ToIntFunction<ItemStack> room) implements IItemHandlerModifiable {
+    private record OneWay(ItemSlots inner, boolean insert, ToIntFunction<ItemResource> room) implements ResourceHandler<ItemResource> {
         @Override
-        public int getSlots() {
-            return inner.getSlots();
+        public int size() {
+            return inner.size();
         }
 
         @Override
-        public ItemStack getStackInSlot(int slot) {
-            return inner.getStackInSlot(slot);
+        public ItemResource getResource(int index) {
+            return inner.getResource(index);
         }
 
         @Override
-        public ItemStack insertItem(int slot, ItemStack stack, boolean simulate) {
-            int room = insert ? this.room.applyAsInt(stack) : 0;
-            if (room <= 0) return stack;
-            if (stack.getCount() <= room) return inner.insertItem(slot, stack, simulate);
-            ItemStack rest = inner.insertItem(slot, stack.copyWithCount(room), simulate);
-            return stack.copyWithCount(stack.getCount() - room + rest.getCount());
+        public long getAmountAsLong(int index) {
+            return inner.getAmountAsLong(index);
         }
 
         @Override
-        public ItemStack extractItem(int slot, int amount, boolean simulate) {
-            return insert ? ItemStack.EMPTY : inner.extractItem(slot, amount, simulate);
+        public long getCapacityAsLong(int index, ItemResource resource) {
+            return inner.getCapacityAsLong(index, resource);
         }
 
         @Override
-        public int getSlotLimit(int slot) {
-            return inner.getSlotLimit(slot);
+        public boolean isValid(int index, ItemResource resource) {
+            return insert && room.applyAsInt(resource) > 0 && inner.isValid(index, resource);
+        }
+
+        /** Within the room left, read inside the transaction: what it already put in counts. */
+        @Override
+        public int insert(int index, ItemResource resource, int amount, TransactionContext transaction) {
+            int room = insert ? Math.min(amount, this.room.applyAsInt(resource)) : 0;
+            return room <= 0 ? 0 : inner.insert(index, resource, room, transaction);
         }
 
         @Override
-        public boolean isItemValid(int slot, ItemStack stack) {
-            return insert && room.applyAsInt(stack) > 0 && inner.isItemValid(slot, stack);
-        }
-
-        @Override
-        public void setStackInSlot(int slot, ItemStack stack) {
-            inner.setStackInSlot(slot, stack);
+        public int extract(int index, ItemResource resource, int amount, TransactionContext transaction) {
+            return insert ? 0 : inner.extract(index, resource, amount, transaction);
         }
     }
 }

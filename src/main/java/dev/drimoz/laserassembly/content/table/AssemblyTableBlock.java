@@ -3,6 +3,7 @@ package dev.drimoz.laserassembly.content.table;
 import com.mojang.serialization.MapCodec;
 import dev.drimoz.laserassembly.registry.ModBlocks;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.BlockHitResult;
@@ -17,6 +18,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.redstone.Orientation;
 import org.jetbrains.annotations.Nullable;
 
 public class AssemblyTableBlock extends BaseEntityBlock {
@@ -43,24 +45,16 @@ public class AssemblyTableBlock extends BaseEntityBlock {
 
     /** The table measures its signal and coolant here, not every tick. */
     @Override
-    protected void neighborChanged(BlockState state, Level level, BlockPos pos, Block neighborBlock, BlockPos neighborPos, boolean movedByPiston) {
+    protected void neighborChanged(BlockState state, Level level, BlockPos pos, Block neighborBlock, @Nullable Orientation orientation, boolean movedByPiston) {
         if (level.getBlockEntity(pos) instanceof AssemblyTableBlockEntity table) table.neighboursChanged();
     }
 
     @Override
-    protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean movedByPiston) {
-        if (!state.is(newState.getBlock()) && level.getBlockEntity(pos) instanceof AssemblyTableBlockEntity table) {
-            table.dropContents();
-        }
-        super.onRemove(state, level, pos, newState, movedByPiston);
-    }
-
-    @Override
     protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
-        if (!level.isClientSide && level.getBlockEntity(pos) instanceof AssemblyTableBlockEntity table) {
+        if (!level.isClientSide() && level.getBlockEntity(pos) instanceof AssemblyTableBlockEntity table) {
             player.openMenu(table, pos);
         }
-        return InteractionResult.sidedSuccess(level.isClientSide);
+        return InteractionResult.SUCCESS;
     }
 
     /** A comparator reads the recipe's progress: 0 at rest, then 1 to 15 as the craft goes. */
@@ -70,7 +64,7 @@ public class AssemblyTableBlock extends BaseEntityBlock {
     }
 
     @Override
-    protected int getAnalogOutputSignal(BlockState state, Level level, BlockPos pos) {
+    protected int getAnalogOutputSignal(BlockState state, Level level, BlockPos pos, Direction direction) {
         return level.getBlockEntity(pos) instanceof AssemblyTableBlockEntity table ? table.comparatorSignal() : 0;
     }
 
@@ -86,7 +80,7 @@ public class AssemblyTableBlock extends BaseEntityBlock {
 
     @Override
     public <T extends BlockEntity> @Nullable BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type) {
-        return level.isClientSide ? null
+        return level.isClientSide() ? null
                 : createTickerHelper(type, ModBlocks.ASSEMBLY_TABLE_ENTITY.get(), (l, pos, s, table) -> table.serverTick());
     }
 }

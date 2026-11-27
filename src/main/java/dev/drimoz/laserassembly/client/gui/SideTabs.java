@@ -2,10 +2,10 @@ package dev.drimoz.laserassembly.client.gui;
 
 import dev.drimoz.laserassembly.gui.GuiMetrics;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.network.chat.Component;
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -52,7 +52,7 @@ public final class SideTabs {
     // Rendering
 
     /** Tab bodies, drawn <b>before</b> the main window: it is the window that covers their inner edge. */
-    public void renderBackgrounds(GuiGraphics graphics, int guiLeft, int guiTop) {
+    public void renderBackgrounds(GuiGraphicsExtractor graphics, int guiLeft, int guiTop) {
         long now = Util.getMillis();
         float elapsed = Math.min(100.0F, now - lastFrame);
         lastFrame = now;
@@ -65,7 +65,7 @@ public final class SideTabs {
         }
     }
 
-    public void renderForegrounds(GuiGraphics graphics, Font font, int mouseX, int mouseY) {
+    public void renderForegrounds(GuiGraphicsExtractor graphics, Font font, int mouseX, int mouseY) {
         for (SideTab tab : tabs) {
             tab.renderForeground(graphics, font, mouseX, mouseY);
         }

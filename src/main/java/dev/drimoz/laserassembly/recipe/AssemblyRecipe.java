@@ -8,22 +8,27 @@ import dev.drimoz.laserassembly.core.Step;
 import dev.drimoz.laserassembly.core.Thresholds.Overrides;
 import dev.drimoz.laserassembly.core.Tuning;
 import dev.drimoz.laserassembly.registry.ModRecipes;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.core.NonNullList;
+import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.util.ExtraCodecs;
-import net.minecraft.world.entity.player.StackedContents;
+import net.minecraft.world.entity.player.StackedItemContents;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.item.crafting.PlacementInfo;
 import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.RecipeBookCategories;
+import net.minecraft.world.item.crafting.RecipeBookCategory;
 import net.minecraft.world.item.crafting.RecipeInput;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.common.crafting.SizedIngredient;
 
+import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -51,15 +56,16 @@ public final class AssemblyRecipe implements Recipe<AssemblyRecipe.Input> {
     }
 
     private final List<SizedIngredient> ingredients;
-    private final ItemStack result;
+    private final ItemStackTemplate result;
     private final Optional<Integer> energy;
     private final Overrides intensity;
     private final List<RecipeStep> steps;
     private final boolean keepComponents;
-    /** Each ingredient repeated count times: the shape StackedContents matches against. */
-    private final NonNullList<Ingredient> flattened = NonNullList.create();
+    /** Each ingredient repeated count times: the shape the recipe-book solver matches against. */
+    private final PlacementInfo placement;
+    private @Nullable ItemStack resultStack;
 
-    public AssemblyRecipe(List<SizedIngredient> ingredients, ItemStack result, Optional<Integer> energy,
+    public AssemblyRecipe(List<SizedIngredient> ingredients, ItemStackTemplate result, Optional<Integer> energy,
                           Overrides intensity, List<RecipeStep> steps, boolean keepComponents) {
         this.ingredients = ingredients;
         this.result = result;
@@ -67,9 +73,11 @@ public final class AssemblyRecipe implements Recipe<AssemblyRecipe.Input> {
         this.intensity = intensity;
         this.steps = steps;
         this.keepComponents = keepComponents;
+        List<Ingredient> flattened = new ArrayList<>();
         for (SizedIngredient sized : ingredients) {
             for (int i = 0; i < sized.count(); i++) flattened.add(sized.ingredient());
         }
+        placement = PlacementInfo.create(flattened);
     }
 
     /**
@@ -94,35 +102,47 @@ public final class AssemblyRecipe implements Recipe<AssemblyRecipe.Input> {
     // (a specific potion) matches any stack of that item; a component-aware solver if a pack needs it.
     @Override
     public boolean matches(Input input, Level level) {
-        StackedContents contents = new StackedContents();
+        StackedItemContents contents = new StackedItemContents();
         for (ItemStack stack : input.items()) contents.accountStack(stack);
         return contents.canCraft(this, null);
     }
 
     /** With {@code keep_components}, the result carries over the first ingredient's components: enchantments, damage, name. */
     @Override
-    public ItemStack assemble(Input input, HolderLookup.Provider registries) {
+    public ItemStack assemble(Input input) {
         if (keepComponents) {
             for (ItemStack stack : input.items()) {
-                if (ingredients.getFirst().ingredient().test(stack)) return stack.transmuteCopy(result.getItem(), result.getCount());
+                if (ingredients.getFirst().ingredient().test(stack)) return stack.transmuteCopy(result.item().value(), result.count());
             }
         }
-        return result.copy();
+        return result().copy();
+    }
+
+    /** What one craft makes, for display: never change it. Built on first use, once items have their components. */
+    public ItemStack result() {
+        if (resultStack == null) resultStack = result.create();
+        return resultStack;
     }
 
     @Override
-    public NonNullList<Ingredient> getIngredients() {
-        return flattened;
+    public PlacementInfo placementInfo() {
+        return placement;
     }
 
     @Override
-    public boolean canCraftInDimensions(int width, int height) {
-        return true;
+    public boolean showNotification() {
+        return false;
     }
 
     @Override
-    public ItemStack getResultItem(HolderLookup.Provider registries) {
-        return result;
+    public String group() {
+        return "";
+    }
+
+    /** Never shown: {@link #isSpecial} keeps it out of the book. */
+    @Override
+    public RecipeBookCategory recipeBookCategory() {
+        return RecipeBookCategories.CRAFTING_MISC;
     }
 
     /** Keeps it out of the recipe book, which would otherwise warn about a category it does not know. */
@@ -132,12 +152,12 @@ public final class AssemblyRecipe implements Recipe<AssemblyRecipe.Input> {
     }
 
     @Override
-    public RecipeSerializer<?> getSerializer() {
+    public RecipeSerializer<AssemblyRecipe> getSerializer() {
         return ModRecipes.ASSEMBLING_SERIALIZER.get();
     }
 
     @Override
-    public RecipeType<?> getType() {
+    public RecipeType<AssemblyRecipe> getType() {
         return ModRecipes.ASSEMBLING.get();
     }
 
@@ -145,7 +165,7 @@ public final class AssemblyRecipe implements Recipe<AssemblyRecipe.Input> {
 
     public static final MapCodec<AssemblyRecipe> CODEC = RecordCodecBuilder.<AssemblyRecipe>mapCodec(i -> i.group(
             SizedIngredient.NESTED_CODEC.listOf(1, MAX_INGREDIENTS).fieldOf("ingredients").forGetter(r -> r.ingredients),
-            ItemStack.STRICT_CODEC.fieldOf("result").forGetter(r -> r.result),
+            ItemStackTemplate.CODEC.fieldOf("result").forGetter(r -> r.result),
             ExtraCodecs.POSITIVE_INT.optionalFieldOf("energy").forGetter(r -> r.energy),
             RecipeStep.OVERRIDES.forGetter(r -> r.intensity),
             RecipeStep.CODEC.listOf(0, MAX_STEPS).optionalFieldOf("steps", List.of()).forGetter(r -> r.steps),
@@ -154,7 +174,7 @@ public final class AssemblyRecipe implements Recipe<AssemblyRecipe.Input> {
 
     public static final StreamCodec<RegistryFriendlyByteBuf, AssemblyRecipe> STREAM_CODEC = StreamCodec.composite(
             SizedIngredient.STREAM_CODEC.apply(ByteBufCodecs.list()), r -> r.ingredients,
-            ItemStack.STREAM_CODEC, r -> r.result,
+            ItemStackTemplate.STREAM_CODEC, r -> r.result,
             ByteBufCodecs.VAR_INT.apply(ByteBufCodecs::optional), r -> r.energy,
             RecipeStep.OVERRIDES_STREAM, r -> r.intensity,
             RecipeStep.STREAM_CODEC.apply(ByteBufCodecs.list()), r -> r.steps,

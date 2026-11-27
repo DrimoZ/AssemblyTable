@@ -15,8 +15,8 @@ world, so restart it after changing them.
 {
   "type": "laserassembly:assembling",
   "ingredients": [
-    { "ingredient": { "item": "minecraft:iron_ingot" }, "count": 3 },
-    { "ingredient": { "tag": "c:gems/prismarine" }, "count": 2 }
+    { "ingredient": "minecraft:iron_ingot", "count": 3 },
+    { "ingredient": "#c:gems/prismarine", "count": 2 }
   ],
   "result": { "id": "minecraft:trident" },
   "intensity": 2,
@@ -29,7 +29,7 @@ world, so restart it after changing them.
 
 | Field | | |
 |---|---|---|
-| `ingredients` | required | 1 to 12 entries, each an ingredient and a `count` from 1 to 64 |
+| `ingredients` | required | 1 to 12 entries, each an ingredient and a `count` from 1 to 64. An ingredient is an item id, a `#tag`, or a list of ids, as in vanilla recipes since 1.21.2 - the 1.21.1 `{ "item": ... }` form is refused on this branch |
 | `result` | required | the item stack made |
 | `energy` | either this | FE of work for a recipe in one step, which any beam advances |
 | `steps` | or this | 1 to 3 steps, done in order |

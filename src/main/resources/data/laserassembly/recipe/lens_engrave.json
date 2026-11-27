@@ -1,8 +1,8 @@
 {
   "type": "laserassembly:assembling",
   "ingredients": [
-    { "ingredient": { "item": "minecraft:glass_pane" }, "count": 2 },
-    { "ingredient": { "item": "minecraft:amethyst_shard" }, "count": 2 }
+    { "ingredient": "minecraft:glass_pane", "count": 2 },
+    { "ingredient": "minecraft:amethyst_shard", "count": 2 }
   ],
   "result": { "id": "laserassembly:engrave_lens" },
   "energy": 2000

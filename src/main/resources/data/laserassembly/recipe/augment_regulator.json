@@ -1,9 +1,9 @@
 {
   "type": "laserassembly:assembling",
   "ingredients": [
-    { "ingredient": { "item": "minecraft:comparator" }, "count": 1 },
-    { "ingredient": { "item": "minecraft:redstone" }, "count": 4 },
-    { "ingredient": { "item": "minecraft:quartz" }, "count": 2 }
+    { "ingredient": "minecraft:comparator", "count": 1 },
+    { "ingredient": "minecraft:redstone", "count": 4 },
+    { "ingredient": "minecraft:quartz", "count": 2 }
   ],
   "result": { "id": "laserassembly:regulator_augment" },
   "steps": [

@@ -1,9 +1,9 @@
 {
   "type": "laserassembly:assembling",
   "ingredients": [
-    { "ingredient": { "item": "minecraft:ender_eye" }, "count": 2 },
-    { "ingredient": { "item": "minecraft:gold_ingot" }, "count": 4 },
-    { "ingredient": { "item": "minecraft:glass" }, "count": 2 }
+    { "ingredient": "minecraft:ender_eye", "count": 2 },
+    { "ingredient": "minecraft:gold_ingot", "count": 4 },
+    { "ingredient": "minecraft:glass", "count": 2 }
   ],
   "result": { "id": "laserassembly:range_augment_2" },
   "steps": [

@@ -1,9 +1,9 @@
 {
   "type": "laserassembly:assembling",
   "ingredients": [
-    { "ingredient": { "item": "minecraft:paper" }, "count": 2 },
-    { "ingredient": { "item": "minecraft:string" }, "count": 1 },
-    { "ingredient": { "item": "minecraft:iron_nugget" }, "count": 1 }
+    { "ingredient": "minecraft:paper", "count": 2 },
+    { "ingredient": "minecraft:string", "count": 1 },
+    { "ingredient": "minecraft:iron_nugget", "count": 1 }
   ],
   "result": { "id": "minecraft:name_tag" },
   "energy": 2000

@@ -16,12 +16,15 @@ import dev.drimoz.laserassembly.gui.GuiMetrics;
 import dev.drimoz.laserassembly.recipe.AssemblyRecipe;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.Slot;
@@ -76,7 +79,7 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
     private static final int ARROW_X = GuiMetrics.column(5) + (2 * GuiMetrics.SLOT - 20) / 2;
     private static final int ARROW_Y = WORK_TOP + (3 * GuiMetrics.SLOT - 13) / 2;
 
-    private final Map<ResourceLocation, RecipeHolder<AssemblyRecipe>> byId = new HashMap<>();
+    private final Map<Identifier, RecipeHolder<AssemblyRecipe>> byId = new HashMap<>();
     private RecipePicker picker;
     private SideTabs tabs;
 
@@ -86,14 +89,12 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
     }
 
     public AssemblyTableScreen(AssemblyTableMenu menu, Inventory inventory, Component title) {
-        super(menu, inventory, title);
-        imageWidth = GuiMetrics.WIDTH;
-        imageHeight = GuiMetrics.height(CONTENT_BOTTOM);
+        super(menu, inventory, title, GuiMetrics.WIDTH, GuiMetrics.height(CONTENT_BOTTOM));
         titleLabelX = GuiMetrics.MARGIN;
         titleLabelY = GuiMetrics.TITLE_Y;
         inventoryLabelX = GuiMetrics.MARGIN;
         inventoryLabelY = GuiMetrics.inventoryLabelY(CONTENT_BOTTOM);
-        for (RecipeHolder<AssemblyRecipe> recipe : menu.recipes()) byId.put(recipe.id(), recipe);
+        for (RecipeHolder<AssemblyRecipe> recipe : menu.recipes()) byId.put(recipe.id().identifier(), recipe);
     }
 
     @Override
@@ -118,24 +119,23 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
     // Drawing
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         if (picker.isOpen()) {
-            // Not renderBackground: on a container screen it also runs renderBg, and the table's
-            // cells, lifted above their items, showed through the picker.
-            renderTransparentBackground(graphics);
             picker.render(graphics, leftPos, topPos, imageHeight, mouseX, mouseY, partialTick);
             return;
         }
-        super.render(graphics, mouseX, mouseY, partialTick);
+        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
         tabs.renderForegrounds(graphics, font, mouseX, mouseY);
-        renderTooltip(graphics, mouseX, mouseY);
         List<Component> tooltip = tooltipAt(mouseX, mouseY);
         if (tooltip.isEmpty()) tooltip = tabs.tooltipAt(mouseX, mouseY);
-        if (!tooltip.isEmpty()) graphics.renderComponentTooltip(font, tooltip, mouseX, mouseY);
+        if (!tooltip.isEmpty()) graphics.setComponentTooltipForNextFrame(font, tooltip, mouseX, mouseY);
     }
 
     @Override
-    protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
+    public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        super.extractBackground(graphics, mouseX, mouseY, partialTick);
+        // The picker covers the table: its cells, under their items, showed through it.
+        if (picker.isOpen()) return;
         int x = leftPos, y = topPos;
         // Before the window, which covers their inner edge: the tabs come out of it.
         tabs.renderBackgrounds(graphics, x, y);
@@ -151,15 +151,15 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
     }
 
     /** The running recipe; failing that the first ticked one, waiting; failing that a + to tick some. */
-    private void renderSocket(GuiGraphics graphics, int mouseX, int mouseY) {
+    private void renderSocket(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
         int x = leftPos + SOCKET_X, y = topPos + SOCKET_Y;
         GuiSprites.socket(graphics, x, y);
         RecipeHolder<AssemblyRecipe> shown = shownRecipe();
         if (shown == null) {
             GuiSprites.plus(graphics, x + 4, y + 4);
         } else {
-            graphics.renderFakeItem(result(shown), x + 5, y + 5);
-            if (!shown.id().equals(menu.table().current())) wash(graphics, x + 4, y + 4, GuiTheme.GHOST_WASH);
+            graphics.fakeItem(result(shown), x + 5, y + 5);
+            if (!shown.id().identifier().equals(menu.table().current())) wash(graphics, x + 4, y + 4, GuiTheme.GHOST_WASH);
         }
         if (overSocket(mouseX, mouseY)) wash(graphics, x + 4, y + 4, GuiTheme.HOVER_WASH);
 
@@ -167,10 +167,7 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
         int waiting = queue().size();
         if (waiting > 0) {
             String count = "+" + waiting;
-            graphics.pose().pushPose();
-            graphics.pose().translate(0, 0, 300);
-            graphics.drawString(font, count, x + GuiMetrics.SOCKET - 2 - font.width(count), y + GuiMetrics.SOCKET - 10, 0xFFFFFFFF, true);
-            graphics.pose().popPose();
+            graphics.text(font, count, x + GuiMetrics.SOCKET - 2 - font.width(count), y + GuiMetrics.SOCKET - 10, 0xFFFFFFFF, true);
         }
     }
 
@@ -179,7 +176,7 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
      * its beam's colour - bright once reached, dim while still ahead. It says which beams the recipe
      * wants and in what order; how far along it is, the arrow says.
      */
-    private void renderStepBar(GuiGraphics graphics) {
+    private void renderStepBar(GuiGraphicsExtractor graphics) {
         int x = leftPos + BAR_X, y = topPos + BAR_Y;
         GuiSprites.inset(graphics, x, y, BAR_WIDTH, BAR_HEIGHT);
         List<Step> steps = runningSteps();
@@ -194,7 +191,7 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
     }
 
     /** The recipe's progress across all its steps, in one green: what the step is, the strip and the text say. */
-    private void renderArrow(GuiGraphics graphics, int x, int y) {
+    private void renderArrow(GuiGraphicsExtractor graphics, int x, int y) {
         List<Step> steps = runningSteps();
         if (steps.isEmpty()) {
             GuiSprites.arrow(graphics, x, y, 0);
@@ -211,19 +208,19 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
     }
 
     @Override
-    protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
-        graphics.drawString(font, title, titleLabelX, titleLabelY, GuiTheme.TEXT, false);
-        graphics.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, GuiTheme.TEXT, false);
+    protected void extractLabels(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+        graphics.text(font, title, titleLabelX, titleLabelY, GuiTheme.TEXT, false);
+        graphics.text(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, GuiTheme.TEXT, false);
 
         RecipeHolder<AssemblyRecipe> shown = shownRecipe();
         Component name = shown == null ? text("gui.add") : result(shown).getHoverName();
-        graphics.drawString(font, font.plainSubstrByWidth(name.getString(), NAME_WIDTH), NAME_X, SOCKET_Y + 4, GuiTheme.TEXT, false);
+        graphics.text(font, font.plainSubstrByWidth(name.getString(), NAME_WIDTH), NAME_X, SOCKET_Y + 4, GuiTheme.TEXT, false);
 
         // Under the name: the step in words while one runs, otherwise what the table is waiting for.
         List<Step> steps = runningSteps();
         Component line = steps.isEmpty() ? status().text
                 : text("gui.step", menu.data(DATA_STEP) + 1, steps.size(), beamName(steps.get(Math.min(menu.data(DATA_STEP), steps.size() - 1)).beam().orElse(null)));
-        graphics.drawString(font, font.plainSubstrByWidth(line.getString(), NAME_WIDTH), NAME_X, SOCKET_Y + 15, GuiTheme.TEXT_MUTED, false);
+        graphics.text(font, font.plainSubstrByWidth(line.getString(), NAME_WIDTH), NAME_X, SOCKET_Y + 15, GuiTheme.TEXT_MUTED, false);
     }
 
     // Tooltips
@@ -233,10 +230,10 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
         if (overSocket(mouseX, mouseY)) {
             RecipeHolder<AssemblyRecipe> shown = shownRecipe();
             List<Component> lines = new ArrayList<>(shown == null ? List.of() : describe(shown, null));
-            List<ResourceLocation> queue = queue();
+            List<Identifier> queue = queue();
             if (!queue.isEmpty()) {
                 List<String> names = new ArrayList<>();
-                for (ResourceLocation id : queue) names.add(byId.containsKey(id) ? result(byId.get(id)).getHoverName().getString() : id.toString());
+                for (Identifier id : queue) names.add(byId.containsKey(id) ? result(byId.get(id)).getHoverName().getString() : id.toString());
                 lines.add(text("gui.next", String.join(", ", names)).withStyle(ChatFormatting.YELLOW));
             }
             lines.add(text("gui.choose").withStyle(ChatFormatting.DARK_GRAY));
@@ -280,8 +277,8 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
         List<Component> lines = new ArrayList<>();
         lines.add(result(holder).getHoverName());
         for (SizedIngredient sized : recipe.ingredients()) {
-            ItemStack[] options = sized.ingredient().getItems();
-            if (options.length > 0) lines.add(text("gui.recipe.ingredient", sized.count(), options[0].getHoverName()).withStyle(ChatFormatting.GRAY));
+            var first = sized.ingredient().items().findFirst();
+            if (first.isPresent()) lines.add(text("gui.recipe.ingredient", sized.count(), new ItemStack(first.get()).getHoverName()).withStyle(ChatFormatting.GRAY));
         }
         try {
             for (Step step : recipe.steps(ServerConfig.tuning())) {
@@ -319,30 +316,31 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
     // Input
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (picker.isOpen()) return picker.mouseClicked(leftPos, topPos, mouseX, mouseY, button);
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        double mouseX = event.x(), mouseY = event.y();
+        if (picker.isOpen()) return picker.mouseClicked(leftPos, topPos, event, doubleClick);
         if (tabs.mouseClicked(mouseX, mouseY)) return true;
         if (overSocket(mouseX, mouseY)) {
             picker.open();
             return true;
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(event, doubleClick);
     }
 
     /** A click on a tab is not a click outside the window: it must not drop the carried item. */
     @Override
-    protected boolean hasClickedOutside(double mouseX, double mouseY, int left, int top, int button) {
-        return super.hasClickedOutside(mouseX, mouseY, left, top, button) && !tabs.contains(mouseX, mouseY);
+    protected boolean hasClickedOutside(double mouseX, double mouseY, int left, int top) {
+        return super.hasClickedOutside(mouseX, mouseY, left, top) && !tabs.contains(mouseX, mouseY);
     }
 
     @Override
-    public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        return picker.isOpen() || super.mouseReleased(mouseX, mouseY, button);
+    public boolean mouseReleased(MouseButtonEvent event) {
+        return picker.isOpen() || super.mouseReleased(event);
     }
 
     @Override
-    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
-        return picker.isOpen() || super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+    public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
+        return picker.isOpen() || super.mouseDragged(event, dragX, dragY);
     }
 
     @Override
@@ -353,39 +351,39 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        return picker.isOpen() ? picker.keyPressed(keyCode, scanCode, modifiers) : super.keyPressed(keyCode, scanCode, modifiers);
+    public boolean keyPressed(KeyEvent event) {
+        return picker.isOpen() ? picker.keyPressed(event) : super.keyPressed(event);
     }
 
     @Override
-    public boolean charTyped(char codePoint, int modifiers) {
-        return picker.isOpen() ? picker.charTyped(codePoint, modifiers) : super.charTyped(codePoint, modifiers);
+    public boolean charTyped(CharacterEvent event) {
+        return picker.isOpen() ? picker.charTyped(event) : super.charTyped(event);
     }
 
     // Inner work
 
     private @Nullable RecipeHolder<AssemblyRecipe> shownRecipe() {
-        ResourceLocation current = menu.table().current();
+        Identifier current = menu.table().current();
         if (current != null && byId.containsKey(current)) return byId.get(current);
-        List<ResourceLocation> ticked = menu.table().selected();
+        List<Identifier> ticked = menu.table().selected();
         return ticked.isEmpty() ? null : byId.get(ticked.getFirst());
     }
 
     /** Ticked recipes after the running one, wrapping round: the order they take their turn. */
-    private List<ResourceLocation> queue() {
-        List<ResourceLocation> ticked = menu.table().selected();
-        ResourceLocation shown = shownRecipe() == null ? null : shownRecipe().id();
+    private List<Identifier> queue() {
+        List<Identifier> ticked = menu.table().selected();
+        Identifier shown = shownRecipe() == null ? null : shownRecipe().id().identifier();
         int start = ticked.indexOf(shown) + 1;
-        List<ResourceLocation> queue = new ArrayList<>(ticked.size());
+        List<Identifier> queue = new ArrayList<>(ticked.size());
         for (int i = 0; i < ticked.size(); i++) {
-            ResourceLocation id = ticked.get((start + i) % ticked.size());
+            Identifier id = ticked.get((start + i) % ticked.size());
             if (!id.equals(shown)) queue.add(id);
         }
         return queue;
     }
 
     private List<Step> runningSteps() {
-        ResourceLocation current = menu.table().current();
+        Identifier current = menu.table().current();
         RecipeHolder<AssemblyRecipe> recipe = current == null ? null : byId.get(current);
         if (recipe == null) return List.of();
         try {
@@ -418,19 +416,16 @@ public class AssemblyTableScreen extends AbstractContainerScreen<AssemblyTableMe
         return x >= 0 && x < GuiMetrics.SOCKET && y >= 0 && y < GuiMetrics.SOCKET;
     }
 
-    /** Lifted above the item it covers, or it lands underneath. */
-    static void wash(GuiGraphics graphics, int frameX, int frameY, int argb) {
-        graphics.pose().pushPose();
-        graphics.pose().translate(0, 0, 200);
+    /** Over the item it covers: drawn after it, which is all the layering 26.1 needs. */
+    static void wash(GuiGraphicsExtractor graphics, int frameX, int frameY, int argb) {
         graphics.fill(frameX + 1, frameY + 1, frameX + 17, frameY + 17, argb);
-        graphics.pose().popPose();
     }
 
     private static ItemStack result(RecipeHolder<AssemblyRecipe> recipe) {
-        return recipe.value().getResultItem(Minecraft.getInstance().level.registryAccess());
+        return recipe.value().result();
     }
 
-    private static Component beamName(@Nullable ResourceLocation beam) {
+    private static Component beamName(@Nullable Identifier beam) {
         return beam == null ? text("beam.raw") : BeamType.name(beam);
     }
 

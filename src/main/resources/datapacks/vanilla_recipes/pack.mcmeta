@@ -1,6 +1,7 @@
 {
   "pack": {
-    "pack_format": 48,
-    "description": { "translate": "laserassembly.pack.vanilla_recipes.description" }
+    "description": { "translate": "laserassembly.pack.vanilla_recipes.description" },
+    "min_format": [101, 1],
+    "max_format": [101, 1]
   }
 }

@@ -1,6 +1,6 @@
 package dev.drimoz.laserassembly.core;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Optional;
@@ -12,7 +12,7 @@ import java.util.Optional;
  * @param energy FE of progress to complete it
  * @param strict refuse the raw beam on a typed step - for late-game recipes only
  */
-public record Step(Optional<ResourceLocation> beam, int energy, Thresholds thresholds, boolean strict) {
+public record Step(Optional<Identifier> beam, int energy, Thresholds thresholds, boolean strict) {
 
     /** How one beam fits this step. Only {@link #OK} does any work; a laser holds fire otherwise. */
     public enum Fit { OK, WRONG_BEAM, TOO_WEAK, TOO_STRONG }
@@ -22,7 +22,7 @@ public record Step(Optional<ResourceLocation> beam, int energy, Thresholds thres
      * of 0 - a server that wants lenses required - or a strict step turns it away, so its laser
      * holds fire instead of heating the table for nothing.
      */
-    public Fit fit(@Nullable ResourceLocation beamType, double intensity, double rawFactor) {
+    public Fit fit(@Nullable Identifier beamType, double intensity, double rawFactor) {
         if (beam.isPresent() && (beamType == null ? strict || rawFactor <= 0 : !beamType.equals(beam.get()))) return Fit.WRONG_BEAM;
         if (intensity < thresholds.min()) return Fit.TOO_WEAK;
         if (intensity > thresholds.max()) return Fit.TOO_STRONG;
@@ -30,7 +30,7 @@ public record Step(Optional<ResourceLocation> beam, int energy, Thresholds thres
     }
 
     /** A raw beam on a step that wants a lens counts for a share of its power: lenses speed a step up, they never gate it. */
-    public double power(@Nullable ResourceLocation beamType, double intensity, double rawFactor) {
+    public double power(@Nullable Identifier beamType, double intensity, double rawFactor) {
         return beam.isPresent() && beamType == null ? intensity * rawFactor : intensity;
     }
 }

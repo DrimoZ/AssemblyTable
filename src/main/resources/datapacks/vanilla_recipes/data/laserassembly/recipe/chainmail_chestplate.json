@@ -1,7 +1,7 @@
 {
   "type": "laserassembly:assembling",
   "ingredients": [
-    { "ingredient": { "item": "minecraft:chain" }, "count": 8 }
+    { "ingredient": "minecraft:iron_chain", "count": 8 }
   ],
   "result": { "id": "minecraft:chainmail_chestplate" },
   "energy": 5000

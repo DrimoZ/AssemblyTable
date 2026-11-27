@@ -3,7 +3,7 @@ package dev.drimoz.laserassembly.client.gui;
 import dev.drimoz.laserassembly.gui.GuiMetrics;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 
@@ -49,17 +49,17 @@ public abstract class SideTab {
     protected abstract Component title();
 
     /** The header icon, 12x12 at {@code (x, y)}, centred in the header square: a sprite or an item. */
-    protected abstract void renderIcon(GuiGraphics graphics, int x, int y);
+    protected abstract void renderIcon(GuiGraphicsExtractor graphics, int x, int y);
 
     protected abstract int contentWidth();
 
     protected abstract int contentHeight();
 
     /** Under the items: slot frames and anything else the slots sit on. */
-    protected void renderContentBackground(GuiGraphics graphics, int x, int y) {}
+    protected void renderContentBackground(GuiGraphicsExtractor graphics, int x, int y) {}
 
     /** {@code x, y}: origin of the content, below the header. */
-    protected abstract void renderContent(GuiGraphics graphics, Font font, int x, int y,
+    protected abstract void renderContent(GuiGraphicsExtractor graphics, Font font, int x, int y,
                                           int mouseX, int mouseY);
 
     protected List<Component> contentTooltip(int x, int y, int mouseX, int mouseY) {
@@ -172,21 +172,21 @@ public abstract class SideTab {
         return contains(mouseX, mouseY) && mouseY < y + GuiMetrics.TAB_HEADER;
     }
 
-    void renderBackground(GuiGraphics graphics) {
+    void renderBackground(GuiGraphicsExtractor graphics) {
         GuiSprites.tab(graphics, drawX(), y, drawWidth(), height(), colour);
         if (isFullyOpen()) {
             renderContentBackground(graphics, contentX(), contentY());
         }
     }
 
-    void renderForeground(GuiGraphics graphics, Font font, int mouseX, int mouseY) {
+    void renderForeground(GuiGraphicsExtractor graphics, Font font, int mouseX, int mouseY) {
         int iconX = left() + (GuiMetrics.TAB_HEADER - GuiSprites.ICON_SIZE) / 2;
         int iconY = y + (GuiMetrics.TAB_HEADER - GuiSprites.ICON_SIZE) / 2;
         renderIcon(graphics, iconX, iconY);
         if (!isFullyOpen()) {
             return;
         }
-        graphics.drawString(font, title(), left() + TITLE_X, y + 7, GuiTheme.TAB_VALUE, true);
+        graphics.text(font, title(), left() + TITLE_X, y + 7, GuiTheme.TAB_VALUE, true);
         renderContent(graphics, font, contentX(), contentY(), mouseX, mouseY);
     }
 }

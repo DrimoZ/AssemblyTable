@@ -7,7 +7,7 @@ import dev.drimoz.laserassembly.client.gui.SideTab;
 import dev.drimoz.laserassembly.content.table.AssemblyTableBlockEntity.RedstoneMode;
 import dev.drimoz.laserassembly.content.table.AssemblyTableMenu;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -44,7 +44,7 @@ final class ControlTab extends SideTab {
     }
 
     @Override
-    protected void renderIcon(GuiGraphics graphics, int x, int y) {
+    protected void renderIcon(GuiGraphicsExtractor graphics, int x, int y) {
         GuiSprites.icon(graphics, ICON, x, y);
     }
 
@@ -59,9 +59,9 @@ final class ControlTab extends SideTab {
     }
 
     @Override
-    protected void renderContent(GuiGraphics graphics, Font font, int x, int y, int mouseX, int mouseY) {
+    protected void renderContent(GuiGraphicsExtractor graphics, Font font, int x, int y, int mouseX, int mouseY) {
         int control = menu.data(DATA_CONTROL);
-        graphics.drawString(font, text("control.switch"), x, y + 2, GuiTheme.TAB_LABEL, true);
+        graphics.text(font, text("control.switch"), x, y + 2, GuiTheme.TAB_LABEL, true);
         GuiSprites.toggle(graphics, x + WIDTH - GuiSprites.SWITCH_W, y + 2, (control & 1) != 0);
 
         RedstoneMode current = mode(control);
@@ -69,13 +69,13 @@ final class ControlTab extends SideTab {
             int rowY = y + (1 + mode.ordinal()) * ROW;
             GuiSprites.button(graphics, x, rowY, WIDTH, BUTTON_H, mode == current || inside(mouseX, mouseY, x, rowY, WIDTH, BUTTON_H));
             Component label = text("control.mode." + mode.name().toLowerCase());
-            graphics.drawString(font, label, x + (WIDTH - font.width(label)) / 2, rowY + 2,
+            graphics.text(font, label, x + (WIDTH - font.width(label)) / 2, rowY + 2,
                     mode == current ? 0xFF2E8B2E : GuiTheme.TEXT, false);
         }
 
         int thresholdY = y + (1 + RedstoneMode.values().length) * ROW;
         boolean usesThreshold = current != RedstoneMode.ALWAYS;
-        graphics.drawString(font, text("control.threshold", threshold(control)), x, thresholdY + 2,
+        graphics.text(font, text("control.threshold", threshold(control)), x, thresholdY + 2,
                 usesThreshold ? GuiTheme.TAB_VALUE : GuiTheme.TAB_MUTED, true);
         if (usesThreshold) {
             small(graphics, font, x + WIDTH - 2 * SMALL - 2, thresholdY, "-", mouseX, mouseY);
@@ -83,9 +83,9 @@ final class ControlTab extends SideTab {
         }
     }
 
-    private static void small(GuiGraphics graphics, Font font, int x, int y, String label, int mouseX, int mouseY) {
+    private static void small(GuiGraphicsExtractor graphics, Font font, int x, int y, String label, int mouseX, int mouseY) {
         GuiSprites.button(graphics, x, y, SMALL, SMALL, inside(mouseX, mouseY, x, y, SMALL, SMALL));
-        graphics.drawString(font, label, x + (SMALL - font.width(label) + 1) / 2, y + 2, GuiTheme.TEXT, false);
+        graphics.text(font, label, x + (SMALL - font.width(label) + 1) / 2, y + 2, GuiTheme.TEXT, false);
     }
 
     @Override

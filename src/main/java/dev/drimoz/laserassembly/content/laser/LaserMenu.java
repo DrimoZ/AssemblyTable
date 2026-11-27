@@ -13,7 +13,7 @@ import net.minecraft.world.inventory.ContainerLevelAccess;
 import net.minecraft.world.inventory.SimpleContainerData;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.items.SlotItemHandler;
+import net.neoforged.neoforge.transfer.item.ResourceHandlerSlot;
 
 /**
  * The lens in column 1; on the row beneath, the augments in columns 1-2 and the Barrel's lenses in
@@ -55,12 +55,12 @@ public class LaserMenu extends AbstractContainerMenu {
         this.data = data;
         this.access = ContainerLevelAccess.create(laser.getLevel(), laser.getBlockPos());
 
-        addSlot(new SlotItemHandler(laser.lens(), 0, LENS_X, LENS_Y));
+        addSlot(new ResourceHandlerSlot(laser.lens(), laser.lens()::set, 0, LENS_X, LENS_Y));
         for (int i = 0; i < LaserBlockEntity.AUGMENT_SLOTS; i++) {
-            addSlot(new SlotItemHandler(laser.augments(), i, GuiMetrics.column(AUGMENT_COLUMN + i) + 1, EXTRA_Y));
+            addSlot(new ResourceHandlerSlot(laser.augments(), laser.augments()::set, i, GuiMetrics.column(AUGMENT_COLUMN + i) + 1, EXTRA_Y));
         }
         for (int i = 0; i < LaserBlockEntity.BARREL_SLOTS; i++) {
-            addSlot(new SlotItemHandler(laser.barrel(), i, GuiMetrics.column(BARREL_COLUMN + i) + 1, EXTRA_Y));
+            addSlot(new ResourceHandlerSlot(laser.barrel(), laser.barrel()::set, i, GuiMetrics.column(BARREL_COLUMN + i) + 1, EXTRA_Y));
         }
         int inventoryY = GuiMetrics.inventoryY(CONTENT_BOTTOM);
         for (int row = 0; row < 3; row++) {

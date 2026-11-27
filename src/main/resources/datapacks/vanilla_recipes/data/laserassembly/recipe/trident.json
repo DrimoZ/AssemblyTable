@@ -1,9 +1,9 @@
 {
   "type": "laserassembly:assembling",
   "ingredients": [
-    { "ingredient": { "item": "minecraft:iron_ingot" }, "count": 3 },
-    { "ingredient": { "item": "minecraft:prismarine_shard" }, "count": 4 },
-    { "ingredient": { "item": "minecraft:prismarine_crystals" }, "count": 2 }
+    { "ingredient": "minecraft:iron_ingot", "count": 3 },
+    { "ingredient": "minecraft:prismarine_shard", "count": 4 },
+    { "ingredient": "minecraft:prismarine_crystals", "count": 2 }
   ],
   "result": { "id": "minecraft:trident" },
   "steps": [

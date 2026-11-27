@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:function",
+  "function": "laserassembly:faces_close_and_auto_export_pushes",
+  "environment": "minecraft:default",
+  "structure": "laserassembly:platform",
+  "max_ticks": 60
+}

@@ -9,7 +9,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
@@ -23,7 +23,7 @@ import org.jetbrains.annotations.Nullable;
 public record BeamType(Item item, TextColor color) {
 
     public static final ResourceKey<Registry<BeamType>> REGISTRY =
-            ResourceKey.createRegistryKey(ResourceLocation.fromNamespaceAndPath(LaserAssembly.MOD_ID, "beam"));
+            ResourceKey.createRegistryKey(Identifier.fromNamespaceAndPath(LaserAssembly.MOD_ID, "beam"));
 
     /** {@code "item": "laserassembly:cut_lens", "color": "#FF8C1A"}; an unknown item refuses the entry. */
     public static final Codec<BeamType> CODEC = RecordCodecBuilder.create(i -> i.group(
@@ -35,15 +35,15 @@ public record BeamType(Item item, TextColor color) {
      * The beam a stack gives a laser, or null if it is no lens. A scan of a handful of entries: the
      * laser keeps what it finds until its lenses change, so this never runs on a tick.
      */
-    public static @Nullable ResourceLocation of(ItemStack stack, @Nullable HolderLookup.Provider registries) {
+    public static @Nullable Identifier of(ItemStack stack, @Nullable HolderLookup.Provider registries) {
         if (stack.isEmpty() || registries == null) return null;
         return registries.lookup(REGISTRY).flatMap(beams -> beams.listElements()
                         .filter(beam -> beam.value().item() == stack.getItem()).findFirst())
-                .map(beam -> beam.key().location()).orElse(null);
+                .map(beam -> beam.key().identifier()).orElse(null);
     }
 
     /** {@code beam.<namespace>.<path>}: a pack that adds a beam adds its name to its own lang file. */
-    public static Component name(ResourceLocation id) {
+    public static Component name(Identifier id) {
         return Component.translatable("beam." + id.getNamespace() + "." + id.getPath());
     }
 }

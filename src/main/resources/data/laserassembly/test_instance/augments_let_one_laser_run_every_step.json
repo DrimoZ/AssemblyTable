@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:function",
+  "function": "laserassembly:augments_let_one_laser_run_every_step",
+  "environment": "minecraft:default",
+  "structure": "laserassembly:platform",
+  "max_ticks": 400
+}

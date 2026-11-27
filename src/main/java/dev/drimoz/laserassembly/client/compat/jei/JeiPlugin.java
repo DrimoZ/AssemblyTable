@@ -15,14 +15,14 @@ import mezz.jei.api.registration.IRecipeCatalystRegistration;
 import mezz.jei.api.registration.IRecipeCategoryRegistration;
 import mezz.jei.api.registration.IRecipeRegistration;
 import net.minecraft.client.Minecraft;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 /** Only JEI loads this class: the mod runs the same without it. */
 @mezz.jei.api.JeiPlugin
 public final class JeiPlugin implements IModPlugin {
 
     @Override
-    public ResourceLocation getPluginUid() {
+    public Identifier getPluginUid() {
         return LaserAssembly.id("jei");
     }
 
@@ -33,7 +33,7 @@ public final class JeiPlugin implements IModPlugin {
 
     @Override
     public void registerRecipes(IRecipeRegistration registration) {
-        registration.addRecipes(AssemblyCategory.TYPE, Minecraft.getInstance().level.getRecipeManager().getAllRecipesFor(ModRecipes.ASSEMBLING.get()));
+        registration.addRecipes(AssemblyCategory.TYPE, ModRecipes.all(Minecraft.getInstance().level));
     }
 
     /** The side tabs are part of the screen: JEI's item list must not lie over them. */
@@ -62,6 +62,6 @@ public final class JeiPlugin implements IModPlugin {
     /** The table runs them; lasers drive it. */
     @Override
     public void registerRecipeCatalysts(IRecipeCatalystRegistration registration) {
-        registration.addRecipeCatalysts(AssemblyCategory.TYPE, ModBlocks.ASSEMBLY_TABLE_ITEM.get(), ModBlocks.LASER_ITEM.get());
+        registration.addCraftingStation(AssemblyCategory.TYPE, ModBlocks.ASSEMBLY_TABLE_ITEM.get(), ModBlocks.LASER_ITEM.get());
     }
 }

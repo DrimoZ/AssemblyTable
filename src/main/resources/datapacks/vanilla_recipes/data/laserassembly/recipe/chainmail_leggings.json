@@ -1,7 +1,7 @@
 {
   "type": "laserassembly:assembling",
   "ingredients": [
-    { "ingredient": { "item": "minecraft:chain" }, "count": 7 }
+    { "ingredient": "minecraft:iron_chain", "count": 7 }
   ],
   "result": { "id": "minecraft:chainmail_leggings" },
   "energy": 4500

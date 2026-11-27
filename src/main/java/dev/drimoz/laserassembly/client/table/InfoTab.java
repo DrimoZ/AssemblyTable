@@ -6,7 +6,7 @@ import dev.drimoz.laserassembly.client.gui.GuiTheme;
 import dev.drimoz.laserassembly.client.gui.SideTab;
 import dev.drimoz.laserassembly.content.table.AssemblyTableMenu;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 
 import java.util.function.Supplier;
@@ -42,7 +42,7 @@ final class InfoTab extends SideTab {
     }
 
     @Override
-    protected void renderIcon(GuiGraphics graphics, int x, int y) {
+    protected void renderIcon(GuiGraphicsExtractor graphics, int x, int y) {
         GuiSprites.icon(graphics, GuiSprites.Icon.INFO, x, y);
     }
 
@@ -57,7 +57,7 @@ final class InfoTab extends SideTab {
     }
 
     @Override
-    protected void renderContent(GuiGraphics graphics, Font font, int x, int y, int mouseX, int mouseY) {
+    protected void renderContent(GuiGraphicsExtractor graphics, Font font, int x, int y, int mouseX, int mouseY) {
         line(graphics, font, x, y, text("tab.info.status"), status.get(), light.get().tabColour);
         line(graphics, font, x, y + ROW, text("tab.info.heat"), text("tab.info.heat_value", menu.data(DATA_HEAT) / 10), GuiTheme.TAB_VALUE);
         line(graphics, font, x, y + 2 * ROW, text("tab.info.cooling"),
@@ -69,9 +69,9 @@ final class InfoTab extends SideTab {
     }
 
     /** A label, and its value beneath it, as FactoryIO's tabs: tabs are narrow, and a value never wraps. */
-    private static void line(GuiGraphics graphics, Font font, int x, int y, Component label, Component value, int colour) {
-        graphics.drawString(font, label, x, y, GuiTheme.TAB_LABEL, true);
-        graphics.drawString(font, value, x, y + GuiTheme.LINE, colour, true);
+    private static void line(GuiGraphicsExtractor graphics, Font font, int x, int y, Component label, Component value, int colour) {
+        graphics.text(font, label, x, y, GuiTheme.TAB_LABEL, true);
+        graphics.text(font, value, x, y + GuiTheme.LINE, colour, true);
     }
 
     private static Component text(String key, Object... args) {

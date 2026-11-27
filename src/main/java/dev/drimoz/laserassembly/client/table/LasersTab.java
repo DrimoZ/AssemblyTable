@@ -11,11 +11,11 @@ import dev.drimoz.laserassembly.content.table.AssemblyTableMenu;
 import dev.drimoz.laserassembly.registry.ModBlocks;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
@@ -55,7 +55,7 @@ final class LasersTab extends SideTab {
     }
 
     @Override
-    protected void renderIcon(GuiGraphics graphics, int x, int y) {
+    protected void renderIcon(GuiGraphicsExtractor graphics, int x, int y) {
         GuiSprites.icon(graphics, ICON, x, y);
     }
 
@@ -70,22 +70,22 @@ final class LasersTab extends SideTab {
     }
 
     @Override
-    protected void renderContent(GuiGraphics graphics, Font font, int x, int y, int mouseX, int mouseY) {
+    protected void renderContent(GuiGraphicsExtractor graphics, Font font, int x, int y, int mouseX, int mouseY) {
         List<BlockPos> lasers = lasers();
-        graphics.drawString(font, text("tab.lasers.all"), x, y + 5, GuiTheme.TAB_LABEL, true);
+        graphics.text(font, text("tab.lasers.all"), x, y + 5, GuiTheme.TAB_LABEL, true);
         buttons(graphics, font, x, y, mouseX, mouseY);
         if (lasers.isEmpty()) {
-            graphics.drawString(font, text("tab.lasers.none"), x, y + ROW + 5, GuiTheme.TAB_MUTED, true);
+            graphics.text(font, text("tab.lasers.none"), x, y + ROW + 5, GuiTheme.TAB_MUTED, true);
             return;
         }
         for (int i = 0; i < Math.min(lasers.size(), MAX_ROWS); i++) {
             int rowY = y + (i + 1) * ROW;
             LaserBlockEntity laser = laser(lasers.get(i));
             if (laser == null) continue;
-            graphics.renderItem(new ItemStack(ModBlocks.LASER_ITEM.get()), x, rowY + 1);
+            graphics.item(new ItemStack(ModBlocks.LASER_ITEM.get()), x, rowY + 1);
             GuiSprites.statusLight(graphics, light(laser.state()), x + 19, rowY + 1);
             // A dot per lens it carries, in its beam's colour; the one firing ringed in white.
-            List<ResourceLocation> lenses = laser.lenses();
+            List<Identifier> lenses = laser.lenses();
             for (int l = 0; l < lenses.size(); l++) {
                 int dotX = x + 19 + l * 6, dotY = rowY + 11;
                 if (laser.firing() && lenses.get(l).equals(laser.beam())) graphics.fill(dotX - 1, dotY - 1, dotX + 5, dotY + 5, 0xFFFFFFFF);
@@ -93,25 +93,25 @@ final class LasersTab extends SideTab {
             }
             // A Regulator sets the intensity itself: buttons here would fight it, so it reads as a value.
             if (laser.regulated()) {
-                graphics.drawString(font, text("tab.lasers.auto", laser.intensity()), x + 44, rowY + 5, GuiTheme.TAB_MUTED, true);
+                graphics.text(font, text("tab.lasers.auto", laser.intensity()), x + 44, rowY + 5, GuiTheme.TAB_MUTED, true);
             } else {
-                graphics.drawString(font, text("tab.lasers.intensity", laser.intensity()), x + 44, rowY + 5, GuiTheme.TAB_VALUE, true);
+                graphics.text(font, text("tab.lasers.intensity", laser.intensity()), x + 44, rowY + 5, GuiTheme.TAB_VALUE, true);
                 buttons(graphics, font, x, rowY, mouseX, mouseY);
             }
         }
         if (lasers.size() > MAX_ROWS) {
-            graphics.drawString(font, "+" + (lasers.size() - MAX_ROWS), x + WIDTH - 12, y + ROW * MAX_ROWS + 5, GuiTheme.TAB_MUTED, true);
+            graphics.text(font, "+" + (lasers.size() - MAX_ROWS), x + WIDTH - 12, y + ROW * MAX_ROWS + 5, GuiTheme.TAB_MUTED, true);
         }
     }
 
-    private static void buttons(GuiGraphics graphics, Font font, int x, int rowY, int mouseX, int mouseY) {
+    private static void buttons(GuiGraphicsExtractor graphics, Font font, int x, int rowY, int mouseX, int mouseY) {
         button(graphics, font, x + MINUS_X, rowY + 3, "-", mouseX, mouseY);
         button(graphics, font, x + PLUS_X, rowY + 3, "+", mouseX, mouseY);
     }
 
-    private static void button(GuiGraphics graphics, Font font, int x, int y, String label, int mouseX, int mouseY) {
+    private static void button(GuiGraphicsExtractor graphics, Font font, int x, int y, String label, int mouseX, int mouseY) {
         GuiSprites.button(graphics, x, y, BUTTON, BUTTON, inside(mouseX, mouseY, x, y));
-        graphics.drawString(font, label, x + (BUTTON - font.width(label) + 1) / 2, y + 2, GuiTheme.TEXT, false);
+        graphics.text(font, label, x + (BUTTON - font.width(label) + 1) / 2, y + 2, GuiTheme.TEXT, false);
     }
 
     @Override
@@ -141,7 +141,7 @@ final class LasersTab extends SideTab {
             if (laser != null) {
                 BlockPos pos = laser.getBlockPos();
                 List<Component> lines = new ArrayList<>(List.of(Component.translatable(LaserBlockEntity.stateKey(laser.state()))));
-                for (ResourceLocation lens : laser.lenses()) lines.add(Component.literal("■ ").withColor(0xFF000000 | BeamColors.rgb(lens)).append(BeamType.name(lens)));
+                for (Identifier lens : laser.lenses()) lines.add(Component.literal("■ ").withColor(0xFF000000 | BeamColors.rgb(lens)).append(BeamType.name(lens)));
                 if (laser.lenses().isEmpty()) lines.add(text("beam.raw"));
                 int distance = (int) Math.round(Math.sqrt(pos.distSqr(menu.table().getBlockPos())));
                 lines.add(text("tab.lasers.distance", distance).append(" · ")

@@ -7,7 +7,7 @@ import dev.drimoz.laserassembly.client.gui.SideTab;
 import dev.drimoz.laserassembly.content.table.AssemblyTableMenu;
 import dev.drimoz.laserassembly.content.table.FaceMode;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
@@ -51,7 +51,7 @@ final class FacesTab extends SideTab {
     }
 
     @Override
-    protected void renderIcon(GuiGraphics graphics, int x, int y) {
+    protected void renderIcon(GuiGraphicsExtractor graphics, int x, int y) {
         GuiSprites.icon(graphics, ICON, x, y);
     }
 
@@ -66,22 +66,22 @@ final class FacesTab extends SideTab {
     }
 
     @Override
-    protected void renderContent(GuiGraphics graphics, Font font, int x, int y, int mouseX, int mouseY) {
+    protected void renderContent(GuiGraphicsExtractor graphics, Font font, int x, int y, int mouseX, int mouseY) {
         for (int i = 0; i < FACES.length; i++) {
             int rowY = y + i * ROW;
-            graphics.drawString(font, text("face." + FACES[i].getName()), x, rowY + 2, GuiTheme.TAB_LABEL, true);
+            graphics.text(font, text("face." + FACES[i].getName()), x, rowY + 2, GuiTheme.TAB_LABEL, true);
             boolean hovered = inside(mouseX, mouseY, x + BUTTON_X, rowY, BUTTON_W, BUTTON_H);
             GuiSprites.button(graphics, x + BUTTON_X, rowY, BUTTON_W, BUTTON_H, hovered);
             FaceMode mode = mode(FACES[i]);
             Component label = text("face.mode." + mode.name().toLowerCase());
-            graphics.drawString(font, label, x + BUTTON_X + (BUTTON_W - font.width(label)) / 2, rowY + 2, colour(mode), false);
+            graphics.text(font, label, x + BUTTON_X + (BUTTON_W - font.width(label)) / 2, rowY + 2, colour(mode), false);
         }
         toggleRow(graphics, font, x, y + TOGGLES_Y, text("face.auto_import"), (menu.data(DATA_AUTO) & 1) != 0);
         toggleRow(graphics, font, x, y + TOGGLES_Y + ROW, text("face.auto_export"), (menu.data(DATA_AUTO) & 2) != 0);
     }
 
-    private static void toggleRow(GuiGraphics graphics, Font font, int x, int y, Component label, boolean on) {
-        graphics.drawString(font, label, x, y + 2, GuiTheme.TAB_LABEL, true);
+    private static void toggleRow(GuiGraphicsExtractor graphics, Font font, int x, int y, Component label, boolean on) {
+        graphics.text(font, label, x, y + 2, GuiTheme.TAB_LABEL, true);
         GuiSprites.toggle(graphics, x + WIDTH - GuiSprites.SWITCH_W, y + 2, on);
     }
 

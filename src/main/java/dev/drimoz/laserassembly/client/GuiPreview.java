@@ -81,9 +81,9 @@ public final class GuiPreview {
         if (!started && minecraft.screen instanceof TitleScreen) {
             started = true;
             minecraft.options.pauseOnLostFocus = false;
-            GLFW.glfwSetWindowSize(minecraft.getWindow().getWindow(), 1920, 1080);
+            GLFW.glfwSetWindowSize(minecraft.getWindow().handle(), 1920, 1080);
             minecraft.options.guiScale().set(2);
-            minecraft.resizeDisplay();
+            minecraft.resizeGui();
             copyWorld(minecraft);
             script();
             minecraft.createWorldOpenFlows().openWorld(WORLD, () -> {});
@@ -104,14 +104,18 @@ public final class GuiPreview {
         Minecraft minecraft = Minecraft.getInstance();
         File file = new File(minecraft.gameDirectory, "screenshots/preview/" + pendingShot + ".png");
         file.getParentFile().mkdirs();
-        try (NativeImage image = Screenshot.takeScreenshot(minecraft.getMainRenderTarget())) {
-            image.writeToFile(file);
-            writeCrop(minecraft, pendingShot);
-            LOGGER.info("GUI preview: {}", file);
-        } catch (IOException e) {
-            LOGGER.error("GUI preview failed: {}", file, e);
-        }
+        String shot = pendingShot;
         pendingShot = null;
+        // Read back from the GPU, so handed over in a callback rather than returned.
+        Screenshot.takeScreenshot(minecraft.getMainRenderTarget(), image -> {
+            try (image) {
+                image.writeToFile(file);
+                writeCrop(minecraft, shot);
+                LOGGER.info("GUI preview: {}", file);
+            } catch (IOException e) {
+                LOGGER.error("GUI preview failed: {}", file, e);
+            }
+        });
     }
 
     // ------------------------------------------------------------------ script
@@ -166,12 +170,14 @@ public final class GuiPreview {
      * at once, each in its colour.
      */
     private static void build(ServerPlayer player) {
-        ServerLevel level = player.serverLevel();
+        ServerLevel level = player.level();
         player.setGameMode(GameType.CREATIVE);
         player.getAbilities().flying = true;
         player.onUpdateAbilities();
-        level.setDayTime(6000);
-        level.setWeatherParameters(6000, 0, false, false);
+        // 26.1 keeps time in world clocks: the command is the one stable way to set it. Silent, or
+        // its chat line lands in every capture.
+        level.getServer().getCommands().performPrefixedCommand(level.getServer().createCommandSourceStack().withSuppressedOutput(), "time set noon");
+        level.getServer().setWeatherParameters(6000, 0, false, false);
         int x = 1000, z = 1000;
         level.getChunk(x >> 4, z >> 4);
         origin = new BlockPos(x, level.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z), z);
@@ -194,8 +200,8 @@ public final class GuiPreview {
             if (i == 0) level.setBlockAndUpdate(at[i].below(), Blocks.POLISHED_DEEPSLATE.defaultBlockState());
             level.setBlockAndUpdate(at[i], ModBlocks.LASER.get().defaultBlockState().setValue(LaserBlock.FACING, facing));
             if (level.getBlockEntity(at[i]) instanceof LaserBlockEntity laser) {
-                laser.energy().receiveEnergy(LaserBlockEntity.ENERGY_CAPACITY, false);
-                laser.lens().insertItem(0, lenses[i], false);
+                laser.energy().set(LaserBlockEntity.ENERGY_CAPACITY);
+                laser.lens().set(0, lenses[i]);
             }
         }
 
@@ -217,7 +223,7 @@ public final class GuiPreview {
         for (int i = 0; i < augments.size(); i++) player.getInventory().setItem(13 + i, augments.get(i));
         player.getInventory().setItem(0, new ItemStack(ModBlocks.ASSEMBLY_TABLE_ITEM.get()));
         player.getInventory().setItem(1, new ItemStack(ModBlocks.LASER_ITEM.get(), 8));
-        player.teleportTo(level, origin.getX() + 4.5, origin.getY() + 3, origin.getZ() + 4.5, 135, 25);
+        player.teleportTo(level, origin.getX() + 4.5, origin.getY() + 3, origin.getZ() + 4.5, java.util.Set.of(), 135, 25, true);
     }
 
     /** From the front corner, a little above, looking at the table's top - lasers beyond it. */
@@ -228,25 +234,26 @@ public final class GuiPreview {
         double dx = origin.getX() + 0.2 - eyeX, dy = origin.getY() + 1.4 - eyeY, dz = origin.getZ() + 0.5 - eyeZ;
         float yaw = (float) Math.toDegrees(Math.atan2(-dx, dz));
         float pitch = (float) -Math.toDegrees(Math.atan2(dy, Math.hypot(dx, dz)));
-        player.teleportTo(player.serverLevel(), eyeX, eyeY - player.getEyeHeight(), eyeZ, yaw, pitch);
+        player.teleportTo(player.level(), eyeX, eyeY - player.getEyeHeight(), eyeZ, java.util.Set.of(), yaw, pitch, true);
         for (BlockPos pos : List.of(origin.offset(-2, 1, -2), origin.offset(-2, 0, 1), origin.offset(1, 0, -2))) {
-            if (player.serverLevel().getBlockEntity(pos) instanceof LaserBlockEntity laser) {
-                laser.energy().receiveEnergy(LaserBlockEntity.ENERGY_CAPACITY, false);
+            if (player.level().getBlockEntity(pos) instanceof LaserBlockEntity laser) {
+                laser.energy().set(LaserBlockEntity.ENERGY_CAPACITY);
             }
         }
     }
 
     private static AssemblyTableBlockEntity table(ServerPlayer player) {
-        return (AssemblyTableBlockEntity) player.serverLevel().getBlockEntity(origin.above());
+        return (AssemblyTableBlockEntity) player.level().getBlockEntity(origin.above());
     }
 
     private static LaserBlockEntity laser(ServerPlayer player, int index) {
-        return (LaserBlockEntity) player.serverLevel().getBlockEntity(index == 1 ? origin.offset(-2, 0, 1) : origin.offset(1, 0, -2));
+        return (LaserBlockEntity) player.level().getBlockEntity(index == 1 ? origin.offset(-2, 0, 1) : origin.offset(1, 0, -2));
     }
 
     private static void insert(AssemblyTableBlockEntity table, net.minecraft.world.item.Item item, int count) {
         ItemStack rest = new ItemStack(item, count);
-        for (int slot = 0; slot < table.inputs().getSlots() && !rest.isEmpty(); slot++) rest = table.inputs().insertItem(slot, rest, false);
+        rest.shrink(net.neoforged.neoforge.transfer.ResourceHandlerUtil.insertStacking(table.inputs(),
+                net.neoforged.neoforge.transfer.item.ItemResource.of(rest), rest.getCount(), null));
     }
 
     // ------------------------------------------------------------------ plumbing
@@ -272,13 +279,13 @@ public final class GuiPreview {
     private static void clickTab(Minecraft minecraft, int index) {
         if (minecraft.screen instanceof AssemblyTableScreen screen) {
             Rect2i tab = screen.tabAreas().get(index);
-            screen.mouseClicked(tab.getX() + 6, tab.getY() + 6, 0);
+            screen.mouseClicked(new net.minecraft.client.input.MouseButtonEvent(tab.getX() + 6, tab.getY() + 6, new net.minecraft.client.input.MouseButtonInfo(0, 0)), false);
         }
     }
 
     /** The cursor off every control, so no tooltip or highlight shows. */
     private static void cursorAway(Minecraft minecraft) {
-        GLFW.glfwSetCursorPos(minecraft.getWindow().getWindow(), 2, 2);
+        GLFW.glfwSetCursorPos(minecraft.getWindow().handle(), 2, 2);
     }
 
     /**
@@ -289,10 +296,10 @@ public final class GuiPreview {
         int x0, y0, x1, y1;
         double scale = minecraft.getWindow().getGuiScale();
         if (minecraft.screen instanceof AbstractContainerScreen<?> screen) {
-            x0 = screen.getGuiLeft();
-            y0 = screen.getGuiTop();
-            x1 = x0 + screen.getXSize();
-            y1 = y0 + screen.getYSize();
+            x0 = screen.getLeftPos();
+            y0 = screen.getTopPos();
+            x1 = x0 + screen.getImageWidth();
+            y1 = y0 + screen.getImageHeight();
             if (screen instanceof AssemblyTableScreen table) {
                 for (Rect2i tab : table.tabAreas()) {
                     x0 = Math.min(x0, tab.getX());

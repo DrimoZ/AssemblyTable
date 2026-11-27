@@ -6,18 +6,15 @@ import dev.drimoz.laserassembly.content.table.AssemblyTableBlock;
 import dev.drimoz.laserassembly.content.table.AssemblyTableBlockEntity;
 import dev.drimoz.laserassembly.content.beam.BeamType;
 import dev.drimoz.laserassembly.core.Step;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.items.ItemStackHandler;
+import dev.drimoz.laserassembly.content.ItemSlots;
+import net.neoforged.neoforge.transfer.item.ItemResource;
 import dev.drimoz.laserassembly.registry.ModBlocks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.StringTag;
-import net.minecraft.nbt.Tag;
-import net.minecraft.nbt.NbtUtils;
 import net.minecraft.network.Connection;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
@@ -25,6 +22,8 @@ import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.util.Mth;
 import net.minecraft.world.Containers;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -39,7 +38,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
-import net.neoforged.neoforge.energy.EnergyStorage;
+import net.neoforged.neoforge.transfer.energy.SimpleEnergyHandler;
 import org.joml.Vector3f;
 import org.jetbrains.annotations.Nullable;
 
@@ -77,75 +76,78 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
     private final Power energy = new Power();
 
     /** One lens, which gives the beam its type. Read once when it changes, not on every shot. */
-    private final ItemStackHandler lens = new ItemStackHandler(1) {
+    private final ItemSlots lens = new ItemSlots(1) {
         @Override
-        protected void onContentsChanged(int slot) {
+        protected void onContentsChanged(int slot, ItemStack previous) {
             lensBeams = null;
             beam = lensBeam(0);
             setChanged();
-            if (level != null && !level.isClientSide) sync();
+            if (level != null && !level.isClientSide()) sync();
         }
 
         @Override
-        public boolean isItemValid(int slot, ItemStack stack) {
+        public boolean isValid(int slot, ItemResource resource) {
+            ItemStack stack = resource.toStack();
             return isLens(stack) && !beamTakenElsewhere(this, slot, stack);
         }
 
         @Override
-        public int getSlotLimit(int slot) {
+        protected int getCapacity(int slot, ItemResource resource) {
             return 1;
         }
     };
 
     /** Augments, one of each group. Their combined effect is read once when they change. */
-    private final ItemStackHandler augments = new ItemStackHandler(AUGMENT_SLOTS) {
+    private final ItemSlots augments = new ItemSlots(AUGMENT_SLOTS) {
         @Override
-        protected void onContentsChanged(int slot) {
+        protected void onContentsChanged(int slot, ItemStack previous) {
             effects = null;
             setChanged();
             // The table's lasers tab shows "auto" for a laser with a Regulator.
-            if (level != null && !level.isClientSide) sync();
+            if (level != null && !level.isClientSide()) sync();
         }
 
         @Override
-        public boolean isItemValid(int slot, ItemStack stack) {
+        public boolean isValid(int slot, ItemResource resource) {
+            ItemStack stack = resource.toStack();
             return level != null && AugmentType.of(stack, level.registryAccess()).isPresent() && !groupTakenElsewhere(slot, stack);
         }
 
         @Override
-        public int getSlotLimit(int slot) {
+        protected int getCapacity(int slot, ItemResource resource) {
             return 1;
         }
     };
 
     /** A Barrel's extra lenses: usable only as far as the Barrel augment opens them. */
-    private final ItemStackHandler barrel = new ItemStackHandler(BARREL_SLOTS) {
+    private final ItemSlots barrel = new ItemSlots(BARREL_SLOTS) {
         @Override
-        protected void onContentsChanged(int slot) {
+        protected void onContentsChanged(int slot, ItemStack previous) {
             lensBeams = null;
             setChanged();
             // The table's lasers tab shows every lens a laser carries.
-            if (level != null && !level.isClientSide) sync();
+            if (level != null && !level.isClientSide()) sync();
         }
 
         @Override
-        public boolean isItemValid(int slot, ItemStack stack) {
+        public boolean isValid(int slot, ItemResource resource) {
+            ItemStack stack = resource.toStack();
             return isLens(stack) && slot < effects().barrel() && !beamTakenElsewhere(this, slot, stack);
         }
 
         @Override
-        public int getSlotLimit(int slot) {
+        protected int getCapacity(int slot, ItemResource resource) {
             return 1;
         }
     };
 
     /** The beam type it fires, null for raw: its lens's, or the Barrel's pick. Synced, for the beam's colour. */
-    private @Nullable ResourceLocation beam;
-    private @Nullable ResourceLocation[] lensBeams;
+    private @Nullable Identifier beam;
+    private @Nullable Identifier[] lensBeams;
 
     /** The client has no augments outside the laser's own menu: whether one is a Regulator comes synced. */
     private boolean regulatedOnClient;
-    private final List<ResourceLocation> lensesOnClient = new ArrayList<>();
+    private final List<Identifier> lensesOnClient = new ArrayList<>();
 
     /** Client render state: where the head points, eased towards the table by the renderer. Never saved nor synced. */
     public final Vector3f headAim = new Vector3f(0, 1, 0);
@@ -162,7 +164,7 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
         @Override
         public int get(int index) {
             return switch (index) {
-                case DATA_ENERGY -> energy.getEnergyStored();
+                case DATA_ENERGY -> energy.getAmountAsInt();
                 case DATA_INTENSITY -> intensity;
                 case DATA_STATE -> state;
                 default -> 0;
@@ -207,7 +209,7 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
         }
 
         boolean fired = false;
-        ResourceLocation beamBefore = beam;
+        Identifier beamBefore = beam;
         Step step = table == null || table.isRemoved() ? null : table.currentStep();
         if (step == null) {
             state = target == null ? STATE_NO_TARGET : STATE_HOLDING;
@@ -244,9 +246,9 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
         Step.Fit reported = null;
         int rawPower = -1;
         for (int i = 0; i <= fx.barrel(); i++) {
-            ItemStack stack = i == 0 ? lens.getStackInSlot(0) : barrel.getStackInSlot(i - 1);
+            ItemStack stack = i == 0 ? lens.stack(0) : barrel.stack(i - 1);
             if (i > 0 && stack.isEmpty()) continue;
-            ResourceLocation candidate = lensBeam(i);
+            Identifier candidate = lensBeam(i);
             int power = fx.regulator() ? regulate(step, candidate, rawFactor) : intensity;
             Step.Fit fit = step.fit(candidate, power, rawFactor);
             if (reported == null) reported = fit;
@@ -261,7 +263,7 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
         return rawPower > 0 ? aimWith(null, rawPower) : reported;
     }
 
-    private Step.Fit aimWith(@Nullable ResourceLocation candidate, int power) {
+    private Step.Fit aimWith(@Nullable Identifier candidate, int power) {
         beam = candidate;
         if (power != intensity) {
             intensity = power;
@@ -274,7 +276,7 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
      * The Regulator's pick: the highest intensity that fits without heating; failing that, the
      * lowest that fits at all; failing that the current one, which reports why it does not.
      */
-    private int regulate(Step step, @Nullable ResourceLocation candidate, double rawFactor) {
+    private int regulate(Step step, @Nullable Identifier candidate, double rawFactor) {
         int lowestFitting = -1;
         for (int power = MAX_INTENSITY; power >= 1; power--) {
             if (step.fit(candidate, power, rawFactor) != Step.Fit.OK) continue;
@@ -298,7 +300,7 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
     /** Broken or unloaded: off the table's list. */
     @Override
     public void setRemoved() {
-        if (table != null && !table.isRemoved() && level != null && !level.isClientSide) table.unlink(worldPosition);
+        if (table != null && !table.isRemoved() && level != null && !level.isClientSide()) table.unlink(worldPosition);
         super.setRemoved();
     }
 
@@ -307,13 +309,13 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
     }
 
     /** Every lens it carries, lens slot first, then the Barrel's. */
-    public List<ResourceLocation> lenses() {
-        if (level != null && level.isClientSide) return lensesOnClient;
-        List<ResourceLocation> carried = new ArrayList<>();
-        ResourceLocation main = lensBeam(0);
+    public List<Identifier> lenses() {
+        if (level != null && level.isClientSide()) return lensesOnClient;
+        List<Identifier> carried = new ArrayList<>();
+        Identifier main = lensBeam(0);
         if (main != null) carried.add(main);
         for (int i = 0; i < BARREL_SLOTS; i++) {
-            ResourceLocation extra = lensBeam(1 + i);
+            Identifier extra = lensBeam(1 + i);
             if (extra != null) carried.add(extra);
         }
         return carried;
@@ -338,7 +340,7 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
     }
 
     public boolean regulated() {
-        return level != null && level.isClientSide ? regulatedOnClient : effects().regulator();
+        return level != null && level.isClientSide() ? regulatedOnClient : effects().regulator();
     }
 
     public Effects effects() {
@@ -349,7 +351,7 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
             double efficiency = 1;
             boolean regulator = false;
             for (int i = 0; i < AUGMENT_SLOTS; i++) {
-                AugmentType type = AugmentType.of(augments.getStackInSlot(i), level.registryAccess()).map(holder -> holder.value()).orElse(null);
+                AugmentType type = AugmentType.of(augments.stack(i), level.registryAccess()).map(holder -> holder.value()).orElse(null);
                 if (type == null) continue;
                 range += type.range();
                 efficiency *= type.efficiency();
@@ -365,8 +367,8 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
      * One lens of each beam type per laser: a laser fires a single lens, so a second of the same
      * type would only ever sit there. It also spreads a shift-click across the type it lacks.
      */
-    private boolean beamTakenElsewhere(ItemStackHandler handler, int slot, ItemStack stack) {
-        ResourceLocation wanted = BeamType.of(stack, level.registryAccess());
+    private boolean beamTakenElsewhere(ItemSlots handler, int slot, ItemStack stack) {
+        Identifier wanted = BeamType.of(stack, level.registryAccess());
         if (handler != lens && wanted.equals(lensBeam(0))) return true;
         for (int i = 0; i < BARREL_SLOTS; i++) {
             if ((handler != barrel || i != slot) && wanted.equals(lensBeam(1 + i))) return true;
@@ -377,14 +379,14 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
     /** One augment of each group: a second Range on the same laser is refused, not stacked. */
     private boolean groupTakenElsewhere(int slot, ItemStack stack) {
         if (level == null) return false;
-        ResourceLocation group = group(stack);
+        Identifier group = group(stack);
         for (int i = 0; i < AUGMENT_SLOTS; i++) {
-            if (i != slot && group != null && group.equals(group(augments.getStackInSlot(i)))) return true;
+            if (i != slot && group != null && group.equals(group(augments.stack(i)))) return true;
         }
         return false;
     }
 
-    private @Nullable ResourceLocation group(ItemStack stack) {
+    private @Nullable Identifier group(ItemStack stack) {
         return AugmentType.of(stack, level.registryAccess()).map(AugmentType::group).orElse(null);
     }
 
@@ -397,12 +399,12 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
      * after the lenses change: {@link #aim} reads them every tick. Not before the level is there, as
      * for {@link #effects}.
      */
-    private @Nullable ResourceLocation lensBeam(int i) {
+    private @Nullable Identifier lensBeam(int i) {
         if (lensBeams == null) {
             if (level == null) return null;
-            lensBeams = new ResourceLocation[1 + BARREL_SLOTS];
+            lensBeams = new Identifier[1 + BARREL_SLOTS];
             for (int j = 0; j < lensBeams.length; j++) {
-                lensBeams[j] = BeamType.of(j == 0 ? lens.getStackInSlot(0) : barrel.getStackInSlot(j - 1), level.registryAccess());
+                lensBeams[j] = BeamType.of(j == 0 ? lens.stack(0) : barrel.stack(j - 1), level.registryAccess());
             }
         }
         return lensBeams[i];
@@ -413,22 +415,19 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
     }
 
     /** FE in from any side; nothing may pull it back out, only the laser spends it. */
-    private final class Power extends EnergyStorage {
+    private final class Power extends SimpleEnergyHandler {
         Power() {
             super(ENERGY_CAPACITY, ENERGY_CAPACITY, 0);
         }
 
         @Override
-        public int receiveEnergy(int toReceive, boolean simulate) {
-            int received = super.receiveEnergy(toReceive, simulate);
-            if (received > 0 && !simulate) setChanged();
-            return received;
+        protected void onEnergyChanged(int previousAmount) {
+            setChanged();
         }
 
         boolean spend(int amount) {
             if (energy < amount) return false;
-            energy -= amount;
-            setChanged();
+            set(energy - amount);
             return true;
         }
     }
@@ -487,7 +486,7 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
     public void stepIntensity(int delta) {
         intensity = Mth.clamp(intensity + delta, 1, MAX_INTENSITY);
         setChanged();
-        if (level != null && !level.isClientSide) sync();
+        if (level != null && !level.isClientSide()) sync();
     }
 
     @Override
@@ -500,32 +499,33 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
         return new LaserMenu(id, inventory, this, data);
     }
 
-    public ItemStackHandler lens() {
+    public ItemSlots lens() {
         return lens;
     }
 
-    public ItemStackHandler augments() {
+    public ItemSlots augments() {
         return augments;
     }
 
-    public ItemStackHandler barrel() {
+    public ItemSlots barrel() {
         return barrel;
     }
 
     /** Lens, augments and Barrel lenses, when the laser is broken. */
-    void dropContents() {
-        for (ItemStackHandler handler : new ItemStackHandler[]{lens, augments, barrel}) {
-            for (int i = 0; i < handler.getSlots(); i++) {
-                Containers.dropItemStack(level, worldPosition.getX(), worldPosition.getY(), worldPosition.getZ(), handler.getStackInSlot(i));
+    @Override
+    public void preRemoveSideEffects(BlockPos pos, BlockState state) {
+        for (ItemSlots handler : new ItemSlots[]{lens, augments, barrel}) {
+            for (int i = 0; i < handler.size(); i++) {
+                Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), handler.stack(i).copy());
             }
         }
     }
 
-    public @Nullable ResourceLocation beam() {
+    public @Nullable Identifier beam() {
         return beam;
     }
 
-    public EnergyStorage energy() {
+    public SimpleEnergyHandler energy() {
         return energy;
     }
 
@@ -557,59 +557,56 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
     }
 
     @Override
-    public void onDataPacket(Connection connection, ClientboundBlockEntityDataPacket packet, HolderLookup.Provider registries) {
-        readBeam(packet.getTag());
+    public void onDataPacket(Connection connection, ValueInput input) {
+        readBeam(input);
     }
 
     @Override
-    public void handleUpdateTag(CompoundTag tag, HolderLookup.Provider registries) {
-        readBeam(tag);
+    public void handleUpdateTag(ValueInput input) {
+        readBeam(input);
     }
 
     private void writeBeam(CompoundTag tag) {
-        if (target != null) tag.put("target", NbtUtils.writeBlockPos(target));
+        tag.storeNullable("target", BlockPos.CODEC, target);
         tag.putBoolean("firing", firing);
         tag.putInt("intensity", intensity);
         tag.putBoolean("regulated", effects().regulator());
         tag.putInt("state", state);
-        ListTag carried = new ListTag();
-        for (ResourceLocation lens : lenses()) carried.add(StringTag.valueOf(lens.toString()));
-        tag.put("lenses", carried);
-        if (beam != null) tag.putString("beam", beam.toString());
+        tag.store("lenses", Identifier.CODEC.listOf(), lenses());
+        tag.storeNullable("beam", Identifier.CODEC, beam);
     }
 
-    private void readBeam(CompoundTag tag) {
-        target = NbtUtils.readBlockPos(tag, "target").orElse(null);
-        firing = tag.getBoolean("firing");
-        intensity = Mth.clamp(tag.getInt("intensity"), 1, MAX_INTENSITY);
-        regulatedOnClient = tag.getBoolean("regulated");
-        state = tag.getInt("state");
+    private void readBeam(ValueInput input) {
+        target = input.read("target", BlockPos.CODEC).orElse(null);
+        firing = input.getBooleanOr("firing", false);
+        intensity = Mth.clamp(input.getIntOr("intensity", 1), 1, MAX_INTENSITY);
+        regulatedOnClient = input.getBooleanOr("regulated", false);
+        state = input.getIntOr("state", STATE_NO_TARGET);
         lensesOnClient.clear();
-        for (Tag lens : tag.getList("lenses", Tag.TAG_STRING)) {
-            ResourceLocation parsed = ResourceLocation.tryParse(lens.getAsString());
-            if (parsed != null) lensesOnClient.add(parsed);
-        }
-        beam = tag.contains("beam") ? ResourceLocation.tryParse(tag.getString("beam")) : null;
+        lensesOnClient.addAll(input.read("lenses", Identifier.CODEC.listOf()).orElse(List.of()));
+        beam = input.read("beam", Identifier.CODEC).orElse(null);
     }
 
     @Override
-    protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
-        super.saveAdditional(tag, registries);
-        tag.put("energy", energy.serializeNBT(registries));
-        tag.putInt("intensity", intensity);
-        tag.put("lens", lens.serializeNBT(registries));
-        tag.put("augments", augments.serializeNBT(registries));
-        tag.put("barrel", barrel.serializeNBT(registries));
+    protected void saveAdditional(ValueOutput output) {
+        super.saveAdditional(output);
+        // The keys and layouts 1.21.1 wrote, so a laser carried over keeps its power and lenses.
+        energy.serialize(output);
+        output.putInt("intensity", intensity);
+        lens.save(output, "lens");
+        augments.save(output, "augments");
+        barrel.save(output, "barrel");
     }
 
     @Override
-    protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
-        super.loadAdditional(tag, registries);
-        if (tag.contains("energy")) energy.deserializeNBT(registries, tag.get("energy"));
-        intensity = Mth.clamp(tag.getInt("intensity"), 1, MAX_INTENSITY);
-        lens.deserializeNBT(registries, tag.getCompound("lens"));
-        augments.deserializeNBT(registries, tag.getCompound("augments"));
-        barrel.deserializeNBT(registries, tag.getCompound("barrel"));
+    protected void loadAdditional(ValueInput input) {
+        super.loadAdditional(input);
+        energy.deserialize(input);
+        intensity = Mth.clamp(input.getIntOr("intensity", 1), 1, MAX_INTENSITY);
+        lens.load(input, "lens");
+        augments.load(input, "augments");
+        barrel.load(input, "barrel");
         effects = null;
+        lensBeams = null;
     }
 }

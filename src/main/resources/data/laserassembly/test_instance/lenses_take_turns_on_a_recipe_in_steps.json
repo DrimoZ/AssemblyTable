@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:function",
+  "function": "laserassembly:lenses_take_turns_on_a_recipe_in_steps",
+  "environment": "minecraft:default",
+  "structure": "laserassembly:platform",
+  "max_ticks": 300
+}

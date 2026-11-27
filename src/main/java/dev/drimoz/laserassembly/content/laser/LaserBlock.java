@@ -19,7 +19,7 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
-import net.minecraft.world.level.block.state.properties.DirectionProperty;
+import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
@@ -33,7 +33,7 @@ public class LaserBlock extends BaseEntityBlock {
 
     public static final MapCodec<LaserBlock> CODEC = simpleCodec(LaserBlock::new);
     /** Where it fires: away from the face it was placed on. */
-    public static final DirectionProperty FACING = BlockStateProperties.FACING;
+    public static final EnumProperty<Direction> FACING = BlockStateProperties.FACING;
     /**
      * The base and the head's reach, one pixel in from the sides, by where the laser fires: a full
      * cube's outline floated round a laser that fills a quarter of it.
@@ -84,16 +84,8 @@ public class LaserBlock extends BaseEntityBlock {
 
     @Override
     protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
-        if (!level.isClientSide && level.getBlockEntity(pos) instanceof LaserBlockEntity laser) player.openMenu(laser, pos);
-        return InteractionResult.sidedSuccess(level.isClientSide);
-    }
-
-    @Override
-    protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean movedByPiston) {
-        if (!state.is(newState.getBlock()) && level.getBlockEntity(pos) instanceof LaserBlockEntity laser) {
-            laser.dropContents();
-        }
-        super.onRemove(state, level, pos, newState, movedByPiston);
+        if (!level.isClientSide() && level.getBlockEntity(pos) instanceof LaserBlockEntity laser) player.openMenu(laser, pos);
+        return InteractionResult.SUCCESS;
     }
 
     @Override
@@ -108,7 +100,7 @@ public class LaserBlock extends BaseEntityBlock {
 
     @Override
     public <T extends BlockEntity> @Nullable BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type) {
-        return level.isClientSide ? null
+        return level.isClientSide() ? null
                 : createTickerHelper(type, ModBlocks.LASER_ENTITY.get(), (l, pos, s, laser) -> laser.serverTick());
     }
 }

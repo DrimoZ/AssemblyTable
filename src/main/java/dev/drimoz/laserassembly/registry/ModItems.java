@@ -39,11 +39,11 @@ public final class ModItems {
             .build());
 
     private static DeferredItem<Item> lens(String name) {
-        return ITEMS.registerSimpleItem(name, new Item.Properties().stacksTo(16));
+        return ITEMS.registerSimpleItem(name, properties -> properties.stacksTo(16));
     }
 
     private static DeferredItem<AugmentItem> augment(String name) {
-        return ITEMS.register(name, () -> new AugmentItem(new Item.Properties().stacksTo(16)));
+        return ITEMS.registerItem(name, AugmentItem::new, properties -> properties.stacksTo(16));
     }
 
     public static void register(IEventBus modBus) {

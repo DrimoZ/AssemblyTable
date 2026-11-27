@@ -8,7 +8,7 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
@@ -27,15 +27,15 @@ import java.util.Optional;
  * @param regulator  the laser sets its own intensity: the highest that fits the step without heating
  * @param barrel     lens slots added; the laser fires whichever lens fits the step in progress
  */
-public record AugmentType(Item item, Optional<ResourceLocation> group, int range, double efficiency,
+public record AugmentType(Item item, Optional<Identifier> group, int range, double efficiency,
                           boolean regulator, int barrel) {
 
     public static final ResourceKey<Registry<AugmentType>> REGISTRY =
-            ResourceKey.createRegistryKey(ResourceLocation.fromNamespaceAndPath(LaserAssembly.MOD_ID, "augment"));
+            ResourceKey.createRegistryKey(Identifier.fromNamespaceAndPath(LaserAssembly.MOD_ID, "augment"));
 
     public static final Codec<AugmentType> CODEC = RecordCodecBuilder.create(i -> i.group(
             BuiltInRegistries.ITEM.byNameCodec().fieldOf("item").forGetter(AugmentType::item),
-            ResourceLocation.CODEC.optionalFieldOf("group").forGetter(AugmentType::group),
+            Identifier.CODEC.optionalFieldOf("group").forGetter(AugmentType::group),
             Codec.intRange(0, 32).optionalFieldOf("range", 0).forGetter(AugmentType::range),
             Codec.doubleRange(0.05, 1).optionalFieldOf("efficiency", 1.0).forGetter(AugmentType::efficiency),
             Codec.BOOL.optionalFieldOf("regulator", false).forGetter(AugmentType::regulator),
@@ -50,7 +50,7 @@ public record AugmentType(Item item, Optional<ResourceLocation> group, int range
     }
 
     /** The group it excludes on a laser: its own, or itself. */
-    public static ResourceLocation group(Holder.Reference<AugmentType> augment) {
-        return augment.value().group.orElse(augment.key().location());
+    public static Identifier group(Holder.Reference<AugmentType> augment) {
+        return augment.value().group.orElse(augment.key().identifier());
     }
 }

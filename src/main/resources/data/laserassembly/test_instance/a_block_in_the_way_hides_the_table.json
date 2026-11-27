@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:function",
+  "function": "laserassembly:a_block_in_the_way_hides_the_table",
+  "environment": "minecraft:default",
+  "structure": "laserassembly:platform",
+  "max_ticks": 60
+}

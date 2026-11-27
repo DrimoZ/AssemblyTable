@@ -1,9 +1,9 @@
 {
   "type": "laserassembly:assembling",
   "ingredients": [
-    { "ingredient": { "item": "minecraft:gold_ingot" }, "count": 4 },
-    { "ingredient": { "item": "minecraft:diamond" }, "count": 1 },
-    { "ingredient": { "item": "minecraft:lapis_lazuli" }, "count": 4 }
+    { "ingredient": "minecraft:gold_ingot", "count": 4 },
+    { "ingredient": "minecraft:diamond", "count": 1 },
+    { "ingredient": "minecraft:lapis_lazuli", "count": 4 }
   ],
   "result": { "id": "laserassembly:efficiency_augment_2" },
   "steps": [

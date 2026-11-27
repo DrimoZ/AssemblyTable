@@ -1,9 +1,9 @@
 {
   "type": "laserassembly:assembling",
   "ingredients": [
-    { "ingredient": { "item": "minecraft:diamond" }, "count": 5 },
-    { "ingredient": { "item": "minecraft:iron_ingot" }, "count": 2 },
-    { "ingredient": { "item": "minecraft:leather" }, "count": 1 }
+    { "ingredient": "minecraft:diamond", "count": 5 },
+    { "ingredient": "minecraft:iron_ingot", "count": 2 },
+    { "ingredient": "minecraft:leather", "count": 1 }
   ],
   "result": { "id": "minecraft:diamond_horse_armor" },
   "steps": [

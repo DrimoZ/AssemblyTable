@@ -6,23 +6,31 @@ import dev.drimoz.laserassembly.LaserAssembly;
 import dev.drimoz.laserassembly.content.table.AssemblyTableBlock;
 import dev.drimoz.laserassembly.content.table.AssemblyTableBlockEntity;
 import dev.drimoz.laserassembly.recipe.AssemblyRecipe;
+import dev.drimoz.laserassembly.registry.ModRecipes;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LevelRenderer;
-import net.minecraft.client.renderer.LightTexture;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.Sheets;
-import net.minecraft.client.renderer.block.ModelBlockRenderer;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.block.dispatch.BlockStateModelPart;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
-import net.minecraft.client.renderer.entity.ItemRenderer;
-import net.minecraft.client.resources.model.ModelResourceLocation;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState;
+import net.minecraft.client.renderer.feature.ModelFeatureRenderer;
+import net.minecraft.client.renderer.item.ItemModelResolver;
+import net.minecraft.client.renderer.item.ItemStackRenderState;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.LightCoordsUtil;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
-import net.neoforged.neoforge.client.model.data.ModelData;
+import net.minecraft.world.phys.Vec3;
+import net.neoforged.neoforge.client.model.standalone.StandaloneModelKey;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
 
 /**
  * What the table makes, over its focus: the result alone, turning and bobbing in the beams while
@@ -30,46 +38,62 @@ import net.neoforged.neoforge.client.model.data.ModelData;
  * item was being made. Driven by the game clock, not by the craft's progress - that would need a
  * packet every tick, and the screen already shows the true figure.
  */
-public class AssemblyTableRenderer implements BlockEntityRenderer<AssemblyTableBlockEntity> {
+public class AssemblyTableRenderer implements BlockEntityRenderer<AssemblyTableBlockEntity, AssemblyTableRenderer.State> {
 
-    public static final ModelResourceLocation GLOW = ModelResourceLocation.standalone(LaserAssembly.id("block/assembly_table_glow"));
+    public static final StandaloneModelKey<BlockStateModelPart> GLOW = new StandaloneModelKey<>(() -> LaserAssembly.MOD_ID + ":assembly_table_glow");
 
     /** Just above the plate, where the beams meet. */
     private static final float HEIGHT = (float) AssemblyTableBlock.TOP + 0.3F;
     private static final float SCALE = 0.55F;
 
-    private final ItemRenderer items;
-    private final ModelBlockRenderer models;
+    public static final class State extends BlockEntityRenderState {
+        final ItemStackRenderState item = new ItemStackRenderState();
+        boolean working;
+        float time;
+        /** Lit by the air over the plate, not the table block itself, which is dark inside. */
+        int itemLight;
+    }
+
+    private final ItemModelResolver items;
 
     public AssemblyTableRenderer(BlockEntityRendererProvider.Context context) {
-        this.items = context.getItemRenderer();
-        this.models = context.getBlockRenderDispatcher().getModelRenderer();
+        this.items = context.itemModelResolver();
     }
 
     @Override
-    public void render(AssemblyTableBlockEntity table, float partialTick, PoseStack poseStack, MultiBufferSource buffers, int light, int overlay) {
-        boolean working = table.working();
-        if (working) {
-            // The focus lit at full brightness, so a working table reads from across a dark room.
-            models.renderModel(poseStack.last(), buffers.getBuffer(Sheets.cutoutBlockSheet()), null,
-                    Minecraft.getInstance().getModelManager().getModel(GLOW), 1, 1, 1, LightTexture.FULL_BRIGHT, overlay,
-                    ModelData.EMPTY, RenderType.cutout());
-        }
+    public State createRenderState() {
+        return new State();
+    }
 
-        ResourceLocation current = table.current();
+    @Override
+    public void extractRenderState(AssemblyTableBlockEntity table, State state, float partialTick, Vec3 camera, ModelFeatureRenderer.@Nullable CrumblingOverlay breaking) {
+        BlockEntityRenderer.super.extractRenderState(table, state, partialTick, camera, breaking);
+        state.working = table.working();
+        state.item.clear();
+        Identifier current = table.current();
         Level level = table.getLevel();
         if (current == null || level == null) return;
-        AssemblyRecipe recipe = level.getRecipeManager().byKey(current)
-                .map(holder -> holder.value() instanceof AssemblyRecipe assembly ? assembly : null).orElse(null);
+        AssemblyRecipe recipe = ModRecipes.byId(level, current);
         if (recipe == null) return;
+        state.time = level.getGameTime() + partialTick;
+        state.itemLight = LevelRenderer.getLightCoords(level, table.getBlockPos().above());
+        items.updateForTopItem(state.item, recipe.result(), ItemDisplayContext.GROUND, level, null, 0);
+    }
 
-        float time = level.getGameTime() + partialTick;
+    @Override
+    public void submit(State state, PoseStack poseStack, SubmitNodeCollector collector, CameraRenderState camera) {
+        if (state.working) {
+            // The focus lit at full brightness, so a working table reads from across a dark room.
+            collector.submitBlockModel(poseStack, Sheets.cutoutBlockSheet(),
+                    List.of(Minecraft.getInstance().getModelManager().getStandaloneModel(GLOW)), new int[0],
+                    LightCoordsUtil.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, 0);
+        }
+        if (state.item.isEmpty()) return;
         poseStack.pushPose();
-        poseStack.translate(0.5, HEIGHT + (working ? Mth.sin(time * 0.1F) * 0.04F : 0), 0.5);
-        poseStack.mulPose(Axis.YP.rotationDegrees(working ? time * 2 : 0));
+        poseStack.translate(0.5, HEIGHT + (state.working ? Mth.sin(state.time * 0.1F) * 0.04F : 0), 0.5);
+        poseStack.mulPose(Axis.YP.rotationDegrees(state.working ? state.time * 2 : 0));
         poseStack.scale(SCALE, SCALE, SCALE);
-        items.renderStatic(recipe.getResultItem(level.registryAccess()), ItemDisplayContext.GROUND,
-                LevelRenderer.getLightColor(level, table.getBlockPos().above()), overlay, poseStack, buffers, level, 0);
+        state.item.submit(poseStack, collector, state.itemLight, OverlayTexture.NO_OVERLAY, 0);
         poseStack.popPose();
     }
 

@@ -132,3 +132,31 @@ lines), expect renames plus the recipe-access change above.
 
 `26.1` branches from `1.21.1` at 1.1.0. Fixes still go on `1.21.1` and are merged forward. `26.2`
 branches from `26.1` once it builds and runs, not before.
+
+## 7. What actually happened
+
+The port is done: 429 errors to zero, 7 unit tests and 11 GameTests green, every screen, both
+renderers, JEI and Jade checked in a client through `GuiPreview`. Items and energy were migrated to
+the transfer API, as recommended in §3.
+
+**Where the estimate was right.** `core/` came through on the `Identifier` rename alone. The screens
+were renames plus input events: no colour lacked its alpha. The renderers were the one rewrite.
+
+**What only running it showed** - none of it fails a build:
+
+- **`minecraft:chain` is `minecraft:iron_chain`** since 1.21.9. The four chainmail recipes failed to
+  load, with an error that only names the list that came out empty.
+- **Recipes reach a client only when asked for** since 1.21.2. The picker, Jade and JEI read them from
+  `ModRecipes`, which the server fills with `OnDatapackSyncEvent#sendRecipes` and the client with
+  `RecipesReceivedEvent`, at highest priority so it is there before JEI starts.
+- **Jade refuses a provider that is both server data and client component** (since 1.21.6): the
+  table's is two classes now.
+- **An ingredient is only a list without registry access.** A unit test that parses a recipe needs
+  `RegistryOps`; one that makes an `ItemStack` needs a world, since items get their components at
+  resource load - that test is a GameTest now.
+- **A `GameTestHelper` test is a registered function plus a `test_instance` file.** One
+  `TableGameTests#register` lists them; a test missing from either side does not run.
+
+**Kept compatible.** Block entities save under the 1.21.1 keys, items in the 1.21.1 layout
+(`ItemSlots`), energy under `energy`: a table or laser carried over from a 1.21.1 world keeps what it
+held. Datapacks are the exception: recipe ingredients changed format (see `docs/DATAPACKS.md`).

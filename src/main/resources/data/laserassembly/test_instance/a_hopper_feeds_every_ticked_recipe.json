@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:function",
+  "function": "laserassembly:a_hopper_feeds_every_ticked_recipe",
+  "environment": "minecraft:default",
+  "structure": "laserassembly:platform",
+  "max_ticks": 100
+}

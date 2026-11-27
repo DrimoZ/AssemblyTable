@@ -7,7 +7,7 @@ import dev.drimoz.laserassembly.content.table.Coolant;
 import dev.drimoz.laserassembly.registry.ModBlocks;
 import dev.drimoz.laserassembly.registry.ModItems;
 import dev.drimoz.laserassembly.registry.ModRecipes;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
@@ -27,8 +27,8 @@ public class LaserAssembly {
     public static final String MOD_ID = "laserassembly";
     public static final Logger LOGGER = LogUtils.getLogger();
 
-    public static ResourceLocation id(String path) {
-        return ResourceLocation.fromNamespaceAndPath(MOD_ID, path);
+    public static Identifier id(String path) {
+        return Identifier.fromNamespaceAndPath(MOD_ID, path);
     }
 
     public LaserAssembly(IEventBus modEventBus, ModContainer modContainer) {

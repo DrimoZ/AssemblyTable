@@ -1,9 +1,9 @@
 {
   "type": "laserassembly:assembling",
   "ingredients": [
-    { "ingredient": { "item": "minecraft:hopper" }, "count": 1 },
-    { "ingredient": { "item": "minecraft:iron_ingot" }, "count": 4 },
-    { "ingredient": { "item": "minecraft:glass_pane" }, "count": 3 }
+    { "ingredient": "minecraft:hopper", "count": 1 },
+    { "ingredient": "minecraft:iron_ingot", "count": 4 },
+    { "ingredient": "minecraft:glass_pane", "count": 3 }
   ],
   "result": { "id": "laserassembly:barrel_augment" },
   "steps": [
