@@ -1,5 +1,6 @@
 package dev.drimoz.laserassembly.content.laser;
 
+import dev.drimoz.laserassembly.LaserAssembly;
 import dev.drimoz.laserassembly.ServerConfig;
 import dev.drimoz.laserassembly.content.table.AssemblyTableBlock;
 import dev.drimoz.laserassembly.content.table.AssemblyTableBlockEntity;
@@ -318,7 +319,20 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
         return carried;
     }
 
-    /** One of the STATE_ constants: what it does, or why it holds fire. Synced, for the lasers tab. */
+    /** The lang key saying what {@code state} means: one wording for the laser's screen, the lasers tab and Jade. */
+    public static String stateKey(int state) {
+        return LaserAssembly.MOD_ID + ".laser." + switch (state) {
+            case STATE_FIRING -> "firing";
+            case STATE_HOLDING -> "holding";
+            case STATE_NO_POWER -> "no_power";
+            case STATE_TOO_WEAK -> "too_weak";
+            case STATE_TOO_STRONG -> "too_strong";
+            case STATE_WRONG_BEAM -> "wrong_beam";
+            default -> "no_target";
+        };
+    }
+
+    /** One of the STATE_ constants: what it does, or why it holds fire. Synced, for the lasers tab and Jade. */
     public int state() {
         return state;
     }

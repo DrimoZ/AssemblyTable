@@ -1,5 +1,6 @@
 {
   "config.jade.plugin_laserassembly.assembly_table": "Assembly Table",
+  "config.jade.plugin_laserassembly.laser": "Laser",
   "itemGroup.laserassembly": "Laser Assembly",
   "laserassembly.pack.vanilla_recipes": "Laser Assembly: vanilla recipes",
   "laserassembly.pack.vanilla_recipes.description": "Saddle, trident, chainmail, horse armour… on the assembly table",

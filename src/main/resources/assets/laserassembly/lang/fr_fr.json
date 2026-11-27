@@ -1,5 +1,6 @@
 {
   "config.jade.plugin_laserassembly.assembly_table": "Table d'assemblage",
+  "config.jade.plugin_laserassembly.laser": "Laser",
   "itemGroup.laserassembly": "Laser Assembly",
   "laserassembly.pack.vanilla_recipes": "Laser Assembly : recettes vanilla",
   "laserassembly.pack.vanilla_recipes.description": "Selle, trident, cotte de mailles, armures de cheval… à la table d'assemblage",

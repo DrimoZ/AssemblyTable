@@ -1,6 +1,9 @@
 package dev.drimoz.laserassembly.compat.jade;
 
 import dev.drimoz.laserassembly.LaserAssembly;
+import dev.drimoz.laserassembly.content.beam.BeamType;
+import dev.drimoz.laserassembly.content.laser.LaserBlock;
+import dev.drimoz.laserassembly.content.laser.LaserBlockEntity;
 import dev.drimoz.laserassembly.content.table.AssemblyTableBlock;
 import dev.drimoz.laserassembly.content.table.AssemblyTableBlockEntity;
 import dev.drimoz.laserassembly.recipe.AssemblyRecipe;
@@ -21,14 +24,16 @@ import snownee.jade.api.config.IPluginConfig;
 import snownee.jade.api.ui.IElementHelper;
 
 /**
- * The table at a glance: what it makes, which step, how far, how hot. Only Jade loads this class, so
- * the mod runs the same without it. The table already syncs which recipe runs; the figures that
- * change every tick come through Jade's own request while someone is looking.
+ * The table at a glance: what it makes, which step, how far, how hot; a laser, whether and what it
+ * fires. Only Jade loads this class, so the mod runs the same without it. The table already syncs
+ * which recipe runs; the figures that change every tick come through Jade's own request while
+ * someone is looking.
  */
 @WailaPlugin
 public final class JadePlugin implements IWailaPlugin {
 
     private static final ResourceLocation UID = ResourceLocation.fromNamespaceAndPath(LaserAssembly.MOD_ID, "assembly_table");
+    private static final ResourceLocation LASER_UID = ResourceLocation.fromNamespaceAndPath(LaserAssembly.MOD_ID, "laser");
 
     @Override
     public void register(IWailaCommonRegistration registration) {
@@ -38,6 +43,39 @@ public final class JadePlugin implements IWailaPlugin {
     @Override
     public void registerClient(IWailaClientRegistration registration) {
         registration.registerBlockComponent(Table.INSTANCE, AssemblyTableBlock.class);
+        registration.registerBlockComponent(Laser.INSTANCE, LaserBlock.class);
+    }
+
+    /**
+     * A laser at a glance: whether it fires, and if not why; its intensity; its beam, in colour. All
+     * of it already reaches the client with the laser's own sync, so no server data is asked for.
+     */
+    private enum Laser implements IBlockComponentProvider {
+        INSTANCE;
+
+        @Override
+        public void appendTooltip(ITooltip tooltip, BlockAccessor accessor, IPluginConfig config) {
+            if (!(accessor.getBlockEntity() instanceof LaserBlockEntity laser)) return;
+            int state = laser.target() == null ? LaserBlockEntity.STATE_NO_TARGET : laser.state();
+            ChatFormatting colour = state == LaserBlockEntity.STATE_FIRING ? ChatFormatting.GREEN
+                    : state == LaserBlockEntity.STATE_HOLDING || state == LaserBlockEntity.STATE_NO_TARGET ? ChatFormatting.GRAY : ChatFormatting.RED;
+            tooltip.add(Component.translatable(LaserBlockEntity.stateKey(state)).withStyle(colour));
+            tooltip.add(laser.regulated() ? text("tab.lasers.auto", laser.intensity())
+                    : text("laser.intensity", laser.intensity(), LaserBlockEntity.MAX_INTENSITY));
+            ResourceLocation beam = laser.beam();
+            if (beam == null) {
+                tooltip.add(text("beam.raw").withStyle(ChatFormatting.GRAY));
+            } else {
+                int rgb = accessor.getLevel().registryAccess().registry(BeamType.REGISTRY)
+                        .map(registry -> registry.get(beam)).map(type -> type.color().getValue()).orElse(0xAAAAAA);
+                tooltip.add(BeamType.name(beam).copy().withColor(rgb));
+            }
+        }
+
+        @Override
+        public ResourceLocation getUid() {
+            return LASER_UID;
+        }
     }
 
     private enum Table implements IBlockComponentProvider, IServerDataProvider<BlockAccessor> {

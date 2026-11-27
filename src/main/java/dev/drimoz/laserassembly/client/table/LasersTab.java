@@ -140,7 +140,7 @@ final class LasersTab extends SideTab {
             LaserBlockEntity laser = laser(lasers.get(row));
             if (laser != null) {
                 BlockPos pos = laser.getBlockPos();
-                List<Component> lines = new ArrayList<>(List.of(text("laser." + stateKey(laser.state()))));
+                List<Component> lines = new ArrayList<>(List.of(Component.translatable(LaserBlockEntity.stateKey(laser.state()))));
                 for (ResourceLocation lens : laser.lenses()) lines.add(Component.literal("■ ").withColor(0xFF000000 | BeamColors.rgb(lens)).append(BeamType.name(lens)));
                 if (laser.lenses().isEmpty()) lines.add(text("beam.raw"));
                 int distance = (int) Math.round(Math.sqrt(pos.distSqr(menu.table().getBlockPos())));
@@ -158,18 +158,6 @@ final class LasersTab extends SideTab {
             case LaserBlockEntity.STATE_HOLDING -> GuiTheme.Status.WAITING;
             case LaserBlockEntity.STATE_TOO_WEAK, LaserBlockEntity.STATE_TOO_STRONG, LaserBlockEntity.STATE_WRONG_BEAM -> GuiTheme.Status.BLOCKED;
             default -> GuiTheme.Status.PROBLEM;
-        };
-    }
-
-    private static String stateKey(int state) {
-        return switch (state) {
-            case LaserBlockEntity.STATE_FIRING -> "firing";
-            case LaserBlockEntity.STATE_HOLDING -> "holding";
-            case LaserBlockEntity.STATE_NO_POWER -> "no_power";
-            case LaserBlockEntity.STATE_TOO_WEAK -> "too_weak";
-            case LaserBlockEntity.STATE_TOO_STRONG -> "too_strong";
-            case LaserBlockEntity.STATE_WRONG_BEAM -> "wrong_beam";
-            default -> "no_target";
         };
     }
 

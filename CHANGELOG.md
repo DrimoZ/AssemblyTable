@@ -26,6 +26,7 @@ Versions follow `{mod version}+{game version}`.
 - The table no longer has a `powered` block state: it read its own signal already.
 
 ### Added
+- Jade shows a laser too: whether it fires and, if not, why; its intensity; its beam, in colour.
 - A config screen under Mods, with every server setting named and explained.
 - Lenses say which beam they fire, in its colour.
 - A [datapack reference](docs/DATAPACKS.md): every field of recipes, beam types, augments and

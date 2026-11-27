@@ -83,14 +83,7 @@ public class LaserScreen extends AbstractContainerScreen<LaserMenu> {
         graphics.drawString(font, beam == null ? text("beam.raw") : BeamType.name(beam), TEXT_X, GuiMetrics.row(1) + 5, GuiTheme.TEXT_MUTED, false);
 
         BlockPos target = menu.laser().target();
-        Component state = target == null ? text("laser.no_target") : switch (menu.data(DATA_STATE)) {
-            case STATE_FIRING -> text("laser.firing");
-            case STATE_NO_POWER -> text("laser.no_power");
-            case STATE_TOO_WEAK -> text("laser.too_weak");
-            case STATE_TOO_STRONG -> text("laser.too_strong");
-            case STATE_WRONG_BEAM -> text("laser.wrong_beam");
-            default -> text("laser.holding");
-        };
+        Component state = Component.translatable(stateKey(target == null ? STATE_NO_TARGET : menu.data(DATA_STATE)));
         graphics.drawString(font, state, TEXT_X, GuiMetrics.row(2) + 5, GuiTheme.TEXT_MUTED, false);
     }
 
