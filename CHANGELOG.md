@@ -16,8 +16,10 @@ Versions follow `{mod version}+{game version}`.
   and each recipe it disables is named once, instead of a warning on every inventory change.
 
 ### Changed
-- Redrawn lens and augment icons: lenses look like glass in a ring, the Regulator shows sliders,
-  the Barrel its three lenses, Efficiency a lightning bolt, and the tier lights are easier to see.
+- Redrawn icons: lenses look like glass in a ring; augments are modules with a glowing symbol on
+  a dark screen - sliders for the Regulator, the three lenses for the Barrel, chevrons for Range,
+  a lightning bolt for Efficiency - and their tier as cyan lights.
+- A laser's outline and hitbox fit the laser, not the whole block.
 - New look for the blocks, in AE2's spirit and hand-painted: the table is a low machine, 12
   pixels high, with a cyan energy band and a fluix crystal sunk into its top, where the beams now
   land; the laser stands on a plinth, a turret and a lit collar. The logo and store art follow.

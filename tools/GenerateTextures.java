@@ -2,17 +2,14 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.util.Map;
 
 /**
- * Generates the item textures and the laser's glow, in Portable Beacons' way: drawn by code, so a
- * colour or a proportion is changed here and every texture follows.
+ * Generates the lenses and the laser's glow: a lens is a disc of glass in its beam's colour, which
+ * code shades more evenly than a hand could.
  *
- * <p>Not the blocks: their faces are painted by hand, pixel by pixel, and the PNGs are the source.
- * Computed panels and discs looked soft and flat beside AE2's and Create's machines.
- *
- * <p>The augments are drawn in FactoryIO's module family - a dark casing round a screen - so an
- * augment reads as a part you fit into something.
+ * <p>Not the blocks nor the augments: those are painted by hand, pixel by pixel, in AE2's spirit,
+ * and the PNGs are the source. Computed panels and screens looked soft and flat beside AE2's and
+ * Create's machines.
  *
  * <pre>java tools/GenerateTextures.java</pre>
  */
@@ -50,7 +47,7 @@ public final class GenerateTextures {
     // ------------------------------------------------------------------ items
 
     /*
-     * One texture per item, its colour baked in: each lens and augment is its own item, so it has
+     * One texture per lens, its colour baked in: each lens is its own item, so it has
      * its own texture, and an item a pack adds brings its own. The colours are the datapack
      * entries' - kept in step by hand, they change rarely.
      */
@@ -59,14 +56,6 @@ public final class GenerateTextures {
         lens("cut_lens", 0xFF8C1A);
         lens("weld_lens", 0x3C8CFF);
         lens("engrave_lens", 0x3CE05A);
-
-        augment("regulator_augment", 0xE8D44A, 0, "regulator");
-        // Darker than the others: the three lens colours sit on it, and a pale screen washed them out.
-        augment("barrel_augment", 0x6E6E8C, 0, "barrel");
-        augment("range_augment_1", 0x4AC8E8, 1, "range");
-        augment("range_augment_2", 0x2A8CD8, 2, "range");
-        augment("efficiency_augment_1", 0x6AD86A, 1, "efficiency");
-        augment("efficiency_augment_2", 0x2EA84A, 2, "efficiency");
     }
 
     /**
@@ -95,76 +84,6 @@ public final class GenerateTextures {
         for (int[] p : new int[][]{{4, 7}, {4, 6}, {5, 5}, {6, 4}, {7, 4}}) set(image, p[0], p[1], shade(0xFFFFFF, 0.97));
         set(image, 5, 6, shade(colour, 1.6));
         set(image, 10, 10, shade(colour, 1.5));
-        write("item/" + name, image);
-    }
-
-    private static final String[] CASING = {
-            "................",
-            "..kkkkkkkkkkkk..",
-            ".kLLLLLLLLLLLLk.",
-            ".kLKKKKKKKKKKDk.",
-            ".kLK........KDk.",
-            ".kLK........KDk.",
-            ".kLK........KDk.",
-            ".kLK........KDk.",
-            ".kLK........KDk.",
-            ".kLK........KDk.",
-            ".kLKKKKKKKKKKDk.",
-            ".kDDDDDDDDDDDDk.",
-            ".kDD11DDDD22DDk.",
-            ".kSSSSSSSSSSSSk.",
-            "..kkkkkkkkkkkk..",
-            "................"};
-
-    /**
-     * 8x6 glyphs on the screen: shape carries the meaning, so two close colours stay apart. {@code w}
-     * is white; {@code o}, {@code b}, {@code g} are the three lenses' own colours; see {@link #GLYPH_COLOURS}.
-     */
-    private static final Map<String, String[]> GLYPHS = Map.of(
-            // Two mixer sliders at different settings: it sets its own intensity. The gauge it
-            // replaced read as a scribble at 16 pixels.
-            "regulator", new String[]{".d....d.", "www...d.", "www...d.", ".d...www", ".d...www", ".d....d."},
-            // The three lenses, in their colours, as a revolver's chambers: it carries more lenses.
-            "barrel", new String[]{"...oo...", "...oo...", "........", ".bb..gg.", ".bb..gg.", "........"},
-            // Double chevron: reaches further.
-            "range", new String[]{"ww..ww..", ".ww..ww.", "..ww..ww", ".ww..ww.", "ww..ww..", "........"},
-            // A lightning bolt: the energy it saves. The arrow down it replaced said "less" of nothing.
-            "efficiency", new String[]{"...ww...", "..ww....", ".wwwwww.", "....ww..", "...ww...", "..w....."});
-
-    /** {@code d} is a slider's dark track, under its white knob. */
-    private static final Map<Character, Integer> GLYPH_COLOURS = Map.of(
-            'w', 0xFFFFFF, 'd', 0x2A2614, 'o', 0xFF8C1A, 'b', 0x3C8CFF, 'g', 0x3CE05A);
-
-    /**
-     * FactoryIO's module: a dark casing round a screen in the augment's colour, lit from the top,
-     * a white glyph on it, and tier pips along the foot - lit for each tier, so Range I and II differ
-     * by more than a shade. The screen is the colour's mid-tones: a full colour drowned the glyph.
-     */
-    private static void augment(String name, int colour, int tier, String glyph) throws IOException {
-        BufferedImage image = blank();
-        for (int y = 0; y < 16; y++) {
-            for (int x = 0; x < 16; x++) {
-                int rgb = switch (CASING[y].charAt(x)) {
-                    case 'k' -> 0x1B1B1B;
-                    case 'L' -> 0x6A6A6A;
-                    case 'D' -> 0x3E3E3E;
-                    case 'S' -> 0x2A2A2A;
-                    case 'K' -> 0x101010;
-                    case '1' -> tier >= 1 ? 0xF7D44A : 0x262626;
-                    case '2' -> tier >= 2 ? 0xF7D44A : 0x262626;
-                    default -> -1;
-                };
-                if (rgb >= 0) set(image, x, y, rgb);
-            }
-        }
-        double[] rows = {0.71, 0.63, 0.59, 0.55, 0.51, 0.47};
-        String[] art = GLYPHS.get(glyph);
-        for (int y = 0; y < rows.length; y++) {
-            for (int x = 0; x < 8; x++) {
-                Integer ink = GLYPH_COLOURS.get(art[y].charAt(x));
-                set(image, 4 + x, 4 + y, ink != null ? ink : shade(colour, rows[y] * 1.4));
-            }
-        }
         write("item/" + name, image);
     }
 

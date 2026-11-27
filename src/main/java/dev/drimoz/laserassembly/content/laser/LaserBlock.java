@@ -20,14 +20,36 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.EnumMap;
+import java.util.Map;
 
 public class LaserBlock extends BaseEntityBlock {
 
     public static final MapCodec<LaserBlock> CODEC = simpleCodec(LaserBlock::new);
     /** Where it fires: away from the face it was placed on. */
     public static final DirectionProperty FACING = BlockStateProperties.FACING;
+    /**
+     * The base and the head's reach, one pixel in from the sides, by where the laser fires: a full
+     * cube's outline floated round a laser that fills a quarter of it.
+     */
+    private static final Map<Direction, VoxelShape> SHAPES = new EnumMap<>(Map.of(
+            Direction.UP, Block.box(1, 0, 1, 15, 15, 15),
+            Direction.DOWN, Block.box(1, 1, 1, 15, 16, 15),
+            Direction.NORTH, Block.box(1, 1, 1, 15, 15, 16),
+            Direction.SOUTH, Block.box(1, 1, 0, 15, 15, 15),
+            Direction.WEST, Block.box(1, 1, 1, 16, 15, 15),
+            Direction.EAST, Block.box(0, 1, 1, 15, 15, 15)));
+
+    @Override
+    protected VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+        return SHAPES.get(state.getValue(FACING));
+    }
 
     public LaserBlock(Properties properties) {
         super(properties);
