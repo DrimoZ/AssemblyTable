@@ -8,7 +8,7 @@ import java.util.Map;
  * Generates the block and item textures, in Portable Beacons' way: drawn by code, so a colour or a
  * proportion is changed here and every texture follows.
  *
- * <p>Both blocks share one steel panel - dark rim, light bevel top-left, shadow bottom-right - so
+ * <p>Both blocks share one steel panel - outline, lit top and left, dark bottom and right - so
  * the table and its lasers read as one machine. What sets each face apart is drawn on the panel:
  * the table's focus, where the beams meet; the laser's socket; vents on the sides. What moves or
  * lights up - the laser's head, the focus at work - is drawn by the renderers over these.
@@ -27,19 +27,11 @@ public final class GenerateTextures {
     private static final int BEVEL_LIGHT = 0x9AA3AE;
     private static final int SHADOW = 0x3A4048;
     private static final int PLATE = 0x5E6670;
-    private static final int PLATE_LIGHT = 0x666E79;
     private static final int PLATE_DARK = 0x4A515A;
-    private static final int PLATE_MID = 0x58606A;
-    /** The lower and right lip of a recess, catching the light. */
-    private static final int GROOVE_LIGHT = 0x78818C;
-    private static final int PANEL_LIGHT = 0x464C55;
     private static final int DARK = 0x1A1C20;
-    private static final int SLIT = 0x16181C;
-    private static final int FOOT = 0x23262B;
-    private static final int BOLT = 0xC6CED6;
-    /** The copper band every block of the mod wears: the table, the laser's base and its head. */
-    private static final int COPPER = 0xB87333;
-    private static final int COPPER_DARK = 0x7A4A22;
+    /** The copper band every block of the mod wears: the table, the laser's base and its head. Same as {@link #STEEL}'s. */
+    private static final int COPPER = 0xD08A45;
+    private static final int COPPER_DARK = 0x8E5426;
 
     public static void main(String[] args) throws IOException {
         new File(ROOT + "block").mkdirs();
@@ -47,11 +39,11 @@ public final class GenerateTextures {
 
         write("block/assembly_table_top", tableTop());
         write("block/assembly_table_side", tableSide());
-        write("block/assembly_table_bottom", bolted(panel()));
+        write("block/assembly_table_bottom", panel());
         write("block/assembly_table_glow", tableGlow());
         write("block/laser_top", laserTop());
         write("block/laser_side", laserSide());
-        write("block/laser_bottom", bolted(panel()));
+        write("block/laser_bottom", panel());
         write("block/laser_head", laserHead());
         write("block/laser_glow", laserGlow());
 
@@ -61,139 +53,168 @@ public final class GenerateTextures {
 
     // ------------------------------------------------------------------ blocks
 
-    /**
-     * Steel with a light bevel top-left and a shadow bottom-right, and an inner plate set into it: a
-     * groove dark on its lit sides and light on the others, so the face has a frame and a depth
-     * rather than one flat sheet.
+    /*
+     * Portable Beacons' way: each face is ASCII art over a palette, flat, three tones per material -
+     * a lit edge, the body, a dark edge - and the round parts are drawn by hand, pixel by pixel. The
+     * computed discs and the scattered grain they replaced looked soft beside the mods' other blocks.
      */
-    private static BufferedImage panel() {
-        BufferedImage image = blank();
-        for (int y = 0; y < 16; y++)
-            for (int x = 0; x < 16; x++) set(image, x, y, metal(x, y));
-        fill(image, 0, 0, 16, 1, RIM);
-        fill(image, 0, 15, 16, 1, RIM);
-        fill(image, 0, 0, 1, 16, RIM);
-        fill(image, 15, 0, 1, 16, RIM);
-        fill(image, 1, 1, 14, 1, BEVEL);
-        fill(image, 1, 1, 1, 14, BEVEL);
-        fill(image, 1, 14, 14, 1, SHADOW);
-        fill(image, 14, 1, 1, 14, SHADOW);
-        fill(image, 3, 3, 10, 1, PLATE_DARK);
-        fill(image, 3, 3, 1, 10, PLATE_DARK);
-        fill(image, 3, 12, 10, 1, GROOVE_LIGHT);
-        fill(image, 12, 4, 1, 9, GROOVE_LIGHT);
-        return image;
-    }
 
-    /**
-     * Brushed steel: the plate's colour, here and there a shade lighter or darker, scattered by a
-     * hash. The regular dot pattern it replaced read as a printed grid, not as metal.
-     */
-    private static int metal(int x, int y) {
-        int h = x * 374761393 + y * 668265263;
-        h = (h ^ (h >>> 13)) * 1274126177;
-        h ^= h >>> 16;
-        return switch (Math.floorMod(h, 9)) {
-            case 0, 1 -> PLATE_LIGHT;
-            case 2 -> PLATE_MID;
-            default -> PLATE;
-        };
-    }
+    private static final Map<Character, Integer> STEEL = Map.ofEntries(
+            Map.entry('k', 0x24272D),   // outline
+            Map.entry('H', 0x9AA3AE),   // lit edge
+            Map.entry('M', 0x646C77),   // body
+            Map.entry('d', 0x474D56),   // dark edge
+            Map.entry('b', 0xD0D7DE),   // bolt
+            Map.entry('c', 0xD08A45),   // copper, lit
+            Map.entry('C', 0x8E5426),   // copper, dark
+            Map.entry('v', 0x121417),   // vent slit
+            Map.entry('l', 0x7A838E),   // vent lip, catching the light
+            Map.entry('x', 0x1C1E22),   // foot
+            Map.entry('o', 0x17191D),   // dark well
+            Map.entry('f', 0x4A3420),   // the focus, unlit
+            Map.entry('F', 0x5E4228));  // its heart, unlit
 
-    /** A ring between two radii, lit top-left and shaded bottom-right, like every bevel of the mod. */
-    private static void ring(BufferedImage image, double outer, double inner, int lit, int shaded) {
-        for (int y = 0; y < 16; y++) {
-            for (int x = 0; x < 16; x++) {
-                double d = distance(x, y);
-                if (d <= outer && d > inner) set(image, x, y, x + y < 15 ? lit : shaded);
-            }
-        }
-    }
-
-    private static BufferedImage bolted(BufferedImage image) {
-        for (int x : new int[]{2, 13}) {
-            for (int y : new int[]{2, 13}) set(image, x, y, BOLT);
-        }
-        return image;
-    }
+    /** A bolted steel plate: outline, lit top and left, dark bottom and right, a bolt in each corner. */
+    private static final String[] PANEL = {
+            "kkkkkkkkkkkkkkkk",
+            "kHHHHHHHHHHHHHHk",
+            "kHbMMMMMMMMMMbdk",
+            "kHMMMMMMMMMMMMdk",
+            "kHMMMMMMMMMMMMdk",
+            "kHMMMMMMMMMMMMdk",
+            "kHMMMMMMMMMMMMdk",
+            "kHMMMMMMMMMMMMdk",
+            "kHMMMMMMMMMMMMdk",
+            "kHMMMMMMMMMMMMdk",
+            "kHMMMMMMMMMMMMdk",
+            "kHMMMMMMMMMMMMdk",
+            "kHMMMMMMMMMMMMdk",
+            "kHbMMMMMMMMMMbdk",
+            "kddddddddddddddk",
+            "kkkkkkkkkkkkkkkk"};
 
     /**
-     * The focus at the centre, where every beam meets: a steel bezel with four copper marks, one per
-     * side a laser fires from, round a dark well. Dim: it lights up through the glow.
+     * The table's focus, 10x10 at the panel's centre: a copper ring - {@code r}, lit top-left and dark
+     * bottom-right - round a dark well, the focus in it. Dim: it lights up through the glow.
      */
-    private static BufferedImage tableTop() {
-        BufferedImage image = bolted(panel());
-        disc(image, 5.0, RIM);
-        ring(image, 4.6, 3.9, BEVEL_LIGHT, SHADOW);
-        for (int[] p : new int[][]{{7, 3}, {8, 3}, {3, 7}, {3, 8}, {12, 7}, {12, 8}, {7, 12}, {8, 12}}) {
-            set(image, p[0], p[1], p[0] + p[1] < 15 ? COPPER : COPPER_DARK);
-        }
-        disc(image, 3.9, DARK);
-        disc(image, 3.3, 0x3A2A1C);
-        disc(image, 2.4, 0x4A3420);
-        disc(image, 1.5, 0x5A3E22);
-        return image;
-    }
+    private static final String[] FOCUS = {
+            "..kkkkkk..",
+            ".krrrrrrk.",
+            "krroooorrk",
+            "kroffffork",
+            "krofFFfork",
+            "krofFFfork",
+            "kroffffork",
+            "krroooorrk",
+            ".krrrrrrk.",
+            "..kkkkkk.."};
 
-    /** The focus lit, drawn over the top at full brightness while the table works; clear elsewhere. */
-    private static BufferedImage tableGlow() {
-        BufferedImage image = blank();
-        disc(image, 3.3, 0x7A4416);
-        disc(image, 2.4, 0xE8862A);
-        disc(image, 1.5, 0xFFD27A);
-        disc(image, 0.8, 0xFFF4D6);
-        return image;
-    }
+    /** The laser's socket: the same ring round an empty well, where the head turns. */
+    private static final String[] SOCKET = {
+            "..kkkkkk..",
+            ".krrrrrrk.",
+            "krroooorrk",
+            "kroooooork",
+            "kroooooork",
+            "kroooooork",
+            "kroooooork",
+            "krroooorrk",
+            ".krrrrrrk.",
+            "..kkkkkk.."};
+
+    /** The focus lit, over the top at full brightness while the table works; clear elsewhere. */
+    private static final Map<Character, Integer> GLOW = Map.of('o', 0x6A3A12, 'f', 0xE8862A, 'F', 0xFFE7A8);
 
     /**
-     * A workbench's apron, top to bottom: a lit edge, a bolted plate, the copper band the laser shares,
-     * a dark vented panel, a foot.
+     * A workbench's apron, top to bottom: a bolted plate, the copper band every block of the mod
+     * wears, a vented panel, a foot.
      */
-    private static BufferedImage tableSide() {
-        BufferedImage image = blank();
-        fill(image, 0, 0, 16, 16, SHADOW);
-        fill(image, 0, 0, 16, 1, BEVEL_LIGHT);
-        for (int y = 1; y <= 3; y++)
-            for (int x = 0; x < 16; x++) set(image, x, y, metal(x, y));
-        set(image, 2, 2, BOLT);
-        set(image, 13, 2, BOLT);
-        fill(image, 0, 4, 16, 1, COPPER);
-        fill(image, 0, 5, 16, 1, COPPER_DARK);
-        for (int y = 7; y <= 11; y += 2) {
-            fill(image, 3, y, 10, 1, SLIT);
-            fill(image, 3, y + 1, 10, 1, PANEL_LIGHT);
-        }
-        fill(image, 0, 13, 16, 1, PLATE_DARK);
-        fill(image, 0, 14, 16, 1, RIM);
-        fill(image, 0, 15, 16, 1, FOOT);
-        fill(image, 0, 0, 1, 16, RIM);
-        fill(image, 15, 0, 1, 16, RIM);
-        return image;
-    }
-
-    /** The base's top: the socket the head turns in, a copper race inside a steel bezel. */
-    private static BufferedImage laserTop() {
-        BufferedImage image = bolted(panel());
-        disc(image, 5.0, RIM);
-        ring(image, 4.6, 3.9, BEVEL_LIGHT, SHADOW);
-        ring(image, 3.9, 3.2, COPPER, COPPER_DARK);
-        disc(image, 3.2, DARK);
-        return image;
-    }
+    private static final String[] TABLE_SIDE = {
+            "kHHHHHHHHHHHHHHk",
+            "kMbMMMMMMMMMMbMk",
+            "kMMMMMMMMMMMMMMk",
+            "kddddddddddddddk",
+            "cccccccccccccccc",
+            "CCCCCCCCCCCCCCCC",
+            "kddddddddddddddk",
+            "kddvvvvvvvvvvddk",
+            "kddllllllllllddk",
+            "kddvvvvvvvvvvddk",
+            "kddllllllllllddk",
+            "kddvvvvvvvvvvddk",
+            "kddllllllllllddk",
+            "kddddddddddddddk",
+            "kkkkkkkkkkkkkkkk",
+            "xxxxxxxxxxxxxxxx"};
 
     /** The base is 7 high: its sides read rows 9 to 15 - the lit edge, the copper band, vents, the foot. */
+    private static final String[] LASER_SIDE = {
+            "kddddddddddddddk",
+            "kddddddddddddddk",
+            "kddddddddddddddk",
+            "kddddddddddddddk",
+            "kddddddddddddddk",
+            "kddddddddddddddk",
+            "kddddddddddddddk",
+            "kddddddddddddddk",
+            "kddddddddddddddk",
+            "kHHHHHHHHHHHHHHk",
+            "kMbMMMMMMMMMMbMk",
+            "cccccccccccccccc",
+            "CCCCCCCCCCCCCCCC",
+            "kddvdvdvdvdvdddk",
+            "kkkkkkkkkkkkkkkk",
+            "xxxxxxxxxxxxxxxx"};
+
+    private static BufferedImage panel() {
+        return ascii(PANEL, STEEL);
+    }
+
+    private static BufferedImage tableTop() {
+        return overlay(panel(), FOCUS, STEEL);
+    }
+
+    private static BufferedImage tableGlow() {
+        return overlay(blank(), FOCUS, GLOW);
+    }
+
+    private static BufferedImage tableSide() {
+        return ascii(TABLE_SIDE, STEEL);
+    }
+
+    private static BufferedImage laserTop() {
+        return overlay(panel(), SOCKET, STEEL);
+    }
+
     private static BufferedImage laserSide() {
-        BufferedImage image = blank();
-        fill(image, 0, 0, 16, 16, SHADOW);
-        fill(image, 0, 9, 16, 1, BEVEL_LIGHT);
-        fill(image, 0, 10, 16, 1, PLATE);
-        fill(image, 0, 11, 16, 1, COPPER);
-        fill(image, 0, 12, 16, 1, COPPER_DARK);
-        for (int x = 3; x <= 12; x += 2) fill(image, x, 13, 1, 1, SLIT);
-        fill(image, 0, 14, 16, 1, RIM);
-        fill(image, 0, 15, 16, 1, FOOT);
-        fill(image, 0, 0, 1, 16, RIM);
-        fill(image, 15, 0, 1, 16, RIM);
+        return ascii(LASER_SIDE, STEEL);
+    }
+
+    /** A 16x16 face from its rows; {@code .} is left clear. Refuses a row of the wrong width or an unknown letter. */
+    private static BufferedImage ascii(String[] rows, Map<Character, Integer> palette) {
+        if (rows.length != 16) throw new IllegalArgumentException(rows.length + " rows");
+        return overlay(blank(), rows, palette);
+    }
+
+    /**
+     * {@code art} centred on {@code image}. {@code r} is the copper ring, lit on the top-left half of
+     * the face and dark on the other, like every bevel of the mod; a letter the palette lacks is
+     * skipped, which is how the glow keeps only the focus.
+     */
+    private static BufferedImage overlay(BufferedImage image, String[] art, Map<Character, Integer> palette) {
+        int size = art.length, at = (16 - size) / 2;
+        for (int y = 0; y < size; y++) {
+            if (art[y].length() != size) throw new IllegalArgumentException("row " + y + " is " + art[y].length() + " wide");
+            for (int x = 0; x < size; x++) {
+                char ch = art[y].charAt(x);
+                if (ch == '.') continue;
+                int px = at + x, py = at + y;
+                if (ch == 'r') ch = px + py < 15 ? 'c' : 'C';
+                Integer rgb = palette.get(ch);
+                if (rgb != null) set(image, px, py, rgb);
+                else if (palette == STEEL) throw new IllegalArgumentException("unknown colour '" + ch + "' in row " + y);
+            }
+        }
         return image;
     }
 
@@ -367,14 +388,6 @@ public final class GenerateTextures {
         return Math.hypot(x - 7.5, y - 7.5);
     }
 
-    /** A disc centred on the face, so rings are drawn largest first. */
-    private static void disc(BufferedImage image, double radius, int rgb) {
-        for (int y = 0; y < 16; y++) {
-            for (int x = 0; x < 16; x++) {
-                if (distance(x, y) <= radius) set(image, x, y, rgb);
-            }
-        }
-    }
 
     private static BufferedImage blank() {
         return new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
