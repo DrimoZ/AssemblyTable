@@ -66,8 +66,8 @@ public final class GenerateLogo {
         cy = SIZE / 2.0 + 106;
 
         // Where the beams land, as in the game: the middle of the table's top.
-        double[] focus = {0, 16.2, 0};
-        glow(g, project(0, 16, 0), 260, new Color(0xFFB050), 60);
+        double[] focus = {0, 12.2, 0};
+        glow(g, project(0, 12, 0), 260, new Color(0x5CE1FF), 60);
         shadow(g);
 
         // Three lasers about two blocks away, back to front, each head turned to the table.
@@ -76,12 +76,12 @@ public final class GenerateLogo {
         double[][] tips = new double[3][];
         for (int i = 0; i < 3; i++) tips[i] = laser(g, lasers[i][0], lasers[i][1], focus, laserTop, laserSide, head, beams[i]);
 
-        box(g, -8, 0, -8, 8, 16, 8, (face, u, v) -> new Color(face == 0 ? tableTop.getRGB(u, v) : tableSide.getRGB(u, v)));
+        table(g, tableTop, tableSide);
         for (int i = 0; i < 3; i++) beam(g, tips[i], focus, beams[i]);
 
         // The light where they meet.
         double[] at = project(focus[0], focus[1], focus[2]);
-        glow(g, at, 110, new Color(0xFFA040), 120);
+        glow(g, at, 110, new Color(0xB47CFF), 120);
         glow(g, at, 26, Color.WHITE, 200);
         sparkle(g, at, 3);
 
@@ -101,19 +101,42 @@ public final class GenerateLogo {
     }
 
     /**
-     * The laser block as the game builds and turns it: the base 7 high, the head 6 wide on its pivot,
-     * leaning towards {@code target} as far as the renderer lets it, 50 degrees, and the nozzle lit in
-     * its beam's colour. Returns the nozzle's tip, where the beam leaves.
+     * The table as assembly_table.json builds it, each part reading its own region of the sheets: the
+     * plinth, the body set in by one, the crown round the sunken plate, the crystal. Drawn back to
+     * front: the crown's back bars, the plate and crystal, then its front bars.
+     */
+    private static void table(Graphics2D g, BufferedImage top, BufferedImage side) {
+        box(g, -8, 0, -8, 8, 2, 8, (face, u, v) -> new Color(face == 0 ? top.getRGB(u, v) : side.getRGB(u, 14 + v)));
+        box(g, -7, 2, -7, 7, 10, 7, (face, u, v) -> new Color(face == 0 ? top.getRGB(1 + u, 1 + v) : side.getRGB(1 + u, 6 + v)));
+        box(g, -8, 10, -8, 8, 12, -5, (face, u, v) -> new Color(face == 0 ? top.getRGB(u, v) : side.getRGB(u, 4 + v)));
+        box(g, -8, 10, -5, -5, 12, 5, (face, u, v) -> new Color(face == 0 ? top.getRGB(u, 3 + v) : side.getRGB(u, 4 + v)));
+        box(g, -5, 10, -5, 5, 11, 5, (face, u, v) -> new Color(top.getRGB(3 + u, 3 + v)));
+        box(g, -2, 11, -2, 2, 12, 2, (face, u, v) -> new Color(face == 0 ? top.getRGB(6 + u, 6 + v) : side.getRGB(6 + u, 3)));
+        box(g, 5, 10, -5, 8, 12, 5, (face, u, v) -> new Color(face == 0 ? top.getRGB(13 + u, 3 + v) : side.getRGB(u, 4 + v)));
+        box(g, -8, 10, 5, 8, 12, 8, (face, u, v) -> new Color(face == 0 ? top.getRGB(u, 13 + v) : side.getRGB(u, 4 + v)));
+    }
+
+    /**
+     * The laser block as the game builds and turns it: plinth, turret and lit collar 7 high, then the
+     * head on its pivot - body, band, barrel, muzzle - leaning towards {@code target} as far as the
+     * renderer lets it, 50 degrees, the muzzle lit in its beam's colour. Returns the muzzle's tip,
+     * where the beam leaves.
      */
     private static double[] laser(Graphics2D g, double x, double z, double[] target, BufferedImage top, BufferedImage side,
                                   BufferedImage head, int beam) {
-        box(g, x - 8, 0, z - 8, x + 8, 7, z + 8, (face, u, v) -> new Color(face == 0 ? top.getRGB(u, v) : side.getRGB(u, 9 + v)));
+        box(g, x - 7, 0, z - 7, x + 7, 2, z + 7, (face, u, v) -> new Color(face == 0 ? top.getRGB(1 + u, 1 + v) : side.getRGB(1 + u, 14 + v)));
+        box(g, x - 4, 2, z - 4, x + 4, 6, z + 4, (face, u, v) -> new Color(face == 0 ? top.getRGB(4 + u, 4 + v) : side.getRGB(4 + u, 10 + v)));
+        box(g, x - 5, 6, z - 5, x + 5, 7, z + 5, (face, u, v) -> new Color(face == 0 ? top.getRGB(3 + u, 3 + v) : side.getRGB(3 + u, 9)));
         double[] pivot = {x, 10, z};
         aim(pivot, target);
-        box(g, x - 3, 7, z - 3, x + 3, 13, z + 3, (face, u, v) -> new Color(face == 0 ? head.getRGB(6 + u, v) : head.getRGB(u, v)));
-        box(g, x - 2, 13, z - 2, x + 2, 15, z + 2, (face, u, v) -> face == 0
+        // The body in two, round its band: drawn whole, the band's top painted over the body above it.
+        box(g, x - 3, 7, z - 3, x + 3, 9, z + 3, (face, u, v) -> new Color(head.getRGB(u, 3 + v)));
+        box(g, x - 4, 9, z - 4, x + 4, 10, z + 4, (face, u, v) -> new Color(face == 0 ? head.getRGB(u, 8 + v) : head.getRGB(u, 6)));
+        box(g, x - 3, 10, z - 3, x + 3, 12, z + 3, (face, u, v) -> new Color(face == 0 ? head.getRGB(6 + u, v) : head.getRGB(u, v)));
+        box(g, x - 1, 12, z - 1, x + 1, 14, z + 1, (face, u, v) -> new Color(head.getRGB(12 + u, v)));
+        box(g, x - 2, 14, z - 2, x + 2, 15, z + 2, (face, u, v) -> face == 0
                 ? (u >= 1 && u <= 2 && v >= 1 && v <= 2 ? Color.WHITE : new Color(beam))
-                : new Color(head.getRGB(u, 6 + v)));
+                : new Color(head.getRGB(8 + u, 6)));
         double[] tip = turn(x, 15, z);
         rotation = null;
         glow(g, project(tip[0], tip[1], tip[2]), 34, new Color(beam), 200);

@@ -1,6 +1,7 @@
 package dev.drimoz.laserassembly.content.laser;
 
 import dev.drimoz.laserassembly.ServerConfig;
+import dev.drimoz.laserassembly.content.table.AssemblyTableBlock;
 import dev.drimoz.laserassembly.content.table.AssemblyTableBlockEntity;
 import dev.drimoz.laserassembly.content.beam.BeamType;
 import dev.drimoz.laserassembly.core.Step;
@@ -462,9 +463,9 @@ public class LaserBlockEntity extends BlockEntity implements MenuProvider {
         return Vec3.atCenterOf(worldPosition).add(facing.getStepX() * 0.51, facing.getStepY() * 0.51, facing.getStepZ() * 0.51);
     }
 
-    /** The middle of the table's top: where the assembly sits. */
+    /** The table's crystal, the middle of its top: where the assembly sits. */
     public static Vec3 beamEnd(BlockPos table) {
-        return new Vec3(table.getX() + 0.5, table.getY() + 1.0, table.getZ() + 0.5);
+        return new Vec3(table.getX() + 0.5, table.getY() + AssemblyTableBlock.TOP, table.getZ() + 0.5);
     }
 
     // Menu: buttons 0 and 1 step the intensity down and up.

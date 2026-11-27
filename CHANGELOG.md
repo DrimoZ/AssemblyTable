@@ -18,8 +18,9 @@ Versions follow `{mod version}+{game version}`.
 ### Changed
 - Redrawn lens and augment icons: lenses look like glass in a ring, the Regulator shows sliders,
   the Barrel its three lenses, Efficiency a lightning bolt, and the tier lights are easier to see.
-- Restyled blocks, drawn pixel by pixel like Portable Beacons': flat steel in three tones, a
-  copper ring round the table's focus and in the laser's socket. The logo follows.
+- New look for the blocks, in AE2's spirit and hand-painted: the table is a low machine, 12
+  pixels high, with a cyan energy band and a fluix crystal sunk into its top, where the beams now
+  land; the laser stands on a plinth, a turret and a lit collar. The logo and store art follow.
 - The table no longer has a `powered` block state: it read its own signal already.
 
 ### Added

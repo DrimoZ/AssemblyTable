@@ -5,13 +5,11 @@ import java.io.IOException;
 import java.util.Map;
 
 /**
- * Generates the block and item textures, in Portable Beacons' way: drawn by code, so a colour or a
- * proportion is changed here and every texture follows.
+ * Generates the item textures and the laser's glow, in Portable Beacons' way: drawn by code, so a
+ * colour or a proportion is changed here and every texture follows.
  *
- * <p>Both blocks share one steel panel - outline, lit top and left, dark bottom and right - so
- * the table and its lasers read as one machine. What sets each face apart is drawn on the panel:
- * the table's focus, where the beams meet; the laser's socket; vents on the sides. What moves or
- * lights up - the laser's head, the focus at work - is drawn by the renderers over these.
+ * <p>Not the blocks: their faces are painted by hand, pixel by pixel, and the PNGs are the source.
+ * Computed panels and discs looked soft and flat beside AE2's and Create's machines.
  *
  * <p>The augments are drawn in FactoryIO's module family - a dark casing round a screen - so an
  * augment reads as a part you fit into something.
@@ -22,223 +20,19 @@ public final class GenerateTextures {
 
     private static final String ROOT = "src/main/resources/assets/laserassembly/textures/";
 
-    private static final int RIM = 0x2C3038;
-    private static final int BEVEL = 0x8A939E;
-    private static final int BEVEL_LIGHT = 0x9AA3AE;
-    private static final int SHADOW = 0x3A4048;
-    private static final int PLATE = 0x5E6670;
-    private static final int PLATE_DARK = 0x4A515A;
-    private static final int DARK = 0x1A1C20;
-    /** The copper band every block of the mod wears: the table, the laser's base and its head. Same as {@link #STEEL}'s. */
-    private static final int COPPER = 0xD08A45;
-    private static final int COPPER_DARK = 0x8E5426;
+    /** The lenses' ring, in the blocks' gunmetal. */
+    private static final int RIM = 0x15161C;
+    private static final int BEVEL_LIGHT = 0x5C6278;
+    private static final int PLATE_DARK = 0x2E3240;
 
     public static void main(String[] args) throws IOException {
         new File(ROOT + "block").mkdirs();
         new File(ROOT + "item").mkdirs();
 
-        write("block/assembly_table_top", tableTop());
-        write("block/assembly_table_side", tableSide());
-        write("block/assembly_table_bottom", panel());
-        write("block/assembly_table_glow", tableGlow());
-        write("block/laser_top", laserTop());
-        write("block/laser_side", laserSide());
-        write("block/laser_bottom", panel());
-        write("block/laser_head", laserHead());
         write("block/laser_glow", laserGlow());
 
         writeItems();
         System.out.println("Textures written.");
-    }
-
-    // ------------------------------------------------------------------ blocks
-
-    /*
-     * Portable Beacons' way: each face is ASCII art over a palette, flat, three tones per material -
-     * a lit edge, the body, a dark edge - and the round parts are drawn by hand, pixel by pixel. The
-     * computed discs and the scattered grain they replaced looked soft beside the mods' other blocks.
-     */
-
-    private static final Map<Character, Integer> STEEL = Map.ofEntries(
-            Map.entry('k', 0x24272D),   // outline
-            Map.entry('H', 0x9AA3AE),   // lit edge
-            Map.entry('M', 0x646C77),   // body
-            Map.entry('d', 0x474D56),   // dark edge
-            Map.entry('b', 0xD0D7DE),   // bolt
-            Map.entry('c', 0xD08A45),   // copper, lit
-            Map.entry('C', 0x8E5426),   // copper, dark
-            Map.entry('v', 0x121417),   // vent slit
-            Map.entry('l', 0x7A838E),   // vent lip, catching the light
-            Map.entry('x', 0x1C1E22),   // foot
-            Map.entry('o', 0x17191D),   // dark well
-            Map.entry('f', 0x4A3420),   // the focus, unlit
-            Map.entry('F', 0x5E4228));  // its heart, unlit
-
-    /** A bolted steel plate: outline, lit top and left, dark bottom and right, a bolt in each corner. */
-    private static final String[] PANEL = {
-            "kkkkkkkkkkkkkkkk",
-            "kHHHHHHHHHHHHHHk",
-            "kHbMMMMMMMMMMbdk",
-            "kHMMMMMMMMMMMMdk",
-            "kHMMMMMMMMMMMMdk",
-            "kHMMMMMMMMMMMMdk",
-            "kHMMMMMMMMMMMMdk",
-            "kHMMMMMMMMMMMMdk",
-            "kHMMMMMMMMMMMMdk",
-            "kHMMMMMMMMMMMMdk",
-            "kHMMMMMMMMMMMMdk",
-            "kHMMMMMMMMMMMMdk",
-            "kHMMMMMMMMMMMMdk",
-            "kHbMMMMMMMMMMbdk",
-            "kddddddddddddddk",
-            "kkkkkkkkkkkkkkkk"};
-
-    /**
-     * The table's focus, 10x10 at the panel's centre: a copper ring - {@code r}, lit top-left and dark
-     * bottom-right - round a dark well, the focus in it. Dim: it lights up through the glow.
-     */
-    private static final String[] FOCUS = {
-            "..kkkkkk..",
-            ".krrrrrrk.",
-            "krroooorrk",
-            "kroffffork",
-            "krofFFfork",
-            "krofFFfork",
-            "kroffffork",
-            "krroooorrk",
-            ".krrrrrrk.",
-            "..kkkkkk.."};
-
-    /** The laser's socket: the same ring round an empty well, where the head turns. */
-    private static final String[] SOCKET = {
-            "..kkkkkk..",
-            ".krrrrrrk.",
-            "krroooorrk",
-            "kroooooork",
-            "kroooooork",
-            "kroooooork",
-            "kroooooork",
-            "krroooorrk",
-            ".krrrrrrk.",
-            "..kkkkkk.."};
-
-    /** The focus lit, over the top at full brightness while the table works; clear elsewhere. */
-    private static final Map<Character, Integer> GLOW = Map.of('o', 0x6A3A12, 'f', 0xE8862A, 'F', 0xFFE7A8);
-
-    /**
-     * A workbench's apron, top to bottom: a bolted plate, the copper band every block of the mod
-     * wears, a vented panel, a foot.
-     */
-    private static final String[] TABLE_SIDE = {
-            "kHHHHHHHHHHHHHHk",
-            "kMbMMMMMMMMMMbMk",
-            "kMMMMMMMMMMMMMMk",
-            "kddddddddddddddk",
-            "cccccccccccccccc",
-            "CCCCCCCCCCCCCCCC",
-            "kddddddddddddddk",
-            "kddvvvvvvvvvvddk",
-            "kddllllllllllddk",
-            "kddvvvvvvvvvvddk",
-            "kddllllllllllddk",
-            "kddvvvvvvvvvvddk",
-            "kddllllllllllddk",
-            "kddddddddddddddk",
-            "kkkkkkkkkkkkkkkk",
-            "xxxxxxxxxxxxxxxx"};
-
-    /** The base is 7 high: its sides read rows 9 to 15 - the lit edge, the copper band, vents, the foot. */
-    private static final String[] LASER_SIDE = {
-            "kddddddddddddddk",
-            "kddddddddddddddk",
-            "kddddddddddddddk",
-            "kddddddddddddddk",
-            "kddddddddddddddk",
-            "kddddddddddddddk",
-            "kddddddddddddddk",
-            "kddddddddddddddk",
-            "kddddddddddddddk",
-            "kHHHHHHHHHHHHHHk",
-            "kMbMMMMMMMMMMbMk",
-            "cccccccccccccccc",
-            "CCCCCCCCCCCCCCCC",
-            "kddvdvdvdvdvdddk",
-            "kkkkkkkkkkkkkkkk",
-            "xxxxxxxxxxxxxxxx"};
-
-    private static BufferedImage panel() {
-        return ascii(PANEL, STEEL);
-    }
-
-    private static BufferedImage tableTop() {
-        return overlay(panel(), FOCUS, STEEL);
-    }
-
-    private static BufferedImage tableGlow() {
-        return overlay(blank(), FOCUS, GLOW);
-    }
-
-    private static BufferedImage tableSide() {
-        return ascii(TABLE_SIDE, STEEL);
-    }
-
-    private static BufferedImage laserTop() {
-        return overlay(panel(), SOCKET, STEEL);
-    }
-
-    private static BufferedImage laserSide() {
-        return ascii(LASER_SIDE, STEEL);
-    }
-
-    /** A 16x16 face from its rows; {@code .} is left clear. Refuses a row of the wrong width or an unknown letter. */
-    private static BufferedImage ascii(String[] rows, Map<Character, Integer> palette) {
-        if (rows.length != 16) throw new IllegalArgumentException(rows.length + " rows");
-        return overlay(blank(), rows, palette);
-    }
-
-    /**
-     * {@code art} centred on {@code image}. {@code r} is the copper ring, lit on the top-left half of
-     * the face and dark on the other, like every bevel of the mod; a letter the palette lacks is
-     * skipped, which is how the glow keeps only the focus.
-     */
-    private static BufferedImage overlay(BufferedImage image, String[] art, Map<Character, Integer> palette) {
-        int size = art.length, at = (16 - size) / 2;
-        for (int y = 0; y < size; y++) {
-            if (art[y].length() != size) throw new IllegalArgumentException("row " + y + " is " + art[y].length() + " wide");
-            for (int x = 0; x < size; x++) {
-                char ch = art[y].charAt(x);
-                if (ch == '.') continue;
-                int px = at + x, py = at + y;
-                if (ch == 'r') ch = px + py < 15 ? 'c' : 'C';
-                Integer rgb = palette.get(ch);
-                if (rgb != null) set(image, px, py, rgb);
-                else if (palette == STEEL) throw new IllegalArgumentException("unknown colour '" + ch + "' in row " + y);
-            }
-        }
-        return image;
-    }
-
-    /**
-     * The head, read by UV region: body side (0,0) 6x6 with a copper band, body cap (6,0) 6x6,
-     * nozzle side (0,6) 4x2, nozzle tip (4,6) 4x4 - dark, the glow is drawn over it when firing.
-     */
-    private static BufferedImage laserHead() {
-        BufferedImage image = blank();
-        fill(image, 0, 0, 6, 6, SHADOW);
-        fill(image, 0, 0, 6, 1, BEVEL_LIGHT);
-        fill(image, 0, 1, 6, 1, PLATE);
-        fill(image, 0, 2, 6, 1, COPPER);
-        fill(image, 0, 3, 6, 1, COPPER_DARK);
-        fill(image, 0, 5, 6, 1, RIM);
-        fill(image, 6, 0, 6, 6, RIM);
-        fill(image, 7, 1, 4, 4, PLATE);
-        fill(image, 7, 1, 4, 1, BEVEL);
-        fill(image, 8, 2, 2, 2, DARK);
-        fill(image, 0, 6, 4, 2, DARK);
-        fill(image, 0, 6, 4, 1, SHADOW);
-        fill(image, 4, 6, 4, 4, SHADOW);
-        fill(image, 5, 7, 2, 2, DARK);
-        return image;
     }
 
     /** Greyscale, white at the heart: tinted with the beam's colour, so the heart stays hot. */
@@ -397,11 +191,6 @@ public final class GenerateTextures {
         image.setRGB(x, y, 0xFF000000 | rgb);
     }
 
-    private static void fill(BufferedImage image, int x, int y, int w, int h, int rgb) {
-        for (int px = x; px < x + w; px++) {
-            for (int py = y; py < y + h; py++) set(image, px, py, rgb);
-        }
-    }
 
     private static void write(String name, BufferedImage image) throws IOException {
         ImageIO.write(image, "PNG", new File(ROOT + name + ".png"));

@@ -3,6 +3,7 @@ package dev.drimoz.laserassembly.client.table;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import dev.drimoz.laserassembly.LaserAssembly;
+import dev.drimoz.laserassembly.content.table.AssemblyTableBlock;
 import dev.drimoz.laserassembly.content.table.AssemblyTableBlockEntity;
 import dev.drimoz.laserassembly.recipe.AssemblyRecipe;
 import net.minecraft.client.Minecraft;
@@ -34,7 +35,7 @@ public class AssemblyTableRenderer implements BlockEntityRenderer<AssemblyTableB
     public static final ModelResourceLocation GLOW = ModelResourceLocation.standalone(LaserAssembly.id("block/assembly_table_glow"));
 
     /** Just above the plate, where the beams meet. */
-    private static final float HEIGHT = 1.3F;
+    private static final float HEIGHT = (float) AssemblyTableBlock.TOP + 0.3F;
     private static final float SCALE = 0.55F;
 
     private final ItemRenderer items;

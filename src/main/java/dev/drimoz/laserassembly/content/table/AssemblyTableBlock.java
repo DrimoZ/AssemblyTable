@@ -6,6 +6,9 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.VoxelShape;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BaseEntityBlock;
 import net.minecraft.world.level.block.Block;
@@ -19,6 +22,15 @@ import org.jetbrains.annotations.Nullable;
 public class AssemblyTableBlock extends BaseEntityBlock {
 
     public static final MapCodec<AssemblyTableBlock> CODEC = simpleCodec(AssemblyTableBlock::new);
+    /** The top of the crystal, in blocks: where the beams land and the assembly floats over. */
+    public static final double TOP = 12 / 16.0;
+    /** Low and wide, like an enchanting table: a cube read as a cage. */
+    private static final VoxelShape SHAPE = Block.box(0, 0, 0, 16, 12, 16);
+
+    @Override
+    protected VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+        return SHAPE;
+    }
 
     public AssemblyTableBlock(Properties properties) {
         super(properties);

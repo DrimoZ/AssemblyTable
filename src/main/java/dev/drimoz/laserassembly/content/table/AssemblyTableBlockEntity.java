@@ -241,7 +241,7 @@ public class AssemblyTableBlockEntity extends BlockEntity implements MenuProvide
     /** Once per craft, from the server: a burst over the plate and a chime. Not a timer. */
     private void finished() {
         if (!(level instanceof ServerLevel server)) return;
-        double x = worldPosition.getX() + 0.5, y = worldPosition.getY() + 1.3, z = worldPosition.getZ() + 0.5;
+        double x = worldPosition.getX() + 0.5, y = worldPosition.getY() + AssemblyTableBlock.TOP + 0.3, z = worldPosition.getZ() + 0.5;
         server.sendParticles(ParticleTypes.END_ROD, x, y, z, 12, 0.15, 0.1, 0.15, 0.04);
         server.playSound(null, worldPosition, SoundEvents.AMETHYST_CLUSTER_PLACE, SoundSource.BLOCKS, 0.7f, 1.4f);
     }
